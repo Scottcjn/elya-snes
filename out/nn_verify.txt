@@ -1,0 +1,7 @@
+weights   /home/scott/elya-snes/model/dense_exact_s1.npz
+seed tok  1   generated 19
+host      [1, 4, 2, 0, 20, 18, 33, 0, 44, 18, 0, 8, 3, 58, 29, 24, 49, 26, 2, 0]
+rom       [1, 4, 2, 0, 20, 18, 33, 0, 44, 18, 0, 8, 3, 58, 29, 24, 49, 26, 2, 0]
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)

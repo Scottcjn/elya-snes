@@ -8,14 +8,16 @@ of two are handled, which is all we build.
 """
 import sys
 
-CHKCOMP = 0x7FDC  # file offset of $00:FFDC in a 32 KiB LoROM image
+CHKCOMP = 0x7FDC  # file offset of $00:FFDC in any LoROM image
 CHKSUM = 0x7FDE
 
 
 def main(path: str) -> int:
     data = bytearray(open(path, "rb").read())
-    if len(data) != 0x8000:
-        print(f"fixhdr: expected a 32768-byte image, got {len(data)}", file=sys.stderr)
+    n = len(data)
+    if n < 0x8000 or n & (n - 1):
+        print(f"fixhdr: expected a power-of-two image >= 32 KiB, got {n}",
+              file=sys.stderr)
         return 1
 
     data[CHKCOMP:CHKCOMP + 2] = b"\xff\xff"
