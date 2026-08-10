@@ -1,0 +1,4 @@
+out/_blank.sfc
+out/*.o
+out/*.lst
+__pycache__/

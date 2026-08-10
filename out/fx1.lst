@@ -163,59 +163,66 @@ Current file: rom/fx1.s
 000074r 1  40           irq:    rti
 000075r 1               
 000075r 1               gsu_hello:
-000075r 1  F1 00 01 F0          .incbin "gsu/hello.bin"
-000079r 1  EF BE B0 31  
-00007Dr 1  F1 02 01 F0  
-000095r 1               
-000095r 1               ; ---------------------------------------------------------------------------
-000095r 1                       .segment "FXCODE"
+000075r 1  F0 00 00 B0          .incbin "gsu/hello.bin"
+000079r 1  3E DF F1 00  
+00007Dr 1  01 F0 EF BE  
+0000F5r 1               
+0000F5r 1               ; ---------------------------------------------------------------------------
+0000F5r 1                       .segment "FXCODE"
 000000r 1               ; Runs from WRAM.  $10 holds the GSU entry address.
 000000r 1               .proc fx_run
+000000r 1                       ; $10 = GSU entry address.  Returns:
+000000r 1                       ;   $12 = poll iterations, $14 = SFR, $16 = R15, $18 = R0, $1A = R1,
+000000r 1                       ;   $1C = timeout marker ($0000 ok, $DEAD gave up)
 000000r 1  E2 20                sep #$20
 000002r 1                       .a8
-000002r 1  9C 34 30             stz PBR                 ; GSU program bank = $00
-000005r 1  A9 30                lda #$30                ; SCMR: bit4 RAN=1, bit5 RON=1 -> GSU owns both
-000007r 1  8D 3A 30             sta SCMR
-00000Ar 1  C2 20                rep #$20
-00000Cr 1                       .a16
-00000Cr 1  A5 10                lda $10
-00000Er 1  8D 1E 30             sta R15                 ; writing R15 high byte sets GO
-000011r 1                       ; bounded poll: a hang here tells us nothing, a timeout plus a register
-000011r 1                       ; dump tells us where the GSU actually went
-000011r 1  A2 00 00             ldx #$0000
-000014r 1  E2 20        :       sep #$20
-000016r 1                       .a8
-000016r 1  AD 30 30             lda SFR
-000019r 1  29 20                and #$20
-00001Br 1  C2 20                rep #$20
-00001Dr 1                       .a16
-00001Dr 1  F0 03                beq done
-00001Fr 1  E8                   inx
-000020r 1  D0 F2                bne :-
-000022r 1               done:
-000022r 1  86 12                stx $12                 ; poll iterations used ($0000 = stopped at once)
-000024r 1  AD 30 30             lda SFR
-000027r 1  85 14                sta $14
-000029r 1  AD 1E 30             lda R15
-00002Cr 1  85 16                sta $16
-00002Er 1  AD 00 30             lda $3000
-000031r 1  85 18                sta $18
-000033r 1  AD 02 30             lda $3002
-000036r 1  85 1A                sta $1A
-000038r 1  AD 3E 30             lda $303E
-00003Br 1  85 1C                sta $1C
-00003Dr 1  E2 20                sep #$20
-00003Fr 1                       .a8
-00003Fr 1  9C 3A 30             stz SCMR                ; hand ROM and RAM back to the CPU
-000042r 1  C2 30                rep #$30
-000044r 1                       .a16
-000044r 1                       .i16
-000044r 1  60                   rts
-000045r 1               .endproc
-000045r 1               
-000045r 1  45 4C 59 41          SNES_HEADER "ELYA SNES FX BRINGUP ", $20, $15, $05, $05
-000049r 1  20 53 4E 45  
-00004Dr 1  53 20 46 58  
+000002r 1  9C 37 30             stz $3037               ; CFGR: do not mask the STOP interrupt
+000005r 1  9C 34 30             stz PBR                 ; GSU program bank = $00
+000008r 1  A9 18                lda #$18                ; SCMR: bit3 RAN=1, bit4 RON=1 -> GSU owns both
+00000Ar 1  8D 3A 30             sta SCMR
+00000Dr 1  AD 31 30             lda SFR+1               ; reading the SFR high byte clears a latched
+000010r 1                                               ; IRQ; without this the first poll can see a
+000010r 1                                               ; stale flag and tear SCMR away mid-run
+000010r 1  C2 20                rep #$20
+000012r 1                       .a16
+000012r 1  A9 00 00             lda #$0000
+000015r 1  85 1C                sta $1C
+000017r 1  A5 10                lda $10
+000019r 1  8D 1E 30             sta R15                 ; writing the R15 high byte sets GO
+00001Cr 1               
+00001Cr 1  A2 00 00             ldx #$0000
+00001Fr 1  E2 20        :       sep #$20
+000021r 1                       .a8
+000021r 1  AD 31 30             lda SFR+1               ; bit 7 = IRQ, latched by the GSU's STOP
+000024r 1  C2 20                rep #$20
+000026r 1                       .a16
+000026r 1  30 08                bmi fin
+000028r 1  E8                   inx
+000029r 1  D0 F4                bne :-
+00002Br 1  A9 AD DE             lda #$DEAD
+00002Er 1  85 1C                sta $1C
+000030r 1               fin:
+000030r 1  86 12                stx $12
+000032r 1  AD 30 30             lda SFR
+000035r 1  85 14                sta $14
+000037r 1  AD 1E 30             lda R15
+00003Ar 1  85 16                sta $16
+00003Cr 1  AD 00 30             lda $3000
+00003Fr 1  85 18                sta $18
+000041r 1  AD 02 30             lda $3002
+000044r 1  85 1A                sta $1A
+000046r 1  E2 20                sep #$20
+000048r 1                       .a8
+000048r 1  9C 3A 30             stz SCMR                ; hand ROM and RAM back to the CPU
+00004Br 1  C2 30                rep #$30
+00004Dr 1                       .a16
+00004Dr 1                       .i16
+00004Dr 1  60                   rts
+00004Er 1               .endproc
+00004Er 1               
+00004Er 1  45 4C 59 41          SNES_HEADER "ELYA SNES FX BRINGUP ", $20, $15, $05, $05
+000052r 1  20 53 4E 45  
+000056r 1  53 20 46 58  
 000020r 1  00 00 00 00          SNES_VECTORS reset, nmi, irq
 000024r 1  00 00 00 00  
 000028r 1  00 00 rr rr  

@@ -1,7 +1,7 @@
 Modules list:
 -------------
 fx1.o:
-    CODE              Offs=000000  Size=000095  Align=00001  Fill=0000
+    CODE              Offs=000000  Size=0000F5  Align=00001  Fill=0000
     FXCODE            Offs=000000  Size=00004E  Align=00001  Fill=0000
     SNESHDR           Offs=000000  Size=000020  Align=00001  Fill=0000
     VECTORS           Offs=000000  Size=000020  Align=00001  Fill=0000
@@ -12,7 +12,7 @@ Segment list:
 Name                   Start     End    Size  Align
 ----------------------------------------------------
 FXCODE                000300  00034D  00004E  00001
-CODE                  008000  008094  000095  00001
+CODE                  008000  0080F4  0000F5  00001
 SNESHDR               00FFC0  00FFDF  000020  00001
 VECTORS               00FFE0  00FFFF  000020  00001
 
