@@ -1,7 +1,7 @@
 Modules list:
 -------------
 bench.o:
-    CODE              Offs=000000  Size=001844  Align=00001  Fill=0000
+    CODE              Offs=000000  Size=001AEC  Align=00001  Fill=0000
     RODATA            Offs=000000  Size=0010FE  Align=00100  Fill=0000
     SNESHDR           Offs=000000  Size=000020  Align=00001  Fill=0000
     VECTORS           Offs=000000  Size=000020  Align=00001  Fill=0000
@@ -11,8 +11,8 @@ Segment list:
 -------------
 Name                   Start     End    Size  Align
 ----------------------------------------------------
-CODE                  008000  009843  001844  00001
-RODATA                009900  00A9FD  0010FE  00100
+CODE                  008000  009AEB  001AEC  00001
+RODATA                009B00  00ABFD  0010FE  00100
 SNESHDR               00FFC0  00FFDF  000020  00001
 VECTORS               00FFE0  00FFFF  000020  00001
 

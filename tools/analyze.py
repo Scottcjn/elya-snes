@@ -53,6 +53,7 @@ SLOTS = [
     ("ppu-m7 (screen on)", 8, NELEM),
     ("dsp1-bus-floor", 4, NELEM), ("dsp1-bus-floor", 2, NELEM),
     ("dsp1-bus+status", 4, NELEM), ("dsp1-bus+status", 2, NELEM),
+    ("dsp1-bus+cmd+status", 2, NELEM), ("dsp1-bus+cmd+status", 1, NELEM),
 ]
 
 # Hand-derived CPU master clocks per body, from the W65C816S timing tables and
@@ -88,8 +89,8 @@ EXPECT = {"softmul": 0x6D38, "qsquare": 0x6D38, "cpuhw": 0x6D38,
           "ternary": 0xFF6D}
 
 ORDER = ["softmul", "qsquare", "cpuhw", "cpuhw-packed", "ppu-m7-naive",
-         "ppu-m7", "ppu-m7 (screen on)", "dsp1-bus+status", "dsp1-bus-floor",
-         "ternary"]
+         "ppu-m7", "ppu-m7 (screen on)", "dsp1-bus+cmd+status",
+         "dsp1-bus+status", "dsp1-bus-floor", "ternary"]
 
 
 def u16(b, o):

@@ -207,11 +207,16 @@ UNROLL  = 16
 ; $30:8000 -- a "slow" 8-master-clock address like any other cart address.
 ;
 ; The DSP-1 firmware is not available on this machine, so what is measured here
-; is the CPU-side transfer sequence alone: no command byte (the DSP-1 repeats
-; its last command when fed bare parameters), no RQM polling loop, and no DSP
-; execution time.  That makes it a hard LOWER BOUND on the real cost, not the
-; real cost.  Access timing on the 65816 is decided by the address, not by
-; whether a chip answers, so the cycle counts are exact even with no DSP fitted.
+; is the CPU-side transfer sequence alone: no RQM polling loop and no DSP
+; execution time.  That makes these hard LOWER BOUNDS, not the real cost.
+; Access timing on the 65816 is decided by the address, not by whether a chip
+; answers, so the cycle counts are exact even with no DSP fitted.
+;
+; Three variants are measured because one thing could not be verified from the
+; documentation: whether the DSP-1 remembers its last command and will accept
+; bare parameters for a repeat.  The SNESdev wiki does not say.  So the command
+; byte is measured both omitted (optimistic floor) and written per MAC
+; (conservative floor), and the truth is inside that bracket.
 .macro B_DSP1_FLOOR j
         lda WHI + (j*2), y      ; multiplicand
         sta f:$308000           ; -> DR
@@ -238,6 +243,25 @@ UNROLL  = 16
 .endmacro
 
 ; ===========================================================================
+; command byte written per MAC, plus the status read: the conservative floor
+.macro B_DSP1_FULL j
+        sep #$20
+        .a8
+        lda #$00                ; op $00 = 16x16 multiply
+        sta f:$308000
+        rep #$20
+        .a16
+        lda WHI + (j*2), y
+        sta f:$308000
+        lda XHI + (j*2), y
+        sta f:$308000
+        lda f:$30C000           ; SR
+        lda f:$308000           ; product
+        clc
+        adc ACC
+        sta ACC
+.endmacro
+
 ; ===========================================================================
 ; loop skeleton
 ; ===========================================================================
@@ -418,6 +442,8 @@ halt:   bra halt
         SLOT t_dsp1floor, 2, 24
         SLOT t_dsp1sr,    4, 25
         SLOT t_dsp1sr,    2, 26
+        SLOT t_dsp1full,  2, 27
+        SLOT t_dsp1full,  1, 28
         rts
 .endproc
 
@@ -712,6 +738,16 @@ outer:  ldy #$0000
 inner:
         .repeat ::UNROLL, J
         B_DSP1_SR J
+        .endrepeat
+        TTAIL 2
+.endproc
+
+.proc t_dsp1full
+        THEAD
+outer:  ldy #$0000
+inner:
+        .repeat ::UNROLL, J
+        B_DSP1_FULL J
         .endrepeat
         TTAIL 2
 .endproc

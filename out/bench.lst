@@ -284,11 +284,16 @@ Current file: rom/bench.s
 000000r 1               ; $30:8000 -- a "slow" 8-master-clock address like any other cart address.
 000000r 1               ;
 000000r 1               ; The DSP-1 firmware is not available on this machine, so what is measured here
-000000r 1               ; is the CPU-side transfer sequence alone: no command byte (the DSP-1 repeats
-000000r 1               ; its last command when fed bare parameters), no RQM polling loop, and no DSP
-000000r 1               ; execution time.  That makes it a hard LOWER BOUND on the real cost, not the
-000000r 1               ; real cost.  Access timing on the 65816 is decided by the address, not by
-000000r 1               ; whether a chip answers, so the cycle counts are exact even with no DSP fitted.
+000000r 1               ; is the CPU-side transfer sequence alone: no RQM polling loop and no DSP
+000000r 1               ; execution time.  That makes these hard LOWER BOUNDS, not the real cost.
+000000r 1               ; Access timing on the 65816 is decided by the address, not by whether a chip
+000000r 1               ; answers, so the cycle counts are exact even with no DSP fitted.
+000000r 1               ;
+000000r 1               ; Three variants are measured because one thing could not be verified from the
+000000r 1               ; documentation: whether the DSP-1 remembers its last command and will accept
+000000r 1               ; bare parameters for a repeat.  The SNESdev wiki does not say.  So the command
+000000r 1               ; byte is measured both omitted (optimistic floor) and written per MAC
+000000r 1               ; (conservative floor), and the truth is inside that bracket.
 000000r 1               .macro B_DSP1_FLOOR j
 000000r 1                       lda WHI + (j*2), y      ; multiplicand
 000000r 1                       sta f:$308000           ; -> DR
@@ -315,6 +320,25 @@ Current file: rom/bench.s
 000000r 1               .endmacro
 000000r 1               
 000000r 1               ; ===========================================================================
+000000r 1               ; command byte written per MAC, plus the status read: the conservative floor
+000000r 1               .macro B_DSP1_FULL j
+000000r 1                       sep #$20
+000000r 1                       .a8
+000000r 1                       lda #$00                ; op $00 = 16x16 multiply
+000000r 1                       sta f:$308000
+000000r 1                       rep #$20
+000000r 1                       .a16
+000000r 1                       lda WHI + (j*2), y
+000000r 1                       sta f:$308000
+000000r 1                       lda XHI + (j*2), y
+000000r 1                       sta f:$308000
+000000r 1                       lda f:$30C000           ; SR
+000000r 1                       lda f:$308000           ; product
+000000r 1                       clc
+000000r 1                       adc ACC
+000000r 1                       sta ACC
+000000r 1               .endmacro
+000000r 1               
 000000r 1               ; ===========================================================================
 000000r 1               ; loop skeleton
 000000r 1               ; ===========================================================================
@@ -549,422 +573,444 @@ Current file: rom/bench.s
 0002E0r 1  A9 02 00 85          SLOT t_dsp1sr,    2, 26
 0002E4r 1  0E 20 rr rr  
 0002E8r 1  20 rr rr 20  
-0002F7r 1  60                   rts
-0002F8r 1               .endproc
-0002F8r 1               
-0002F8r 1               .proc screen_on
-0002F8r 1  E2 20                sep #$20
-0002FAr 1                       .a8
-0002FAr 1  A9 01                lda #$01
-0002FCr 1  8D 2C 21             sta $212C               ; BG1 on the main screen
-0002FFr 1  A9 0F                lda #$0F
-000301r 1  8D 00 21             sta INIDISP             ; screen on, full brightness
-000304r 1  C2 30                rep #$30
-000306r 1                       .a16
-000306r 1                       .i16
-000306r 1  60                   rts
-000307r 1               .endproc
-000307r 1               
-000307r 1               .proc screen_off
-000307r 1  E2 20                sep #$20
-000309r 1                       .a8
-000309r 1  9C 2C 21             stz $212C
-00030Cr 1  A9 8F                lda #$8F
-00030Er 1  8D 00 21             sta INIDISP
-000311r 1  C2 30                rep #$30
-000313r 1                       .a16
-000313r 1                       .i16
-000313r 1  60                   rts
-000314r 1               .endproc
-000314r 1               
-000314r 1               ; ===========================================================================
-000314r 1               ; correctness: one pass of each primitive, accumulator written to SRAM
-000314r 1               ; ===========================================================================
-000314r 1               .macro VSLOT sub, idx
-000314r 1                       lda #1
-000314r 1                       sta NOUT
-000314r 1                       jsr sub
-000314r 1                       lda ACC
-000314r 1                       ldx #(idx*2)
-000314r 1                       jsr store_acc
-000314r 1               .endmacro
-000314r 1               
-000314r 1               .proc run_verify
-000314r 1  A9 01 00 85          VSLOT t_softmul,  0
-000318r 1  0E 20 rr rr  
-00031Cr 1  A5 06 A2 00  
-000324r 1  A9 01 00 85          VSLOT t_qsquare,  1
-000328r 1  0E 20 rr rr  
-00032Cr 1  A5 06 A2 02  
-000334r 1  A9 01 00 85          VSLOT t_cpuhw,    2
-000338r 1  0E 20 rr rr  
-00033Cr 1  A5 06 A2 04  
-000344r 1  A9 01 00 85          VSLOT t_cpuhwpk,  3
-000348r 1  0E 20 rr rr  
-00034Cr 1  A5 06 A2 06  
-000354r 1  A9 01 00 85          VSLOT t_ppu,      4
-000358r 1  0E 20 rr rr  
-00035Cr 1  A5 06 A2 08  
-000364r 1  A9 01 00 85          VSLOT t_ppunaive, 5
-000368r 1  0E 20 rr rr  
-00036Cr 1  A5 06 A2 0A  
-000374r 1  A9 01 00 85          VSLOT t_ternary,  6
-000378r 1  0E 20 rr rr  
-00037Cr 1  A5 06 A2 0C  
-000384r 1  60                   rts
-000385r 1               .endproc
-000385r 1               
-000385r 1               ; store 16-bit A at SRAM+$0200+X
-000385r 1               .proc store_acc
-000385r 1  9F 00 02 70          sta f:SRAM+$0200, x
-000389r 1  60                   rts
-00038Ar 1               .endproc
-00038Ar 1               
-00038Ar 1               ; ===========================================================================
-00038Ar 1               ; instrument
-00038Ar 1               ; ===========================================================================
-00038Ar 1               
-00038Ar 1               ; read the V counter into A (16-bit)
-00038Ar 1               .proc read_v16
-00038Ar 1  E2 20                sep #$20
-00038Cr 1                       .a8
-00038Cr 1  AD 37 21             lda SLHV                ; latch H and V
-00038Fr 1  AD 3F 21             lda STAT78              ; reset the high/low read toggle
-000392r 1  AD 3D 21             lda OPVCT
-000395r 1  85 04                sta TMP
-000397r 1  AD 3D 21             lda OPVCT
-00039Ar 1  29 01                and #$01
-00039Cr 1  85 05                sta TMP+1
-00039Er 1  C2 20                rep #$20
-0003A0r 1                       .a16
-0003A0r 1  A5 04                lda TMP
-0003A2r 1  60                   rts
-0003A3r 1               .endproc
-0003A3r 1               
-0003A3r 1               ; park at the very top of a frame so a long measurement cannot wrap past V=261
-0003A3r 1               .proc sync_frame
-0003A3r 1  20 rr rr     :       jsr read_v16
-0003A6r 1  C9 FA 00             cmp #250
-0003A9r 1  90 F8                bcc :-
-0003ABr 1  20 rr rr     :       jsr read_v16
-0003AEr 1  C9 0A 00             cmp #10
-0003B1r 1  B0 F8                bcs :-
-0003B3r 1  60                   rts
-0003B4r 1               .endproc
-0003B4r 1               
-0003B4r 1               .proc latch_start
-0003B4r 1  E2 20                sep #$20
-0003B6r 1                       .a8
-0003B6r 1  AD 37 21             lda SLHV
-0003B9r 1  AD 3F 21             lda STAT78
-0003BCr 1  AD 3C 21             lda OPHCT
-0003BFr 1  85 12                sta LATBUF+2
-0003C1r 1  AD 3C 21             lda OPHCT
-0003C4r 1  29 01                and #$01
-0003C6r 1  85 13                sta LATBUF+3
-0003C8r 1  AD 3D 21             lda OPVCT
-0003CBr 1  85 10                sta LATBUF+0
-0003CDr 1  AD 3D 21             lda OPVCT
-0003D0r 1  29 01                and #$01
-0003D2r 1  85 11                sta LATBUF+1
-0003D4r 1  AD 10 42             lda $4210               ; read RDNMI to clear its vblank flag; if the
-0003D7r 1  C2 30                rep #$30                ; flag is set again by latch_end, the window
-0003D9r 1                                               ; ran past scanline 225 and the V counter may
-0003D9r 1                                               ; have wrapped -- the measurement is void.
-0003D9r 1                       .a16
-0003D9r 1                       .i16
-0003D9r 1  60                   rts
-0003DAr 1               .endproc
-0003DAr 1               
-0003DAr 1               .proc latch_end
-0003DAr 1  E2 20                sep #$20
-0003DCr 1                       .a8
-0003DCr 1  AD 37 21             lda SLHV
-0003DFr 1  AD 3F 21             lda STAT78
-0003E2r 1  AD 3C 21             lda OPHCT
-0003E5r 1  85 16                sta LATBUF+6
-0003E7r 1  AD 3C 21             lda OPHCT
-0003EAr 1  29 01                and #$01
-0003ECr 1  85 17                sta LATBUF+7
-0003EEr 1  AD 3D 21             lda OPVCT
-0003F1r 1  85 14                sta LATBUF+4
-0003F3r 1  AD 3D 21             lda OPVCT
-0003F6r 1  29 01                and #$01
-0003F8r 1  85 15                sta LATBUF+5
-0003FAr 1  AD 10 42             lda $4210
-0003FDr 1  29 80                and #$80                ; vblank seen inside the window?
-0003FFr 1  05 15                ora LATBUF+5
-000401r 1  85 15                sta LATBUF+5            ; -> bit 7 of the V2 high byte
-000403r 1  C2 30                rep #$30
-000405r 1                       .a16
-000405r 1                       .i16
-000405r 1  60                   rts
-000406r 1               .endproc
-000406r 1               
-000406r 1               ; copy the 8 latch bytes to SRAM+$0010+X
-000406r 1               .proc store_result
-000406r 1  E2 20                sep #$20
-000408r 1                       .a8
-000408r 1  A0 00 00             ldy #$0000
-00040Br 1  B9 10 00     :       lda LATBUF, y
-00040Er 1  9F 10 00 70          sta f:SRAM+$0010, x
-000412r 1  E8                   inx
-000413r 1  C8                   iny
-000414r 1  C0 08 00             cpy #8
-000417r 1  D0 F2                bne :-
-000419r 1  C2 30                rep #$30
-00041Br 1                       .a16
-00041Br 1                       .i16
-00041Br 1  60                   rts
-00041Cr 1               .endproc
-00041Cr 1               
-00041Cr 1               ; ===========================================================================
-00041Cr 1               ; the tests
-00041Cr 1               ; ===========================================================================
-00041Cr 1               .macro DEFTEST_BEGIN
-00041Cr 1                       THEAD
-00041Cr 1               .endmacro
-00041Cr 1               
-00041Cr 1               .proc t_empty
-00041Cr 1  A5 0E 85 02          THEAD
-000420r 1  64 06 A9 00  
-000424r 1  00           
-000425r 1  A0 00 00     outer:  ldy #$0000
-000428r 1  85 00 98 18  inner:  TTAIL 2
-00042Cr 1  69 20 00 A8  
-000430r 1  A5 00 C0 00  
-000446r 1               .endproc
-000446r 1               
-000446r 1               .proc t_nop
-000446r 1  A5 0E 85 02          THEAD
-00044Ar 1  64 06 A9 00  
-00044Er 1  00           
-00044Fr 1  A0 00 00     outer:  ldy #$0000
-000452r 1               inner:
-000452r 1  EA EA EA EA          .repeat ::UNROLL, J
-000456r 1  EA EA EA EA  
-00045Ar 1  EA EA EA EA  
-000462r 1                       B_NOP J
-000462r 1                       .endrepeat
-000462r 1  85 00 98 18          TTAIL 2
-000466r 1  69 20 00 A8  
-00046Ar 1  A5 00 C0 00  
-000480r 1               .endproc
-000480r 1               
-000480r 1               .proc t_ldaabsy
-000480r 1  A5 0E 85 02          THEAD
-000484r 1  64 06 A9 00  
-000488r 1  00           
-000489r 1  A0 00 00     outer:  ldy #$0000
-00048Cr 1               inner:
-00048Cr 1  B9 rr rr B9          .repeat ::UNROLL, J
-000490r 1  rr rr B9 rr  
-000494r 1  rr B9 rr rr  
-0004BCr 1                       B_LDA_ABSY J
-0004BCr 1                       .endrepeat
-0004BCr 1  85 00 98 18          TTAIL 2
-0004C0r 1  69 20 00 A8  
-0004C4r 1  A5 00 C0 00  
-0004DAr 1               .endproc
-0004DAr 1               
-0004DAr 1               .proc t_ldadp
-0004DAr 1  A5 0E 85 02          THEAD
-0004DEr 1  64 06 A9 00  
-0004E2r 1  00           
-0004E3r 1  A0 00 00     outer:  ldy #$0000
-0004E6r 1               inner:
-0004E6r 1  A5 0C A5 0C          .repeat ::UNROLL, J
-0004EAr 1  A5 0C A5 0C  
-0004EEr 1  A5 0C A5 0C  
-000506r 1                       B_LDA_DP J
-000506r 1                       .endrepeat
-000506r 1  85 00 98 18          TTAIL 2
-00050Ar 1  69 20 00 A8  
-00050Er 1  A5 00 C0 00  
-000524r 1               .endproc
-000524r 1               
-000524r 1               .proc t_clcadc
-000524r 1  A5 0E 85 02          THEAD
-000528r 1  64 06 A9 00  
-00052Cr 1  00           
-00052Dr 1  A0 00 00     outer:  ldy #$0000
-000530r 1               inner:
-000530r 1  18 65 0C 18          .repeat ::UNROLL, J
-000534r 1  65 0C 18 65  
-000538r 1  0C 18 65 0C  
-000560r 1                       B_CLC_ADC_DP J
-000560r 1                       .endrepeat
-000560r 1  85 00 98 18          TTAIL 2
-000564r 1  69 20 00 A8  
-000568r 1  A5 00 C0 00  
-00057Er 1               .endproc
-00057Er 1               
-00057Er 1               .proc t_ldappu
-00057Er 1  A5 0E 85 02          THEAD
-000582r 1  64 06 A9 00  
-000586r 1  00           
-000587r 1  A0 00 00     outer:  ldy #$0000
-00058Ar 1               inner:
-00058Ar 1  AD 34 21 AD          .repeat ::UNROLL, J
-00058Er 1  34 21 AD 34  
-000592r 1  21 AD 34 21  
-0005BAr 1                       B_LDA_PPU J
-0005BAr 1                       .endrepeat
-0005BAr 1  85 00 98 18          TTAIL 2
-0005BEr 1  69 20 00 A8  
-0005C2r 1  A5 00 C0 00  
-0005D8r 1               .endproc
-0005D8r 1               
-0005D8r 1               .proc t_softmul
-0005D8r 1  A5 0E 85 02          THEAD
-0005DCr 1  64 06 A9 00  
-0005E0r 1  00           
-0005E1r 1  A0 00 00     outer:  ldy #$0000
-0005E4r 1               inner:
-0005E4r 1  E2 20 B9 rr          .repeat ::UNROLL, J
-0005E8r 1  rr 85 08 64  
-0005ECr 1  09 B9 rr rr  
-000BE4r 1                       B_SOFTMUL J
-000BE4r 1                       .endrepeat
-000BE4r 1  85 00 98 18          TTAIL 1
-000BE8r 1  69 10 00 A8  
-000BECr 1  A5 00 C0 80  
-000C02r 1               .endproc
-000C02r 1               
-000C02r 1               .proc t_qsquare
-000C02r 1  A5 0E 85 02          THEAD
-000C06r 1  64 06 A9 00  
-000C0Ar 1  00           
-000C0Br 1  A0 00 00     outer:  ldy #$0000
-000C0Er 1               inner:
-000C0Er 1  B9 rr rr 18          .repeat ::UNROLL, J
-000C12r 1  79 rr rr 0A  
-000C16r 1  AA BD rr rr  
-000E6Er 1                       B_QSQUARE J
-000E6Er 1                       .endrepeat
-000E6Er 1  85 00 98 18          TTAIL 2
-000E72r 1  69 20 00 A8  
-000E76r 1  A5 00 C0 00  
-000E8Cr 1               .endproc
-000E8Cr 1               
-000E8Cr 1               .proc t_cpuhw
-000E8Cr 1  A5 0E 85 02          THEAD
-000E90r 1  64 06 A9 00  
-000E94r 1  00           
-000E95r 1  A0 00 00     outer:  ldy #$0000
-000E98r 1               inner:
-000E98r 1  E2 20 B9 rr          .repeat ::UNROLL, J
-000E9Cr 1  rr 8D 02 42  
-000EA0r 1  B9 rr rr 8D  
-001028r 1                       B_CPUHW J
-001028r 1                       .endrepeat
-001028r 1  85 00 98 18          TTAIL 1
-00102Cr 1  69 10 00 A8  
-001030r 1  A5 00 C0 80  
-001046r 1               .endproc
-001046r 1               
-001046r 1               .proc t_cpuhwpk
-001046r 1  A5 0E 85 02          THEAD
-00104Ar 1  64 06 A9 00  
-00104Er 1  00           
-00104Fr 1  A0 00 00     outer:  ldy #$0000
-001052r 1               inner:
-001052r 1  BE rr rr 8E          .repeat ::UNROLL, J
-001056r 1  02 42 EA EA  
-00105Ar 1  18 6D 16 42  
-001112r 1                       B_CPUHW_PK J
-001112r 1                       .endrepeat
-001112r 1  85 00 98 18          TTAIL 2
-001116r 1  69 20 00 A8  
-00111Ar 1  A5 00 C0 00  
-001130r 1               .endproc
-001130r 1               
-001130r 1               .proc t_ppu
-001130r 1  A5 0E 85 02          THEAD
-001134r 1  64 06 A9 00  
-001138r 1  00           
-001139r 1  A0 00 00     outer:  ldy #$0000
-00113Cr 1               inner:
-00113Cr 1  BE rr rr 8E          .repeat ::UNROLL, J
-001140r 1  1A 21 BE rr  
-001144r 1  rr 8E 1B 21  
-00123Cr 1                       B_PPU J
-00123Cr 1                       .endrepeat
-00123Cr 1  85 00 98 18          TTAIL 2
-001240r 1  69 20 00 A8  
-001244r 1  A5 00 C0 00  
-00125Ar 1               .endproc
-00125Ar 1               
-00125Ar 1               .proc t_ppunaive
-00125Ar 1  A5 0E 85 02          THEAD
-00125Er 1  64 06 A9 00  
-001262r 1  00           
-001263r 1  A0 00 00     outer:  ldy #$0000
-001266r 1               inner:
-001266r 1  E2 20 B9 rr          .repeat ::UNROLL, J
-00126Ar 1  rr 8D 1B 21  
-00126Er 1  9C 1B 21 B9  
-001416r 1                       B_PPU_NAIVE J
-001416r 1                       .endrepeat
-001416r 1  85 00 98 18          TTAIL 1
-00141Ar 1  69 10 00 A8  
-00141Er 1  A5 00 C0 80  
-001434r 1               .endproc
-001434r 1               
-001434r 1               .proc t_dsp1floor
-001434r 1  A5 0E 85 02          THEAD
-001438r 1  64 06 A9 00  
-00143Cr 1  00           
-00143Dr 1  A0 00 00     outer:  ldy #$0000
-001440r 1               inner:
-001440r 1  B9 rr rr 8F          .repeat ::UNROLL, J
-001444r 1  00 80 30 B9  
-001448r 1  rr rr 8F 00  
-0015B0r 1                       B_DSP1_FLOOR J
-0015B0r 1                       .endrepeat
-0015B0r 1  85 00 98 18          TTAIL 2
-0015B4r 1  69 20 00 A8  
-0015B8r 1  A5 00 C0 00  
-0015CEr 1               .endproc
-0015CEr 1               
-0015CEr 1               .proc t_dsp1sr
-0015CEr 1  A5 0E 85 02          THEAD
-0015D2r 1  64 06 A9 00  
-0015D6r 1  00           
-0015D7r 1  A0 00 00     outer:  ldy #$0000
-0015DAr 1               inner:
-0015DAr 1  B9 rr rr 8F          .repeat ::UNROLL, J
-0015DEr 1  00 80 30 B9  
-0015E2r 1  rr rr 8F 00  
-00178Ar 1                       B_DSP1_SR J
-00178Ar 1                       .endrepeat
-00178Ar 1  85 00 98 18          TTAIL 2
-00178Er 1  69 20 00 A8  
-001792r 1  A5 00 C0 00  
-0017A8r 1               .endproc
-0017A8r 1               
-0017A8r 1               .proc t_ternary
-0017A8r 1  A5 0E 85 02          THEAD
-0017ACr 1  64 06 A9 00  
-0017B0r 1  00           
-0017B1r 1  A0 00 00     outer:  ldy #$0000
-0017B4r 1               inner:
-0017B4r 1  BE rr rr 18          .repeat ::UNROLL, J
-0017B8r 1  7D rr rr BE  
-0017BCr 1  rr rr 18 7D  
-001824r 1                       B_TERNARY J
-001824r 1                       .endrepeat
-001824r 1  85 00 98 18          TTAIL 2
-001828r 1  69 20 00 A8  
-00182Cr 1  A5 00 C0 00  
-001842r 1               .endproc
-001842r 1               
-001842r 1  40           nmi:    rti
-001843r 1  40           irq:    rti
-001844r 1               
-001844r 1                       .include "data.inc"
-001844r 2               ; GENERATED by tools/gendata.py -- do not edit
-001844r 2                       .segment "RODATA"
+0002F7r 1  A9 02 00 85          SLOT t_dsp1full,  2, 27
+0002FBr 1  0E 20 rr rr  
+0002FFr 1  20 rr rr 20  
+00030Er 1  A9 01 00 85          SLOT t_dsp1full,  1, 28
+000312r 1  0E 20 rr rr  
+000316r 1  20 rr rr 20  
+000325r 1  60                   rts
+000326r 1               .endproc
+000326r 1               
+000326r 1               .proc screen_on
+000326r 1  E2 20                sep #$20
+000328r 1                       .a8
+000328r 1  A9 01                lda #$01
+00032Ar 1  8D 2C 21             sta $212C               ; BG1 on the main screen
+00032Dr 1  A9 0F                lda #$0F
+00032Fr 1  8D 00 21             sta INIDISP             ; screen on, full brightness
+000332r 1  C2 30                rep #$30
+000334r 1                       .a16
+000334r 1                       .i16
+000334r 1  60                   rts
+000335r 1               .endproc
+000335r 1               
+000335r 1               .proc screen_off
+000335r 1  E2 20                sep #$20
+000337r 1                       .a8
+000337r 1  9C 2C 21             stz $212C
+00033Ar 1  A9 8F                lda #$8F
+00033Cr 1  8D 00 21             sta INIDISP
+00033Fr 1  C2 30                rep #$30
+000341r 1                       .a16
+000341r 1                       .i16
+000341r 1  60                   rts
+000342r 1               .endproc
+000342r 1               
+000342r 1               ; ===========================================================================
+000342r 1               ; correctness: one pass of each primitive, accumulator written to SRAM
+000342r 1               ; ===========================================================================
+000342r 1               .macro VSLOT sub, idx
+000342r 1                       lda #1
+000342r 1                       sta NOUT
+000342r 1                       jsr sub
+000342r 1                       lda ACC
+000342r 1                       ldx #(idx*2)
+000342r 1                       jsr store_acc
+000342r 1               .endmacro
+000342r 1               
+000342r 1               .proc run_verify
+000342r 1  A9 01 00 85          VSLOT t_softmul,  0
+000346r 1  0E 20 rr rr  
+00034Ar 1  A5 06 A2 00  
+000352r 1  A9 01 00 85          VSLOT t_qsquare,  1
+000356r 1  0E 20 rr rr  
+00035Ar 1  A5 06 A2 02  
+000362r 1  A9 01 00 85          VSLOT t_cpuhw,    2
+000366r 1  0E 20 rr rr  
+00036Ar 1  A5 06 A2 04  
+000372r 1  A9 01 00 85          VSLOT t_cpuhwpk,  3
+000376r 1  0E 20 rr rr  
+00037Ar 1  A5 06 A2 06  
+000382r 1  A9 01 00 85          VSLOT t_ppu,      4
+000386r 1  0E 20 rr rr  
+00038Ar 1  A5 06 A2 08  
+000392r 1  A9 01 00 85          VSLOT t_ppunaive, 5
+000396r 1  0E 20 rr rr  
+00039Ar 1  A5 06 A2 0A  
+0003A2r 1  A9 01 00 85          VSLOT t_ternary,  6
+0003A6r 1  0E 20 rr rr  
+0003AAr 1  A5 06 A2 0C  
+0003B2r 1  60                   rts
+0003B3r 1               .endproc
+0003B3r 1               
+0003B3r 1               ; store 16-bit A at SRAM+$0200+X
+0003B3r 1               .proc store_acc
+0003B3r 1  9F 00 02 70          sta f:SRAM+$0200, x
+0003B7r 1  60                   rts
+0003B8r 1               .endproc
+0003B8r 1               
+0003B8r 1               ; ===========================================================================
+0003B8r 1               ; instrument
+0003B8r 1               ; ===========================================================================
+0003B8r 1               
+0003B8r 1               ; read the V counter into A (16-bit)
+0003B8r 1               .proc read_v16
+0003B8r 1  E2 20                sep #$20
+0003BAr 1                       .a8
+0003BAr 1  AD 37 21             lda SLHV                ; latch H and V
+0003BDr 1  AD 3F 21             lda STAT78              ; reset the high/low read toggle
+0003C0r 1  AD 3D 21             lda OPVCT
+0003C3r 1  85 04                sta TMP
+0003C5r 1  AD 3D 21             lda OPVCT
+0003C8r 1  29 01                and #$01
+0003CAr 1  85 05                sta TMP+1
+0003CCr 1  C2 20                rep #$20
+0003CEr 1                       .a16
+0003CEr 1  A5 04                lda TMP
+0003D0r 1  60                   rts
+0003D1r 1               .endproc
+0003D1r 1               
+0003D1r 1               ; park at the very top of a frame so a long measurement cannot wrap past V=261
+0003D1r 1               .proc sync_frame
+0003D1r 1  20 rr rr     :       jsr read_v16
+0003D4r 1  C9 FA 00             cmp #250
+0003D7r 1  90 F8                bcc :-
+0003D9r 1  20 rr rr     :       jsr read_v16
+0003DCr 1  C9 0A 00             cmp #10
+0003DFr 1  B0 F8                bcs :-
+0003E1r 1  60                   rts
+0003E2r 1               .endproc
+0003E2r 1               
+0003E2r 1               .proc latch_start
+0003E2r 1  E2 20                sep #$20
+0003E4r 1                       .a8
+0003E4r 1  AD 37 21             lda SLHV
+0003E7r 1  AD 3F 21             lda STAT78
+0003EAr 1  AD 3C 21             lda OPHCT
+0003EDr 1  85 12                sta LATBUF+2
+0003EFr 1  AD 3C 21             lda OPHCT
+0003F2r 1  29 01                and #$01
+0003F4r 1  85 13                sta LATBUF+3
+0003F6r 1  AD 3D 21             lda OPVCT
+0003F9r 1  85 10                sta LATBUF+0
+0003FBr 1  AD 3D 21             lda OPVCT
+0003FEr 1  29 01                and #$01
+000400r 1  85 11                sta LATBUF+1
+000402r 1  AD 10 42             lda $4210               ; read RDNMI to clear its vblank flag; if the
+000405r 1  C2 30                rep #$30                ; flag is set again by latch_end, the window
+000407r 1                                               ; ran past scanline 225 and the V counter may
+000407r 1                                               ; have wrapped -- the measurement is void.
+000407r 1                       .a16
+000407r 1                       .i16
+000407r 1  60                   rts
+000408r 1               .endproc
+000408r 1               
+000408r 1               .proc latch_end
+000408r 1  E2 20                sep #$20
+00040Ar 1                       .a8
+00040Ar 1  AD 37 21             lda SLHV
+00040Dr 1  AD 3F 21             lda STAT78
+000410r 1  AD 3C 21             lda OPHCT
+000413r 1  85 16                sta LATBUF+6
+000415r 1  AD 3C 21             lda OPHCT
+000418r 1  29 01                and #$01
+00041Ar 1  85 17                sta LATBUF+7
+00041Cr 1  AD 3D 21             lda OPVCT
+00041Fr 1  85 14                sta LATBUF+4
+000421r 1  AD 3D 21             lda OPVCT
+000424r 1  29 01                and #$01
+000426r 1  85 15                sta LATBUF+5
+000428r 1  AD 10 42             lda $4210
+00042Br 1  29 80                and #$80                ; vblank seen inside the window?
+00042Dr 1  05 15                ora LATBUF+5
+00042Fr 1  85 15                sta LATBUF+5            ; -> bit 7 of the V2 high byte
+000431r 1  C2 30                rep #$30
+000433r 1                       .a16
+000433r 1                       .i16
+000433r 1  60                   rts
+000434r 1               .endproc
+000434r 1               
+000434r 1               ; copy the 8 latch bytes to SRAM+$0010+X
+000434r 1               .proc store_result
+000434r 1  E2 20                sep #$20
+000436r 1                       .a8
+000436r 1  A0 00 00             ldy #$0000
+000439r 1  B9 10 00     :       lda LATBUF, y
+00043Cr 1  9F 10 00 70          sta f:SRAM+$0010, x
+000440r 1  E8                   inx
+000441r 1  C8                   iny
+000442r 1  C0 08 00             cpy #8
+000445r 1  D0 F2                bne :-
+000447r 1  C2 30                rep #$30
+000449r 1                       .a16
+000449r 1                       .i16
+000449r 1  60                   rts
+00044Ar 1               .endproc
+00044Ar 1               
+00044Ar 1               ; ===========================================================================
+00044Ar 1               ; the tests
+00044Ar 1               ; ===========================================================================
+00044Ar 1               .macro DEFTEST_BEGIN
+00044Ar 1                       THEAD
+00044Ar 1               .endmacro
+00044Ar 1               
+00044Ar 1               .proc t_empty
+00044Ar 1  A5 0E 85 02          THEAD
+00044Er 1  64 06 A9 00  
+000452r 1  00           
+000453r 1  A0 00 00     outer:  ldy #$0000
+000456r 1  85 00 98 18  inner:  TTAIL 2
+00045Ar 1  69 20 00 A8  
+00045Er 1  A5 00 C0 00  
+000474r 1               .endproc
+000474r 1               
+000474r 1               .proc t_nop
+000474r 1  A5 0E 85 02          THEAD
+000478r 1  64 06 A9 00  
+00047Cr 1  00           
+00047Dr 1  A0 00 00     outer:  ldy #$0000
+000480r 1               inner:
+000480r 1  EA EA EA EA          .repeat ::UNROLL, J
+000484r 1  EA EA EA EA  
+000488r 1  EA EA EA EA  
+000490r 1                       B_NOP J
+000490r 1                       .endrepeat
+000490r 1  85 00 98 18          TTAIL 2
+000494r 1  69 20 00 A8  
+000498r 1  A5 00 C0 00  
+0004AEr 1               .endproc
+0004AEr 1               
+0004AEr 1               .proc t_ldaabsy
+0004AEr 1  A5 0E 85 02          THEAD
+0004B2r 1  64 06 A9 00  
+0004B6r 1  00           
+0004B7r 1  A0 00 00     outer:  ldy #$0000
+0004BAr 1               inner:
+0004BAr 1  B9 rr rr B9          .repeat ::UNROLL, J
+0004BEr 1  rr rr B9 rr  
+0004C2r 1  rr B9 rr rr  
+0004EAr 1                       B_LDA_ABSY J
+0004EAr 1                       .endrepeat
+0004EAr 1  85 00 98 18          TTAIL 2
+0004EEr 1  69 20 00 A8  
+0004F2r 1  A5 00 C0 00  
+000508r 1               .endproc
+000508r 1               
+000508r 1               .proc t_ldadp
+000508r 1  A5 0E 85 02          THEAD
+00050Cr 1  64 06 A9 00  
+000510r 1  00           
+000511r 1  A0 00 00     outer:  ldy #$0000
+000514r 1               inner:
+000514r 1  A5 0C A5 0C          .repeat ::UNROLL, J
+000518r 1  A5 0C A5 0C  
+00051Cr 1  A5 0C A5 0C  
+000534r 1                       B_LDA_DP J
+000534r 1                       .endrepeat
+000534r 1  85 00 98 18          TTAIL 2
+000538r 1  69 20 00 A8  
+00053Cr 1  A5 00 C0 00  
+000552r 1               .endproc
+000552r 1               
+000552r 1               .proc t_clcadc
+000552r 1  A5 0E 85 02          THEAD
+000556r 1  64 06 A9 00  
+00055Ar 1  00           
+00055Br 1  A0 00 00     outer:  ldy #$0000
+00055Er 1               inner:
+00055Er 1  18 65 0C 18          .repeat ::UNROLL, J
+000562r 1  65 0C 18 65  
+000566r 1  0C 18 65 0C  
+00058Er 1                       B_CLC_ADC_DP J
+00058Er 1                       .endrepeat
+00058Er 1  85 00 98 18          TTAIL 2
+000592r 1  69 20 00 A8  
+000596r 1  A5 00 C0 00  
+0005ACr 1               .endproc
+0005ACr 1               
+0005ACr 1               .proc t_ldappu
+0005ACr 1  A5 0E 85 02          THEAD
+0005B0r 1  64 06 A9 00  
+0005B4r 1  00           
+0005B5r 1  A0 00 00     outer:  ldy #$0000
+0005B8r 1               inner:
+0005B8r 1  AD 34 21 AD          .repeat ::UNROLL, J
+0005BCr 1  34 21 AD 34  
+0005C0r 1  21 AD 34 21  
+0005E8r 1                       B_LDA_PPU J
+0005E8r 1                       .endrepeat
+0005E8r 1  85 00 98 18          TTAIL 2
+0005ECr 1  69 20 00 A8  
+0005F0r 1  A5 00 C0 00  
+000606r 1               .endproc
+000606r 1               
+000606r 1               .proc t_softmul
+000606r 1  A5 0E 85 02          THEAD
+00060Ar 1  64 06 A9 00  
+00060Er 1  00           
+00060Fr 1  A0 00 00     outer:  ldy #$0000
+000612r 1               inner:
+000612r 1  E2 20 B9 rr          .repeat ::UNROLL, J
+000616r 1  rr 85 08 64  
+00061Ar 1  09 B9 rr rr  
+000C12r 1                       B_SOFTMUL J
+000C12r 1                       .endrepeat
+000C12r 1  85 00 98 18          TTAIL 1
+000C16r 1  69 10 00 A8  
+000C1Ar 1  A5 00 C0 80  
+000C30r 1               .endproc
+000C30r 1               
+000C30r 1               .proc t_qsquare
+000C30r 1  A5 0E 85 02          THEAD
+000C34r 1  64 06 A9 00  
+000C38r 1  00           
+000C39r 1  A0 00 00     outer:  ldy #$0000
+000C3Cr 1               inner:
+000C3Cr 1  B9 rr rr 18          .repeat ::UNROLL, J
+000C40r 1  79 rr rr 0A  
+000C44r 1  AA BD rr rr  
+000E9Cr 1                       B_QSQUARE J
+000E9Cr 1                       .endrepeat
+000E9Cr 1  85 00 98 18          TTAIL 2
+000EA0r 1  69 20 00 A8  
+000EA4r 1  A5 00 C0 00  
+000EBAr 1               .endproc
+000EBAr 1               
+000EBAr 1               .proc t_cpuhw
+000EBAr 1  A5 0E 85 02          THEAD
+000EBEr 1  64 06 A9 00  
+000EC2r 1  00           
+000EC3r 1  A0 00 00     outer:  ldy #$0000
+000EC6r 1               inner:
+000EC6r 1  E2 20 B9 rr          .repeat ::UNROLL, J
+000ECAr 1  rr 8D 02 42  
+000ECEr 1  B9 rr rr 8D  
+001056r 1                       B_CPUHW J
+001056r 1                       .endrepeat
+001056r 1  85 00 98 18          TTAIL 1
+00105Ar 1  69 10 00 A8  
+00105Er 1  A5 00 C0 80  
+001074r 1               .endproc
+001074r 1               
+001074r 1               .proc t_cpuhwpk
+001074r 1  A5 0E 85 02          THEAD
+001078r 1  64 06 A9 00  
+00107Cr 1  00           
+00107Dr 1  A0 00 00     outer:  ldy #$0000
+001080r 1               inner:
+001080r 1  BE rr rr 8E          .repeat ::UNROLL, J
+001084r 1  02 42 EA EA  
+001088r 1  18 6D 16 42  
+001140r 1                       B_CPUHW_PK J
+001140r 1                       .endrepeat
+001140r 1  85 00 98 18          TTAIL 2
+001144r 1  69 20 00 A8  
+001148r 1  A5 00 C0 00  
+00115Er 1               .endproc
+00115Er 1               
+00115Er 1               .proc t_ppu
+00115Er 1  A5 0E 85 02          THEAD
+001162r 1  64 06 A9 00  
+001166r 1  00           
+001167r 1  A0 00 00     outer:  ldy #$0000
+00116Ar 1               inner:
+00116Ar 1  BE rr rr 8E          .repeat ::UNROLL, J
+00116Er 1  1A 21 BE rr  
+001172r 1  rr 8E 1B 21  
+00126Ar 1                       B_PPU J
+00126Ar 1                       .endrepeat
+00126Ar 1  85 00 98 18          TTAIL 2
+00126Er 1  69 20 00 A8  
+001272r 1  A5 00 C0 00  
+001288r 1               .endproc
+001288r 1               
+001288r 1               .proc t_ppunaive
+001288r 1  A5 0E 85 02          THEAD
+00128Cr 1  64 06 A9 00  
+001290r 1  00           
+001291r 1  A0 00 00     outer:  ldy #$0000
+001294r 1               inner:
+001294r 1  E2 20 B9 rr          .repeat ::UNROLL, J
+001298r 1  rr 8D 1B 21  
+00129Cr 1  9C 1B 21 B9  
+001444r 1                       B_PPU_NAIVE J
+001444r 1                       .endrepeat
+001444r 1  85 00 98 18          TTAIL 1
+001448r 1  69 10 00 A8  
+00144Cr 1  A5 00 C0 80  
+001462r 1               .endproc
+001462r 1               
+001462r 1               .proc t_dsp1floor
+001462r 1  A5 0E 85 02          THEAD
+001466r 1  64 06 A9 00  
+00146Ar 1  00           
+00146Br 1  A0 00 00     outer:  ldy #$0000
+00146Er 1               inner:
+00146Er 1  B9 rr rr 8F          .repeat ::UNROLL, J
+001472r 1  00 80 30 B9  
+001476r 1  rr rr 8F 00  
+0015DEr 1                       B_DSP1_FLOOR J
+0015DEr 1                       .endrepeat
+0015DEr 1  85 00 98 18          TTAIL 2
+0015E2r 1  69 20 00 A8  
+0015E6r 1  A5 00 C0 00  
+0015FCr 1               .endproc
+0015FCr 1               
+0015FCr 1               .proc t_dsp1sr
+0015FCr 1  A5 0E 85 02          THEAD
+001600r 1  64 06 A9 00  
+001604r 1  00           
+001605r 1  A0 00 00     outer:  ldy #$0000
+001608r 1               inner:
+001608r 1  B9 rr rr 8F          .repeat ::UNROLL, J
+00160Cr 1  00 80 30 B9  
+001610r 1  rr rr 8F 00  
+0017B8r 1                       B_DSP1_SR J
+0017B8r 1                       .endrepeat
+0017B8r 1  85 00 98 18          TTAIL 2
+0017BCr 1  69 20 00 A8  
+0017C0r 1  A5 00 C0 00  
+0017D6r 1               .endproc
+0017D6r 1               
+0017D6r 1               .proc t_dsp1full
+0017D6r 1  A5 0E 85 02          THEAD
+0017DAr 1  64 06 A9 00  
+0017DEr 1  00           
+0017DFr 1  A0 00 00     outer:  ldy #$0000
+0017E2r 1               inner:
+0017E2r 1  E2 20 A9 00          .repeat ::UNROLL, J
+0017E6r 1  8F 00 80 30  
+0017EAr 1  C2 20 B9 rr  
+001A32r 1                       B_DSP1_FULL J
+001A32r 1                       .endrepeat
+001A32r 1  85 00 98 18          TTAIL 2
+001A36r 1  69 20 00 A8  
+001A3Ar 1  A5 00 C0 00  
+001A50r 1               .endproc
+001A50r 1               
+001A50r 1               .proc t_ternary
+001A50r 1  A5 0E 85 02          THEAD
+001A54r 1  64 06 A9 00  
+001A58r 1  00           
+001A59r 1  A0 00 00     outer:  ldy #$0000
+001A5Cr 1               inner:
+001A5Cr 1  BE rr rr 18          .repeat ::UNROLL, J
+001A60r 1  7D rr rr BE  
+001A64r 1  rr rr 18 7D  
+001ACCr 1                       B_TERNARY J
+001ACCr 1                       .endrepeat
+001ACCr 1  85 00 98 18          TTAIL 2
+001AD0r 1  69 20 00 A8  
+001AD4r 1  A5 00 C0 00  
+001AEAr 1               .endproc
+001AEAr 1               
+001AEAr 1  40           nmi:    rti
+001AEBr 1  40           irq:    rti
+001AECr 1               
+001AECr 1                       .include "data.inc"
+001AECr 2               ; GENERATED by tools/gendata.py -- do not edit
+001AECr 2                       .segment "RODATA"
 000000r 2               
 000000r 2                       .align 256
 000000r 2               WB:

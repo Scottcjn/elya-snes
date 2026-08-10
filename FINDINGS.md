@@ -172,10 +172,11 @@ lda $2134          30.919   30.013       30    0.04%
 primitive                  wall      cpu     cyc       ns   kMAC/s  x ternary
 softmul                  1503.9   1459.8   182.5    70023     14.3     13.77x
 qsquare                   570.9    554.2    69.3    26583     37.6      5.23x
-dsp1-bus+status           373.0    362.0    45.3    17365     57.6      3.42x
-ppu-m7-naive              333.8    324.0    40.5    15543     64.3      3.06x
+dsp1-bus+cmd+status       476.1    462.2    57.8    22168     45.1      4.36x
+dsp1-bus+status           373.0    362.1    45.3    17367     57.6      3.42x
+ppu-m7-naive              333.8    324.0    40.5    15542     64.3      3.06x
 dsp1-bus-floor            323.5    314.0    39.2    15061     66.4      2.96x
-cpuhw                     317.4    308.0    38.5    14776     67.7      2.91x
+cpuhw                     317.3    308.0    38.5    14773     67.7      2.91x
 ppu-m7                    220.5    214.0    26.8    10266     97.4      2.02x
 ppu-m7 (screen on)        220.5    214.0    26.8    10265     97.4      2.02x
 cpuhw-packed              164.8    160.0    20.0     7674    130.3      1.51x
@@ -188,10 +189,11 @@ ternary                   109.2    106.0    13.2     5084    196.7      1.00x
 primitive                  wall      cpu     cyc       ns   kMAC/s  x ternary
 softmul                  1327.2   1288.2   161.0    61794     16.2     15.34x
 qsquare                   467.6    453.9    56.7    21772     45.9      5.40x
+dsp1-bus+cmd+status       391.7    380.2    47.5    18240     54.8      4.53x
 dsp1-bus+status           309.1    300.0    37.5    14391     69.5      3.57x
-ppu-m7-naive              274.0    266.0    33.2    12758     78.4      3.17x
-dsp1-bus-floor            267.8    260.0    32.5    12470     80.2      3.10x
-cpuhw                     261.6    253.9    31.7    12179     82.1      3.02x
+ppu-m7-naive              274.1    266.1    33.3    12763     78.4      3.17x
+dsp1-bus-floor            267.9    260.1    32.5    12474     80.2      3.10x
+cpuhw                     261.8    254.1    31.8    12188     82.1      3.02x
 ppu-m7                    179.2    174.0    21.7     8344    119.8      2.07x
 ppu-m7 (screen on)        179.3    174.0    21.8     8348    119.8      2.07x
 cpuhw-packed              136.0    132.0    16.5     6332    157.9      1.57x
@@ -289,3 +291,63 @@ A refutation, plainly stated: **int8 does not beat ternary on the SNES.**
 
 Raw dumps: `out/bench.ram`, `out/benchfast.ram`.
 Full reports: `out/bench_report.txt`, `out/benchfast_report.txt`.
+
+---
+
+## 2026-08-10 — 4. DSP-1: a bounded floor, not a measurement of the chip
+
+Target cart is a Kaico Super DSP V3.1, which carries DSP-1/2/3/4, so the DSP-1
+is a legitimate third arithmetic unit: NEC uPD77C25 at ~8 MHz, a real 16-bit
+multiply-accumulator, its own data RAM, and it runs in parallel with the CPU.
+
+**What I could not do, plainly: the DSP-1 was not run.** ares does emulate the
+uPD7725 family (the binary carries `DSP1`, `DSP1B`, `DSP2`, `DSP3`, `DSP4` and
+`processor(architecture=uPD7725)`), but it needs the chip's firmware —
+`upd7725.program.rom` and `upd7725.data.rom` — supplied in the game folder.
+That firmware is Nintendo/NEC silicon microcode. A search of the whole
+filesystem turned up no copy, and there is no legitimate way to synthesise one:
+the DSP-1's usefulness *is* its fixed firmware. So there is no measurement of
+DSP-1 execution time here, and I am not going to pretend otherwise.
+
+**What I could measure exactly, and did.** The DSP-1 answers only through the
+cartridge bus. In LoROM its data register is at `$30:8000` and its status
+register at `$30:C000` ([SNESdev wiki](https://snes.nesdev.org/wiki/DSP-1)).
+Those are ordinary cartridge addresses, and **65816 access timing is decided by
+the address, not by whether a chip answers** — so the CPU-side transfer
+sequence costs exactly the same cycles with the chip absent. That side is fully
+measurable on this instrument, and it is a hard floor on the total.
+
+Documented op `$00` is a 16-bit multiply whose product is "rounded to <= 15
+bits" — a fixed-point multiply, not an integer one. int8 operands are still
+usable pre-scaled: feed `w<<8` and `x<<7` and the returned high word is `w*x`.
+Pre-scaling is free (weights are static; activations shift once at production).
+
+One thing the documentation does not settle: whether the DSP-1 remembers its
+last command and accepts bare parameters for a repeat. The wiki does not say.
+Rather than estimate, I measured the command byte both ways, which brackets the
+truth:
+
+| variant | what it includes | SlowROM cpu | FastROM cpu |
+|---|---|---|---|
+| `dsp1-bus-floor` | 2 operand writes + 1 result read | 314 | 260 |
+| `dsp1-bus+status` | + one status-register read | 362 | 300 |
+| `dsp1-bus+cmd+status` | + command byte written per MAC | 462 | 380 |
+
+**None of these include a single cycle of DSP execution time or one iteration
+of an RQM polling loop.** A correct driver must poll `SR` bit 7 until the chip
+signals ready, and each poll iteration is another ~40-50 master clocks. The
+real cost is at or above the top of that bracket.
+
+**Conclusion: the DSP-1 cannot win here, and the 2.2x clock advantage is
+irrelevant.** Even its most optimistic floor, 314 CPU cycles per MAC, is
+**1.5x worse than the PPU Mode 7 multiplier** at 214, which needs no handshake
+at all, and **3x worse than ternary** at 106. The reason is the same one that
+decided the whole table: a DSP-1 MAC moves six bytes plus a status byte across
+the cart bus, and the SNES charges 8 (or 6) master clocks for every one of
+them. A coprocessor that answers through a byte-wide port cannot outrun an
+on-die register file, however fast its multiplier is.
+
+This is a refutation of the coprocessor idea on transfer cost, exactly as the
+scope note asked me to test rather than argue. If the firmware ever becomes
+available the measurement should be redone — but it can only move the number
+up from 314, never down, so the ordering will not change.
