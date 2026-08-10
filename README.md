@@ -70,3 +70,41 @@ Sibling ports: [elya-nes](https://github.com/Scottcjn/elya-nes) ·
 [legend-of-elya-genesis](https://github.com/Scottcjn/legend-of-elya-genesis) ·
 [legend-of-elya-n64](https://github.com/Scottcjn/legend-of-elya-n64) ·
 [gbc-transformer](https://github.com/Scottcjn/gbc-transformer)
+
+---
+
+## First result: the prediction was refuted
+
+This port opened with a prediction — that the SNES's fast **signed** hardware
+multiply would let int8 beat ternary, the way it does on the N64's RSP. Primitives
+were measured before any engine was written.
+
+**It does not.** Ternary is **2.02x cheaper** per multiply-accumulate.
+
+| primitive | cycles/MAC (SlowROM) | vs ternary |
+|---|---|---|
+| software 8x8 shift-add | 1503.9 | 13.8x |
+| quarter-square tables | 570.9 | 5.2x |
+| DSP-1 (bus transfer alone) | 323.5-476.1 | 3.0-4.4x |
+| CPU multiply `$4202` | 317.3 | 2.9x |
+| PPU Mode 7, tuned | 220.5 | 2.0x |
+| **ternary gather** | **109.2** | **1.00x** |
+
+The multiplier was never the variable. The Mode 7 multiply is genuinely free —
+every one of the 214 cycles in that arm is data movement.
+
+> **Ternary touches three memory locations per accumulate. Int8 touches six.**
+
+That single mechanism replaces the per-platform story these ports have been
+telling. Ternary's advantage decays as a machine gets better at moving operands,
+and inverts on one that fetches eight at a time:
+
+| arm | ternary advantage |
+|---|---|
+| SNES 5A22 SlowROM | 2.02x |
+| SNES 5A22 FastROM | 2.07x |
+| SNES SuperFX GSU | 1.27x |
+| N64 RSP vector | inverts — int8 wins |
+
+Full method, calibration and the two times the instrument lied are in
+[FINDINGS.md](FINDINGS.md).
