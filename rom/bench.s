@@ -198,6 +198,46 @@ UNROLL  = 16
         .endif
 .endmacro
 
+
+; --- 6. DSP-1 (NEC uPD77C25) via its documented Multiply command -----------
+; DSP-1 op $00 is a 16x16 signed multiply returning (M*N)>>15, so int8 operands
+; are usable pre-scaled: (w<<8) * (x<<7) >> 15 == w*x exactly.  The chip runs at
+; ~8 MHz and in parallel with the CPU, but every operand and every result has to
+; cross the cartridge bus, and in LoROM the DSP data register lives at
+; $30:8000 -- a "slow" 8-master-clock address like any other cart address.
+;
+; The DSP-1 firmware is not available on this machine, so what is measured here
+; is the CPU-side transfer sequence alone: no command byte (the DSP-1 repeats
+; its last command when fed bare parameters), no RQM polling loop, and no DSP
+; execution time.  That makes it a hard LOWER BOUND on the real cost, not the
+; real cost.  Access timing on the 65816 is decided by the address, not by
+; whether a chip answers, so the cycle counts are exact even with no DSP fitted.
+.macro B_DSP1_FLOOR j
+        lda WHI + (j*2), y      ; multiplicand
+        sta f:$308000           ; -> DR
+        lda XHI + (j*2), y      ; multiplier
+        sta f:$308000           ; -> DR
+        lda f:$308000           ; <- product
+        clc
+        adc ACC
+        sta ACC
+.endmacro
+
+; the same, plus the single status-register read that the cheapest possible
+; correct driver still has to do before trusting the result
+.macro B_DSP1_SR j
+        lda WHI + (j*2), y
+        sta f:$308000
+        lda XHI + (j*2), y
+        sta f:$308000
+        lda f:$30C000           ; SR -- one read, not a poll loop
+        lda f:$308000
+        clc
+        adc ACC
+        sta ACC
+.endmacro
+
+; ===========================================================================
 ; ===========================================================================
 ; loop skeleton
 ; ===========================================================================
@@ -355,6 +395,11 @@ halt:   bra halt
         jsr screen_on
         SLOT t_ppu,     8, 22
         jsr screen_off
+        ; --- DSP-1 bus-transfer floor (no DSP fitted; see B_DSP1_FLOOR)
+        SLOT t_dsp1floor, 4, 23
+        SLOT t_dsp1floor, 2, 24
+        SLOT t_dsp1sr,    4, 25
+        SLOT t_dsp1sr,    2, 26
         rts
 .endproc
 
@@ -631,6 +676,26 @@ inner:
         B_PPU_NAIVE J
         .endrepeat
         TTAIL 1
+.endproc
+
+.proc t_dsp1floor
+        THEAD
+outer:  ldy #$0000
+inner:
+        .repeat ::UNROLL, J
+        B_DSP1_FLOOR J
+        .endrepeat
+        TTAIL 2
+.endproc
+
+.proc t_dsp1sr
+        THEAD
+outer:  ldy #$0000
+inner:
+        .repeat ::UNROLL, J
+        B_DSP1_SR J
+        .endrepeat
+        TTAIL 2
 .endproc
 
 .proc t_ternary
