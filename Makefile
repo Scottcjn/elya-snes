@@ -7,11 +7,11 @@ LD65   := ld65
 CFG    := rom/lorom32.cfg
 STAGE  := $(HOME)/snesroms
 
-ROMS   := boot
+ROMS   := boot bench
 
 all: $(addprefix out/,$(addsuffix .sfc,$(ROMS)))
 
-out/%.o: rom/%.s rom/snes.inc
+out/%.o: rom/%.s rom/snes.inc rom/data.inc
 	@mkdir -p out
 	$(CA65) --cpu 65816 -o $@ -l out/$*.lst $<
 

@@ -1,0 +1,77 @@
+============================================================================
+INSTRUMENT  (H/V counter latch, resolution 4 master clocks)
+============================================================================
+ outer   V1   H1   V2   H2     wall       fit   resid
+     2    0  167    3  201     4228    4212.0   +16.0
+     4    0  189    6   70     7708    7716.0    -8.0
+     8    0  175   11  101    14708   14724.0   -16.0
+    16    0  185   21  211    28748   28740.0    +8.0
+
+empty(k) = 708.0 + 1752.0*k wall master clocks
+worst residual 16.0 master clocks on 28748 = 0.0557%  -> the instrument is linear
+
+============================================================================
+CALIBRATION  measured vs hand-derived, master clocks per body
+============================================================================
+body                 wall      cpu  derived    error
+nop                14.414   13.991       14   -0.06%
+lda abs,y          47.391   46.001       46    0.00%
+lda dp             32.961   31.994       32   -0.02%
+clc + adc dp       47.391   46.001       46    0.00%
+lda $2134          37.098   36.010       36    0.03%
+
+refresh model: CPU time = wall * (1 - 40/1364) = wall * 0.970674
+calibration: PASS
+
+============================================================================
+CORRECTNESS  one pass of each primitive over the same 128 operands
+============================================================================
+  softmul        got $6D38  want $6D38   ok
+  qsquare        got $6D38  want $6D38   ok
+  cpuhw          got $6D38  want $6D38   ok
+  cpuhw-packed   got $6D38  want $6D38   ok
+  ppu-m7         got $6C38  want $6C38   ok
+  ppu-m7-naive   got $6C38  want $6C38   ok
+  ternary        got $FF6D  want $FF6D   ok
+correctness: PASS
+
+============================================================================
+SELF-CHECK  same primitive measured at two window lengths
+============================================================================
+  softmul              single point (1 outer) -- no cross-check
+  qsquare              @2  =  570.94  @1  =  571.09  spread 0.027%
+  cpuhw                @4  =  317.36  @2  =  317.44  spread 0.025%
+  cpuhw-packed         @8  =  164.83  @4  =  164.83  spread 0.000%
+  ppu-m7               @8  =  220.51  @4  =  220.47  spread 0.018%
+  ppu-m7-naive         @4  =  333.83  @2  =  333.75  spread 0.023%
+  ternary              @16 =  109.23  @8  =  109.19  spread 0.036%
+  ppu-m7 (screen on)   single point (8 outer) -- no cross-check
+self-check: PASS
+
+============================================================================
+CYCLES PER MULTIPLY-ACCUMULATE   SNES SlowROM, 21.477 MHz master
+============================================================================
+primitive                  wall      cpu     cyc       ns   kMAC/s  x ternary
+softmul                  1503.9   1459.8   182.5    70023     14.3     13.77x
+qsquare                   571.0    554.3    69.3    26587     37.6      5.23x
+cpuhw                     317.4    308.1    38.5    14778     67.7      2.91x
+cpuhw-packed              164.8    160.0    20.0     7675    130.3      1.51x
+ppu-m7-naive              333.8    324.0    40.5    15542     64.3      3.06x
+ppu-m7                    220.5    214.0    26.8    10266     97.4      2.02x
+ppu-m7 (screen on)        220.5    214.0    26.8    10265     97.4      2.02x
+ternary                   109.2    106.0    13.3     5085    196.7      1.00x
+
+wall = master clocks including DRAM refresh; cpu = refresh removed;
+cyc  = cpu/8, i.e. SlowROM CPU cycles (a CPU cycle is 6, 8 or 12
+       master clocks depending on the address, so master clocks are
+       the only unambiguous unit and everything else is derived).
+
+============================================================================
+VERDICT: does int8 beat ternary on the SNES?
+============================================================================
+cheapest int8 MAC : cpuhw-packed at 164.8 wall master clocks
+ternary MAC       : ternary at 109.2 wall master clocks
+
+ternary is 1.51x CHEAPER per accumulate than the best int8 path.
+int8 would need ternary to be denser than 151% non-zero to
+win, which is impossible -- density caps at 100%.  PREDICTION REFUTED.
