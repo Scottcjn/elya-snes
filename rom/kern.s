@@ -110,7 +110,8 @@ MAPMODE = $20
         beq :+
         brl outer
 :       sta ACC
-        rts
+        rep #$10                ; index registers back to 16 bits: run_verify
+        rts                     ; calls these procs WITHOUT latch_end after it
 .endmacro
 
 ; -- skeleton C: no stream and no inner loop; the bodies are 128 long -------
@@ -433,6 +434,7 @@ halt:   bra halt
         THEAD
 outer:  ldy #$0000
         lda #0
+        clc
 inner:  ITAIL 2
 .endproc
 
@@ -442,6 +444,7 @@ inner:  ITAIL 2
         THEAD
 outer:  ldy #$0000
         lda #0
+        clc
 inner:
         .repeat ::UNROLL, J
         B_I16ABS J
@@ -455,6 +458,7 @@ inner:
         THEAD
 outer:  ldy #$0000
         lda #0
+        clc
 inner:
         .repeat ::UNROLL, J
         B_I16DP J
@@ -471,6 +475,7 @@ inner:
         .i8
 outer:  ldy #$00
         lda #0
+        clc
 inner:  ITAIL 1
 .endproc
 
@@ -482,6 +487,7 @@ inner:  ITAIL 1
         .i8
 outer:  ldy #$00
         lda #0
+        clc
 inner:
         .repeat ::UNROLL, J
         B_I8DP16 J
@@ -503,6 +509,7 @@ inner:
         stz z:TOTDP+1
 outer:  ldy #$00
         lda #0
+        clc
 inner:  sta ASAVE
         tya
         clc
@@ -534,6 +541,7 @@ inner:  sta ASAVE
         stz z:TOTDP+1
 outer:  ldy #$00
         lda #0
+        clc
 inner:
         .repeat ::UNROLL, J
         B_I8ACC J
@@ -570,6 +578,7 @@ inner:
         .i16
         THEAD
 outer:  lda #START
+        clc
         CTAIL
 .endproc
 
@@ -578,6 +587,7 @@ outer:  lda #START
         .i16
         THEAD
 outer:  lda #START
+        clc
         KCODE
         CTAIL
 .endproc
@@ -587,6 +597,7 @@ outer:  lda #START
         .i16
         THEAD
 outer:  lda #START
+        clc
         KCODESGN
         CTAIL
 .endproc
@@ -596,10 +607,12 @@ outer:  lda #START
         .i16
         THEAD
 outer:  lda #START
+        clc
         stz z:TOTDP
         sep #$20
         .a8
         lda #0
+        clc
         KCODE8
         rep #$20
         .a16

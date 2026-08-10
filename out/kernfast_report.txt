@@ -1,0 +1,24 @@
+== empty skeletons (linearity of the instrument) ==
+  empty16  =    584.9 +   1578.0*k   worst residual 0.276%   (4 points)
+  empty8   =    652.0 +   1516.0*k   worst residual 0.000%   (2 points)
+  empty8a  =    680.0 +   1318.0*k   worst residual 0.000%   (2 points)
+  emptyC   =    656.0 +    122.0*k   worst residual 0.000%   (2 points)
+
+== master clocks per MAC, FastROM 3.58 MHz ==
+kernel          wall       cpu   derived      err     kMAC/s    spread
+code           28.84     27.99     28.00   -0.02%      744.7    0.203%
+codesgn        28.95     28.10     28.09    0.04%      741.8    0.135%
+code8          30.16     29.28     28.34    3.29%      712.1    0.194%
+i8dp16         59.76     58.01     58.00    0.01%      359.4    0.065%
+i8acc          60.13     58.37     57.62    1.29%      357.2    0.065%
+i16dp          72.09     69.98     70.00   -0.03%      297.9    0.075%
+i16abs         78.29     76.00     76.00   -0.01%      274.3    0.004%
+
+== correctness (each kernel's own sum) ==
+  i16abs     = $036F (879)
+  i16dp      = $036F (879)
+  i8dp16     = $036F (879)
+  i8acc      = $036F (879)
+  code       = $136F (4975)
+  codesgn    = $1001 (4097)
+  code8      = $036F (879)

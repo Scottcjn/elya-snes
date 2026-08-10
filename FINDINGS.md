@@ -459,3 +459,148 @@ costs**, and it survives exactly as long as the machine charges per operand.
 Files: `rom/fx1.s` (bring-up), `rom/fx2.s` (benchmark), `rom/gsu/*.asm`,
 `rom/lorom32fx.cfg`, `tools/analyze_fx.py`, raw dump `out/fx2.ram`,
 report `out/fx2_report.txt`.
+
+---
+
+## 2026-08-10 — 6. The gather kernel A/B: the cheapest gather is no gather
+
+Entry 3 settled *which arithmetic* wins. This entry settles *how to write it*,
+and it answers the question the brief flagged as genuinely open: the NES port
+found that 8-bit register residency was the whole driver of its inner-loop
+cost, and the 65816 in native mode has a 16-bit accumulator. Does that finding
+survive?
+
+Same instrument, same discipline: `rom/kern.s`, seven kernels, each measured at
+two window lengths and each summing the same 128 biased activations through the
+same permutation so a kernel that is fast because it is broken is caught by its
+sum. All seven produced the right sum. Worst two-length spread: **0.203%**.
+
+Activations are stored **biased** (value + 7, so 0..14) exactly as the NES port
+stores them. On the NES that is what keeps 16 of them inside a byte; here it is
+what lets a run of `adc` need no `clc` between elements at all — 128 × 14 =
+1,792 cannot carry out of 16 bits, so **the block-16 structure the NES needed
+has no reason to exist on the 65816**. That is the first thing the wide
+accumulator changes and it is a deletion, not an addition.
+
+### SlowROM, 2.68 MHz — wall master clocks per multiply-accumulate
+
+```
+kernel          wall       cpu   derived      err     kMAC/s
+code           32.98     32.01     32.00    0.03%      651.3
+codesgn        33.09     32.12     32.11    0.02%      649.1
+code8          36.26     35.19     33.97    3.60%      592.4
+i8dp16         72.11     69.99     70.00   -0.01%      297.8
+i8acc          74.28     72.10     71.12    1.37%      289.1
+i16dp          86.52     83.98     84.00   -0.02%      248.2
+i16abs         94.80     92.02     92.00    0.02%      226.6
+ternary (e.3) 109.20    106.00                         196.7
+```
+
+### FastROM, 3.58 MHz
+
+```
+kernel          wall       cpu   derived      err     kMAC/s
+code           28.84     27.99     28.00   -0.02%      744.7
+codesgn        28.95     28.10     28.09    0.04%      741.8
+code8          30.16     29.28     28.34    3.29%      712.1
+i8dp16         59.76     58.01     58.00    0.01%      359.4
+i8acc          60.13     58.37     57.62    1.29%      357.2
+i16dp          72.09     69.98     70.00   -0.03%      297.9
+i16abs         78.29     76.00     76.00   -0.01%      274.3
+ternary (e.3)  86.50     84.00                         248.2
+```
+
+Five of the seven agree with hand-derived instruction timings to within
+**0.04%**. The two that do not are the two that pay the 8-bit fold, and there
+the *instrument* is right and the derivation was optimistic; the measured fold
+is what the tables above use.
+
+### What each row is
+
+* **i16abs** — `ldx IDXW,y` / `adc ACT16,x`, 16-bit index registers, activations
+  reached absolutely. This is entry 3's `ternary` primitive with the `clc`
+  deleted by the bias trick: 109.20 → 94.80, so **the bias is worth 14.4 wall
+  master clocks per MAC** and it is free.
+* **i16dp** — the same with the activations in the **direct page**. `adc dp,x`
+  is one operand byte shorter than `adc abs,x`, which is one 8-master-clock
+  fetch: 94.80 → 86.52. Free again; the direct page just has to be pointed at
+  the activation array.
+* **i8dp16** — 8-bit index registers, 16-bit accumulator. Narrowing the *index*
+  registers removes the 65816's unconditional extra internal cycle on
+  absolute-indexed addressing *and* shortens the load: 86.52 → **72.11**, a
+  20% cut. The stream byte carries the pre-doubled offset (2 × 127 = 254 still
+  fits a byte), so an 8-bit X still reaches all 128 16-bit activations.
+* **i8acc** — 8-bit index registers **and** an 8-bit accumulator: the NES shape,
+  including the fold that a byte-wide accumulator must pay every 16 elements.
+  74.28. **Worse than i8dp16.**
+* **code / codesgn** — the weights are static, the SNES has a 24-bit address
+  space and megabytes of ROM, so the gather index does not need to be *fetched*
+  at all: it can live in the operand byte of the accumulate itself. A row is
+  `lda #K` / a run of `adc <off` / `sec` / a run of `sbc <off`. `codesgn` is the
+  shape a real row has — **one carry transition per row, not per MAC** —, and
+  costs 0.11 wall master clocks per MAC more than the unsigned form.
+* **code8** — the same, 8-bit accumulator, folding every 16. 36.26.
+
+### Two results, and the second one is a refutation
+
+**1. The cheapest gather is no gather. 33.09 against 72.11** — the best
+data-driven kernel on this machine — **is 2.18x, and against entry 3's measured
+`ternary` primitive it is 3.30x.** The whole of the difference is one load. A
+data-driven gather spends `ldx IDXB2,y` (32 master clocks) fetching a number
+that was known when the cartridge was mastered; the code-as-weights form spends
+zero, because the number is already inside the instruction the CPU had to fetch
+anyway. This is exactly entry 3's conclusion pushed one step further: the
+binding constraint is memory transactions per accumulate, and the index fetch
+is one of them, so delete it.
+
+It is not free — it costs ROM. At 2 bytes per non-zero weight the trained
+model's 52,764 non-zeros become 105,528 bytes of instruction stream against
+52,764 bytes of index stream, so the technique buys 2.18x of speed with 2x of
+ROM. On the NES, where the whole cartridge is a 32 KB window and PRG banks are
+a scarce resource, that trade is not available. On a LoROM cartridge with 4 MB
+of address space it is close to free.
+
+**2. The NES's 8-bit residency finding does NOT survive — and it splits in
+two.** In *both* kernel families the 16-bit accumulator wins:
+
+```
+                     SlowROM            FastROM
+8-bit acc / 16-bit   36.26 / 33.09      30.16 / 28.95     code family   +9.6% / +4.2%
+8-bit acc / 16-bit   74.28 / 72.11      60.13 / 59.76     data family   +3.0% / +0.6%
+```
+
+but the 8-bit **index** registers win by 20%:
+
+```
+i16dp / i8dp16       86.52 / 72.11      72.09 / 59.76                   -16.7% / -17.1%
+```
+
+So the NES finding was right about register width mattering and wrong about
+which register. On the 65816 the index registers want to be **narrow**, because
+`abs,y` with a 16-bit index takes an unconditional extra internal cycle and one
+more data fetch; the accumulator wants to be **wide**, because a byte-wide
+accumulator has to be folded into a 16-bit total every 16 elements and that
+fold costs more than the byte-wide `adc` saves. The NES could not separate the
+two questions — the 6502 has one width — and this port can, which is the whole
+value of asking it here.
+
+The margin is not uniform. At FastROM in the data-driven family the two
+accumulator widths are within 0.6% of each other, i.e. a tie; the 8-bit
+accumulator only loses clearly where instruction fetches are expensive relative
+to the fold. Stated plainly: **the 8-bit-accumulator result does not transfer,
+and at FastROM the honest statement is "no longer an advantage" rather than "a
+disadvantage".**
+
+### The design that falls out
+
+The shipping engine uses `codesgn`: the weight program is straight-line 65816
+code, one `adc <off` or `sbc <off` per non-zero weight, `lda #K` per row with
+the bias correction `-7*(n_pos - n_neg)` folded into the immediate, and one
+`jsl` per row into a handler that quantises and stores. There is no weight
+stream, no header table, no bank-chain machinery and no block-16 accumulator —
+four of the NES port's structures deleted outright by a wide accumulator and a
+flat address space.
+
+Files: `rom/kern.s`, `tools/genkern.py`, `tools/analyze_kern.py`, raw dumps
+`out/kern.ram` / `out/kernfast.ram`, reports `out/kern_report.txt` /
+`out/kernfast_report.txt`.
