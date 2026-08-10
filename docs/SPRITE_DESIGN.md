@@ -70,3 +70,62 @@ cycle colours without touching Elya's.
 
 Cadence is unknown until the engine reports cycles/token. Revisit the frame
 budgets then — this document is a design, not a measurement.
+
+---
+
+## The world
+
+Blue sky, puffy clouds, and something with spikes chasing her.
+
+### The sky is an HDMA gradient — and that is the point
+
+The SNES can change a background colour **per scanline** using HDMA, driven by
+the DMA controller rather than the CPU. A sky that fades from deep blue at the
+top to pale at the horizon costs one HDMA channel and **zero CPU cycles in the
+inference loop**.
+
+This matters beyond looking nice. The Genesis port could not do this: its
+`drawTokSpeed()` runs a `sprintf` and a VRAM write *inside* the measured
+interval, because the 68000 had to do the drawing itself. On the SNES the
+gradient is set up once and the DMA controller repaints it every frame while the
+65816 does nothing but ternary gathers.
+
+So the prettier console is also the more honest one — more of what you see is
+free.
+
+Clouds: a second BG layer scrolling slowly, parallax against the ground. Also
+free, also DMA-driven.
+
+### The antagonist
+
+A spiky triangle face chasing Elya.
+
+Proposal, take it or leave it: make it **∇ — the Gradient**.
+
+`∇` (nabla) is the gradient operator, and it is already a spiky downward
+triangle. "Gradient descent" becomes literal: the thing descending on her.
+
+It also lands a real joke. The ROM does **inference**, not training — there are
+no gradients in it at all. So ∇ is the thing from training that cannot touch her
+any more, still chasing anyway. She got quantised to ternary and left it behind.
+
+Same joke family as the `@` block: a real mathematical operator as a character,
+readable as pure platformer to anyone who does not care, and a second layer for
+anyone who does.
+
+If ∇ is too cute, a plain spiky triangle works fine and the world does not need
+the pun to hold together.
+
+### Sprite budget, revised
+
+| object | size | frames | cost |
+|---|---|---|---|
+| Elya | 16x24 | idle 2, jump 1, land 1 | OAM |
+| `@` block | 16x16 | rest 1, struck 1 | OAM |
+| coin | 8x8 | 4 spin | OAM |
+| ∇ antagonist | 16x16 | 2 (menace bob) | OAM |
+| sky gradient | — | — | **1 HDMA channel, 0 CPU** |
+| clouds | BG layer | scroll | **DMA, 0 CPU** |
+
+Everything expensive is on hardware that is not the CPU. The inference loop
+still only ever sets a flag.
