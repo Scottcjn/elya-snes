@@ -75,7 +75,7 @@ POS    = 0x4000                 # T*D words, biased
 VB     = 0x5000                 # NCTX * 256 bytes, the value cache
 KT     = 0x8000                 # 64 *  64 bytes, the key cache, transposed
 
-PTAB   = (PTBANK << 16) | 0x8000
+
 
 T  = ref.T
 V, D, L, H, DH, F = ref.V, ref.D, ref.L, ref.H, ref.DH, ref.F
@@ -268,6 +268,7 @@ def main():
     lbl = sys.argv[1] if len(sys.argv) > 1 else ""
     fast = os.environ.get("SNES_FAST", "0") == "1"
     base = 0x80 if fast else 0x00
+    ptab_addr = ((base + PTBANK) << 16) | 0x8000
 
     labels = parse_labels(lbl)
     handlers = {n: labels.get(n, 0x8000) for n in set(HANDLER.values())}
@@ -302,6 +303,7 @@ def main():
         w_("NCTX      = %d\n" % T)
         w_("NGEN      = %d\n" % ngen)
         w_("SEEDTOK   = %d\n" % seed)
+        w_("NSEEDS    = %d\n" % int(os.environ.get("SNES_NSEEDS", str(V))))
         w_("NVOCAB    = %d\n" % V)
         w_("NDMODEL   = %d\n" % D)
         w_("NLAYER    = %d\n" % L)
@@ -320,7 +322,7 @@ def main():
         w_("BIASV     = %d\n" % BIAS)
         w_("SMAXV     = %d\n" % smax)
         w_("WBANKS    = %d\n" % NWBANK)
-        w_("PTABADDR  = $%06X\n" % PTAB)
+        w_("PTABADDR  = $%06X\n" % ptab_addr)
         w_("HBANK     = $%02X\n" % base)
         for name, addr in em.segs:
             w_("SEG_%-9s = $%06X\n" % (name.replace(".", "_"), addr))

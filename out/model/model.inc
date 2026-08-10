@@ -2,6 +2,7 @@
 NCTX      = 20
 NGEN      = 19
 SEEDTOK   = 1
+NSEEDS    = 64
 NVOCAB    = 64
 NDMODEL   = 64
 NLAYER    = 3

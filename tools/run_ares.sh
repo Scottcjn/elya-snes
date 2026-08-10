@@ -25,7 +25,7 @@ DISPLAY=:0 flatpak run dev.ares.ares --system "Super Famicom" --no-file-prompt \
 # has finished; MARK/MARK_OFF override that for the bring-up ROMs.
 done_ok() { [ -f "$RAM" ] && [ "$(dd if="$RAM" bs=1 skip=$((${MARK_OFF:-8})) count=4 2>/dev/null)" = "${MARK:-DONE}" ]; }
 
-for _ in $(seq 90); do
+for _ in $(seq ${WAIT:-90}); do
     done_ok && break
     sleep 2
 done

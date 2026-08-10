@@ -15,6 +15,8 @@ NAME=${NAME:-nn}
 DEFS=${DEFS:-}
 
 emit() { python3 tools/emit.py "$@"; }
+# SNES_FAST=1 moves every JSL/JML target and the PTAB base into banks $80+,
+# which is the only difference between the two clock arms.
 asm()  { ca65 --cpu 65816 -I rom -I out/model $DEFS -o "out/$NAME.o" \
               -l "out/$NAME.lst" rom/nn.s; }
 link() { ld65 -C rom/lorom256.cfg -o "out/$NAME.sfc" -m "out/$NAME.map" \

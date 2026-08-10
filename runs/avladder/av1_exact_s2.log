@@ -1,0 +1,7 @@
+av1_exact_s2                 step     1  fit 8.1391  val 8.1482  density 0.5491  1s
+av1_exact_s2                 step   500  fit 3.2778  val 3.2773  density 0.5484  18s
+av1_exact_s2                 step  1000  fit 3.0191  val 3.0235  density 0.5471  31s
+av1_exact_s2                 step  1500  fit 2.8841  val 2.8810  density 0.5472  40s
+av1_exact_s2                 step  2000  fit 2.7530  val 2.7575  density 0.5462  49s
+av1_exact_s2                 step  2500  fit 2.6768  val 2.6812  density 0.5455  65s
+av1_exact_s2                 step  3000  fit 2.6132  val 2.6291  density 0.5447  82s

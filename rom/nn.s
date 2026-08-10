@@ -92,6 +92,14 @@ NEXTT   = $26
 S16     = $28           ; SSUM << 4
 YARG    = $2A           ; the chain's 8-bit index, staged here
 TB2     = $2C           ; (p+1)*2, the live byte count of the word arrays
+SRAMB   = $36           ; SRAM offset this run's tokens are written to
+SEEDN   = $38           ; SURVEY: which seed token is being run
+SMPX    = $2E           ; PROFILE: the next sample's SRAM offset
+VSCR    = $30           ; PROFILE: latched V
+HSCR    = $32           ; PROFILE: latched H
+FSCR    = $34           ; PROFILE: latched frame count
+
+FRAMES  = $076C         ; PROFILE: vblank counter, maintained by the NMI
 
 .ifdef FASTROM
 MAPMODE = $30
@@ -239,18 +247,70 @@ fast_entry:
         sta f:SRAM+4
         lda #SEEDTOK
         sta f:SRAM+5
+        lda #NSEEDS
+        sta f:SRAM+6
         lda #$00                ; DONE marker cleared
         sta f:SRAM+8
         sta f:SRAM+9
         sta f:SRAM+10
         sta f:SRAM+11
-        lda #SEEDTOK
-        sta f:SRAM+$10          ; token 0 is the seed
         rep #$30
         .a16
         .i16
 
+.ifdef PROFILE
+        jsr profile_calibrate   ; the multi-frame instrument's frame length
+        stz a:FRAMES
+        sep #$20
+        .a8
+        lda #$80
+        sta f:NMITIMEN          ; vblank NMI on; the handler counts frames
+        rep #$30
+        .a16
+        .i16
+        cli
+        lda #$0140
+        sta SMPX
+.endif
+
+.ifdef SURVEY
+        ; Every vocabulary symbol as a seed.  One seed and nineteen tokens is
+        ; not a check -- on the sibling ports a short comparison passed three
+        ; genuinely broken changes -- so the shipping gate is the whole survey.
+        stz SEEDN
+survey: lda SEEDN
+        sta TOKP
+        lda SEEDN
+        sta TMPA
+        asl a
+        asl a
+        clc
+        adc TMPA                ; 5n
+        asl a
+        asl a                   ; 20n = NGEN+1 per seed
+        clc
+        adc #$0010
+        sta SRAMB
         jsr generate
+        lda SEEDN
+        inc a
+        sta SEEDN
+        cmp #NSEEDS
+        bne survey
+.else
+        lda #$0010
+        sta SRAMB
+        jsr generate
+.endif
+.ifdef PROFILE
+        sep #$20
+        .a8
+        lda #$00
+        sta f:NMITIMEN
+        rep #$30
+        .a16
+        .i16
+.endif
 
         sep #$20
         .a8
@@ -307,17 +367,31 @@ halt:   bra halt
 .proc generate
         .a16
         .i16
-        lda #SEEDTOK
-        sta TOKP
         stz POSP
-loop:   jsr step
-        lda NEXTT
-        sta TOKP
+        ldx SRAMB
         sep #$20
         .a8
-        ldx POSP
-        inx
-        sta f:SRAM+$10, x       ; token p+1, written as it is produced so a
+        lda TOKP
+        sta f:SRAM, x           ; token 0 is the seed
+        rep #$30
+        .a16
+        .i16
+loop:
+.ifdef PROFILE
+        jsr sample
+.endif
+        jsr step
+        lda NEXTT
+        sta TOKP
+        lda POSP
+        inc a
+        clc
+        adc SRAMB
+        tax
+        sep #$20
+        .a8
+        lda TOKP
+        sta f:SRAM, x           ; token p+1, written as it is produced so a
         rep #$30                ; partial run is still readable
         .a16
         .i16
@@ -326,6 +400,9 @@ loop:   jsr step
         sta POSP
         cmp #NGEN
         bne loop
+.ifdef PROFILE
+        jsr sample
+.endif
         rts
 .endproc
 
@@ -781,8 +858,168 @@ H_HEAD:
         clc
         rtl
 
+.ifdef PROFILE
+; The multi-frame instrument.  Its cost is NOT an error term: the frame length
+; is calibrated with this same handler running, so whatever it steals per frame
+; is already subtracted from the calibrated frame length.  See tools/prof_nn.py.
+; DBR is $7E for the whole run, so RDNMI has to be reached with a LONG read --
+; an absolute one lands in WRAM, the vblank flag is never cleared, and the CPU
+; re-enters the handler forever.  That is exactly what the first build did.
+nmi:    php
+        rep #$30
+        .a16
+        .i16
+        pha
+        sep #$20
+        .a8
+        lda f:$004210           ; clear the vblank flag
+        rep #$20
+        .a16
+        lda a:FRAMES
+        inc a
+        sta a:FRAMES
+        pla
+        plp
+        rti
+        .a16
+        .i16
+.else
 nmi:    rti
+.endif
 irq:    rti
+
+.ifdef PROFILE
+; ---------------------------------------------------------------------------
+; PROFILE: sample (frames, V, H) into SRAM.  FRAMES is re-read after the latch
+; and the sample retried if it moved, because a counter that ticks inside the
+; read is exactly how entry 2 of FINDINGS produced a plausible wrong number.
+; ---------------------------------------------------------------------------
+.proc sample
+        .a16
+        .i16
+retry:  lda a:FRAMES
+        sta FSCR
+        sep #$20
+        .a8
+        lda f:SLHV
+        lda f:STAT78
+        lda f:OPHCT
+        sta HSCR
+        lda f:OPHCT
+        and #$01
+        sta HSCR+1
+        lda f:OPVCT
+        sta VSCR
+        lda f:OPVCT
+        and #$01
+        sta VSCR+1
+        rep #$30
+        .a16
+        .i16
+        lda a:FRAMES
+        cmp FSCR
+        bne retry
+        ldx SMPX
+        lda FSCR
+        sta f:SRAM, x
+        lda VSCR
+        sta f:SRAM+2, x
+        lda HSCR
+        sta f:SRAM+4, x
+        txa
+        clc
+        adc #6
+        sta SMPX
+        rts
+.endproc
+
+; a loop of known shape; the host fits wall = c + s*k through four sub-frame
+; measurements and then solves the frame length from a multi-frame one
+.proc calloop
+        .a16
+        .i16
+        ldx TMPA
+:       dex
+        bne :-
+        rts
+.endproc
+
+.proc syncframe
+        .a16
+        .i16
+:       jsr readv
+        cmp #250
+        bcc :-
+:       jsr readv
+        cmp #10
+        bcs :-
+        rts
+.endproc
+
+.proc readv
+        .a16
+        .i16
+        sep #$20
+        .a8
+        lda f:SLHV
+        lda f:STAT78
+        lda f:OPVCT
+        sta VSCR
+        lda f:OPVCT
+        and #$01
+        sta VSCR+1
+        rep #$20
+        .a16
+        lda VSCR
+        rts
+.endproc
+
+.proc profile_calibrate
+        .a16
+        .i16
+        lda #$0100
+        sta SMPX
+        stz a:FRAMES
+        lda #1000
+cl:     sta TMPB
+        jsr syncframe
+        jsr sample
+        lda TMPB
+        sta TMPA
+        jsr calloop
+        jsr sample
+        lda TMPB
+        clc
+        adc #1000
+        cmp #5000
+        bne cl
+        ; one long run, spanning several frames, with the NMI counting
+        stz a:FRAMES
+        sep #$20
+        .a8
+        lda #$80
+        sta f:NMITIMEN
+        rep #$30
+        .a16
+        .i16
+        cli
+        jsr syncframe
+        jsr sample
+        lda #60000
+        sta TMPA
+        jsr calloop
+        jsr sample
+        sei
+        sep #$20
+        .a8
+        lda #$00
+        sta f:NMITIMEN
+        rep #$30
+        .a16
+        .i16
+        rts
+.endproc
+.endif
 
 ; ===========================================================================
         .segment "RODATA"

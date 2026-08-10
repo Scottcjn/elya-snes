@@ -20,7 +20,7 @@ def to555(c):
     """8-bit RGB -> the 5-bit-per-channel value the SNES actually stores."""
     return tuple((v >> 3) << 3 | (v >> 3) >> 2 for v in c)
 
-def main(src, out_prefix, ncolors=15):
+def main(src, out_prefix, ncolors=15, mode='colour'):
     im = Image.open(src).convert('RGB')
 
     # fit inside 256x224 preserving aspect, centre on the logo's own background
@@ -29,27 +29,33 @@ def main(src, out_prefix, ncolors=15):
     canvas = Image.new('RGB', (W, H), bg)
     canvas.paste(im, ((W - im.width) // 2, (H - im.height) // 2))
 
-    # A frequency-based quantiser is the wrong tool for a two-tone logo: red
-    # covers most of the frame, so median-cut spends every palette entry on
-    # shades of red and the lettering disappears. Build the ramp explicitly
-    # between the darkest and lightest colours actually present, and assign by
-    # luminance. ncolors == 2 gives hard edges; 3-4 gives antialiasing.
-    px_rgb = list(canvas.getdata())
+    # Two modes, because one quantiser cannot serve both jobs.
+    #
+    # RAMP: for two-tone art (a logo). A frequency-based quantiser is the wrong
+    # tool there — red covers most of the frame, so median-cut spends every
+    # palette entry on shades of red and the lettering disappears. Build an
+    # explicit ramp between the darkest and lightest colours present and assign
+    # by luminance.
+    #
+    # COLOUR: for full scenes. Median-cut is correct here; a luminance ramp
+    # would render the whole thing greyscale.
     lum = lambda c: 0.299*c[0] + 0.587*c[1] + 0.114*c[2]
-    lo = min(px_rgb, key=lum); hi = max(px_rgb, key=lum)
-    llo, lhi = lum(lo), lum(hi)
+    px_rgb = list(canvas.getdata())
 
-    ramp = []
-    for i in range(ncolors):
-        t = i / (ncolors - 1) if ncolors > 1 else 0
-        ramp.append(tuple(round(lo[c] + (hi[c] - lo[c]) * t) for c in range(3)))
-    pal555 = [to555(c) for c in ramp]
-
-    span = (lhi - llo) or 1
-    idx = []
-    for c in px_rgb:
-        t = (lum(c) - llo) / span
-        idx.append(min(ncolors - 1, max(0, round(t * (ncolors - 1)))) + 1)
+    if mode == 'ramp':
+        lo = min(px_rgb, key=lum); hi = max(px_rgb, key=lum)
+        llo, lhi = lum(lo), lum(hi)
+        ramp = [tuple(round(lo[c] + (hi[c]-lo[c]) * (i/(ncolors-1) if ncolors>1 else 0))
+                      for c in range(3)) for i in range(ncolors)]
+        pal555 = [to555(c) for c in ramp]
+        span = (lhi - llo) or 1
+        idx = [min(ncolors-1, max(0, round(((lum(c)-llo)/span)*(ncolors-1)))) + 1
+               for c in px_rgb]
+    else:
+        q = canvas.quantize(colors=ncolors, method=Image.MEDIANCUT, dither=Image.NONE)
+        pal = q.getpalette()[:ncolors*3]
+        pal555 = [to555(tuple(pal[i*3:i*3+3])) for i in range(ncolors)]
+        idx = [p + 1 for p in q.getdata()]
 
     # deduplicate tiles, honouring the H/V flip bits the tilemap provides free
     tiles, tmap, seen = [], [], {}
@@ -118,4 +124,6 @@ def main(src, out_prefix, ncolors=15):
     print(f"VRAM total  : {(len(tiles)*32 + len(tmap)*2)/1024:.1f} KB of 64 KB")
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 15)
+    main(sys.argv[1], sys.argv[2],
+         int(sys.argv[3]) if len(sys.argv) > 3 else 15,
+         sys.argv[4] if len(sys.argv) > 4 else 'colour')
