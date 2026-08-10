@@ -13,6 +13,10 @@ all: $(addprefix out/,$(addsuffix .sfc,$(ROMS)))
 
 out/%.o: rom/%.s rom/snes.inc rom/data.inc
 	@mkdir -p out
+	$(CA65) --cpu 65816 -I rom -o $@ -l out/$*.lst $<
+
+out/_unused_%.o: rom/%.s
+	@mkdir -p out
 	$(CA65) --cpu 65816 -o $@ -l out/$*.lst $<
 
 out/%.sfc: out/%.o $(CFG)
@@ -30,3 +34,15 @@ clean:
 
 .PHONY: all stage clean
 .PRECIOUS: out/%.o
+
+# same measurements at 3.58 MHz
+out/benchfast.o: rom/bench.s rom/snes.inc rom/data.inc
+	@mkdir -p out
+	$(CA65) --cpu 65816 -DFASTROM=1 -I rom -o $@ -l out/benchfast.lst rom/bench.s
+
+out/benchfast.sfc: out/benchfast.o $(CFG)
+	$(LD65) -C $(CFG) -o $@ -m out/benchfast.map $<
+	python3 tools/fixhdr.py $@
+
+fast: out/benchfast.sfc
+.PHONY: fast

@@ -63,13 +63,23 @@ SLOTS = [
 # registers (X flag = 0) absolute-indexed addressing ALWAYS takes the extra
 # internal cycle, not only when it crosses a page.  `lda abs,y` with 16-bit A
 # and 16-bit X is therefore 6 cycles = 8+8+8+6+8+8 = 46, not 40.
-DERIVED = {
+DERIVED_SLOW = {
     "nop": 14,             # 8 opcode + 6 internal
     "lda abs,y": 46,       # 8 + 8 + 8 + 6 + 8 + 8
     "lda dp": 32,          # 8 + 8 + 8 + 8
     "clc + adc dp": 46,    # (8+6) + (8+8+8+8)
     "lda $2134": 36,       # 8 + 8 + 8 + 6 + 6
 }
+# FastROM: ROM fetches (opcode, operand, and operand-array data in bank $80)
+# drop from 8 to 6 master clocks.  WRAM and direct page stay at 8.
+DERIVED_FAST = {
+    "nop": 12,             # 6 + 6
+    "lda abs,y": 36,       # 6 + 6 + 6 + 6 + 6 + 6
+    "lda dp": 28,          # 6 + 6 + 8 + 8
+    "clc + adc dp": 40,    # (6+6) + (6+6+8+8)
+    "lda $2134": 30,       # 6 + 6 + 6 + 6 + 6
+}
+DERIVED = DERIVED_SLOW
 
 VERIFY = ["softmul", "qsquare", "cpuhw", "cpuhw-packed", "ppu-m7",
           "ppu-m7-naive", "ternary"]
@@ -86,7 +96,9 @@ def u16(b, o):
     return b[o] | (b[o + 1] << 8)
 
 
-def main(path):
+def main(path, fast=False):
+    global DERIVED
+    DERIVED = DERIVED_FAST if fast else DERIVED_SLOW
     ram = open(path, "rb").read()
     if ram[0:4] != b"BNCH":
         print(f"bad magic {ram[0:4]!r} -- ROM did not run", file=sys.stderr)
@@ -198,7 +210,9 @@ def main(path):
 
     print()
     print("=" * 76)
-    print("CYCLES PER MULTIPLY-ACCUMULATE   SNES SlowROM, 21.477 MHz master")
+    print("CYCLES PER MULTIPLY-ACCUMULATE   SNES "
+          + ("FastROM 3.58 MHz" if fast else "SlowROM 2.68 MHz")
+          + ", 21.477 MHz master")
     print("=" * 76)
     print(f"{'primitive':<22} {'wall':>8} {'cpu':>8} {'cyc':>7} {'ns':>8} "
           f"{'kMAC/s':>8} {'x ternary':>10}")
@@ -212,7 +226,7 @@ def main(path):
               f"{w*CPU_FRACTION/8:>7.1f} {w/MASTER_HZ*1e9:>8.0f} "
               f"{MASTER_HZ/w/1000:>8.1f} {w/tern:>9.2f}x")
     print("\nwall = master clocks including DRAM refresh; cpu = refresh removed;")
-    print("cyc  = cpu/8, i.e. SlowROM CPU cycles (a CPU cycle is 6, 8 or 12")
+    print("cyc  = cpu/8, i.e. CPU cycles at the SlowROM rate (a CPU cycle is 6, 8 or 12")
     print("       master clocks depending on the address, so master clocks are")
     print("       the only unambiguous unit and everything else is derived).")
 
@@ -235,4 +249,4 @@ def main(path):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    sys.exit(main(sys.argv[1], "--fast" in sys.argv))

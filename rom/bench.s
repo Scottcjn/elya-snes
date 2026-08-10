@@ -278,6 +278,15 @@ UNROLL  = 16
 
         .segment "CODE"
 
+; FASTROM=1 builds the same measurements at 3.58 MHz: map mode $30, MEMSEL bit
+; 0 set, and execution moved to bank $80 where ROM accesses take 6 master
+; clocks instead of 8.  WRAM and direct page stay slow either way.
+.ifdef FASTROM
+MAPMODE = $30
+.else
+MAPMODE = $20
+.endif
+
 ; ===========================================================================
 reset:
         sei
@@ -300,7 +309,16 @@ reset:
         stz NMITIMEN
         stz $420B
         stz $420C
+.ifdef FASTROM
+        lda #$01
+        sta MEMSEL              ; FastROM: banks $80-$FF fetch in 6 master clocks
+        jml $800000 + fast_entry ; ...but only if we execute from there
+fast_entry:
+        phk
+        plb                     ; data bank = $80 too, so operand arrays are fast
+.else
         stz MEMSEL              ; SlowROM: every ROM access is 8 master clocks
+.endif
         lda #$01
         sta BGMODE              ; mode 1 -- NOT mode 7, so $211B/$211C are ours
         stz $212C
@@ -713,5 +731,5 @@ irq:    rti
 
         .include "data.inc"
 
-        SNES_HEADER "ELYA SNES BENCH      ", $20, $02, $05, $03
+        SNES_HEADER "ELYA SNES BENCH      ", MAPMODE, $02, $05, $03
         SNES_VECTORS reset, nmi, irq

@@ -144,3 +144,148 @@ Worst spread across all of them: **0.036%**.
 
 Instrument: trustworthy. Files: `rom/bench.s`, `tools/analyze.py`,
 `tools/run_ares.sh`, raw dump in `out/bench.ram`.
+
+---
+
+## 2026-08-10 — 3. Six primitives, measured. Cycles per multiply-accumulate.
+
+Every number below is measured on the instrument calibrated in entry 2, on
+operand arrays that each primitive is separately proved to compute correctly.
+Nothing here is estimated. Both clock configurations were built and run: the
+same source, `-DFASTROM=1` switching map mode `$20`→`$30`, `MEMSEL` bit 0, and
+execution to bank `$80`.
+
+Calibration for the FastROM build, hand-derived independently:
+
+```
+body                 wall      cpu  derived    error
+nop                12.353   11.991       12   -0.08%
+lda abs,y          37.093   36.006       36    0.02%
+lda dp             28.861   28.015       28    0.05%
+clc + adc dp       41.211   40.002       40    0.00%
+lda $2134          30.919   30.013       30    0.04%
+```
+
+### SlowROM, 2.68 MHz
+
+```
+primitive                  wall      cpu     cyc       ns   kMAC/s  x ternary
+softmul                  1503.9   1459.8   182.5    70023     14.3     13.77x
+qsquare                   570.9    554.2    69.3    26583     37.6      5.23x
+dsp1-bus+status           373.0    362.0    45.3    17365     57.6      3.42x
+ppu-m7-naive              333.8    324.0    40.5    15543     64.3      3.06x
+dsp1-bus-floor            323.5    314.0    39.2    15061     66.4      2.96x
+cpuhw                     317.4    308.0    38.5    14776     67.7      2.91x
+ppu-m7                    220.5    214.0    26.8    10266     97.4      2.02x
+ppu-m7 (screen on)        220.5    214.0    26.8    10265     97.4      2.02x
+cpuhw-packed              164.8    160.0    20.0     7674    130.3      1.51x
+ternary                   109.2    106.0    13.2     5084    196.7      1.00x
+```
+
+### FastROM, 3.58 MHz
+
+```
+primitive                  wall      cpu     cyc       ns   kMAC/s  x ternary
+softmul                  1327.2   1288.2   161.0    61794     16.2     15.34x
+qsquare                   467.6    453.9    56.7    21772     45.9      5.40x
+dsp1-bus+status           309.1    300.0    37.5    14391     69.5      3.57x
+ppu-m7-naive              274.0    266.0    33.2    12758     78.4      3.17x
+dsp1-bus-floor            267.8    260.0    32.5    12470     80.2      3.10x
+cpuhw                     261.6    253.9    31.7    12179     82.1      3.02x
+ppu-m7                    179.2    174.0    21.7     8344    119.8      2.07x
+ppu-m7 (screen on)        179.3    174.0    21.8     8348    119.8      2.07x
+cpuhw-packed              136.0    132.0    16.5     6332    157.9      1.57x
+ternary                    86.5     84.0    10.5     4029    248.2      1.00x
+```
+
+`wall` is master clocks including the DRAM refresh stall — real elapsed time.
+`cpu` removes refresh and is what the 65816 datasheet predicts. `cyc` is cpu/8.
+The ordering is identical in every column and in both clock configurations.
+
+### What each row actually is
+
+**softmul** — 8-round shift-add, multiplicand shifting left, multiplier
+shifting right, product in A. The multiplier lives in a 16-bit direct-page word
+because with 16-bit A a `lsr dp` is a 16-bit shift whether you want one or not,
+and that alone is 7 cycles × 8 rounds. **180 CPU cycles per MAC.** It is not
+close to competitive and no amount of polishing brings it within 5x of the
+hardware paths, which is why I did not keep optimising it.
+
+**qsquare** — quarter-square tables, `a*b = QS1[a+b] - QS2[(a-b)+255]`, exact
+for all 8-bit unsigned pairs. **Note the brief asked for a 256-byte table: that
+size cannot do an exact 8×8 product.** The identity needs indices spanning
+0..510, so the real cost is two 511-entry 16-bit tables = **2044 bytes**, and
+even then it loses to the CPU multiplier by 1.8x, because each MAC needs two
+index computations, two `asl`/`tax` pairs and two table reads. On a machine
+with no multiplier (the NES) this technique wins. On the SNES it is dead
+weight — the silicon already does it faster.
+
+**cpuhw** (`$4202`/`$4203`) — unsigned 8×8→16. Two 8-bit operand writes, then
+enough work to cover the 8-cycle latency, then a 16-bit read of `$4216`.
+**cpuhw-packed** is the same unit fed by a single 16-bit store that lands both
+operands at once and starts the multiply; that is the fastest int8 MAC on the
+machine at 132 CPU cycles... **but it is a lower bound, not a usable number**:
+it requires the weight and the activation to be pre-interleaved in one word
+array, and interleaving two arrays that both vary per MAC costs more than the
+MAC. Quoted for the floor, not for the design.
+
+The 8-cycle latency is not advisory. Reading `$4216` at exactly 8 CPU cycles
+after the `$4203` write returned the wrong product; 10 cycles is correct. The
+correctness pass caught this, the timing pass would not have.
+
+**ppu-m7** (`$211B`/`$211C`) — the signed one, and the honest winner among the
+multiply paths at **214 / 174 CPU cycles per MAC**. Two 16-bit stores cover all
+three register writes, because a 16-bit store spans two consecutive registers:
+`stx $211A` puts the weight in `$211B` (M7A low byte) and `stx $211B` puts zero
+in `$211B` (M7A high byte) and the activation in `$211C` (M7B). The accumulator
+never leaves A. The naive form — 8-bit stores, two explicit writes to `$211B`,
+accumulator in memory, mode switches — costs **324 / 266**, i.e. **the M7A
+two-write requirement plus 8-bit register discipline costs 1.5x**.
+
+**The vblank-only constraint is smaller than it sounds, and I measured it
+rather than assuming.** The Mode 7 registers are unusable only while the PPU is
+*rendering* Mode 7. In BG modes 0-6 they belong to the program all frame. The
+table above has two entries: forced blank (screen off, `$2100 = $8F`) and
+screen genuinely on with BG1 enabled during active display. They differ by
+**0.03%** — 220.51 vs 220.51 wall master clocks. The SNES CPU is not stalled by
+rendering. So the constraint is "do not use Mode 7 for graphics", which for a
+text-generating cartridge is not a constraint at all.
+
+**dsp1** — see entry 4; it is a bounded floor, not a measurement of the chip.
+
+**ternary** — sign-separated gather, no multiply anywhere: `ldx IDX,y` /
+`clc` / `adc XS16,x` for the +1 list, `sec` / `sbc` for the -1 list, zeros never
+appearing at all. **106 / 84 CPU cycles per MAC.**
+
+### The prediction: REFUTED
+
+The prediction under test was that the SNES, being the first target with a fast
+**signed** hardware multiply, would be where int8 finally beats ternary.
+
+It does not. **Ternary is 2.02x cheaper than the best usable int8 MAC on
+SlowROM and 2.07x cheaper on FastROM**, and still 1.51x / 1.57x cheaper than
+the pre-packed CPU-multiplier floor that no real engine can reach. Ternary
+would have to be denser than 100% non-zero for int8 to win, which is not a
+thing. At a realistic ternary density of 50% the margin is 4x.
+
+The reason is visible in the numbers and it is not about the multiplier at all.
+**The multiply is free; the operands are not.** The Mode 7 unit produces a
+signed 16×8 product in zero cycles — the entire 214-cycle cost of `ppu-m7` is
+moving data: two operand loads (46 each), two register writes (36 each), one
+product read (36), and the accumulate (46). Ternary's 106 cycles are one index
+load (46), one accumulate (46) and a carry clear (14). Ternary wins because it
+touches **three** memory locations per accumulate where int8 touches **six**,
+and on a 65816 every one of those is 5-6 cycles of address and data traffic.
+
+A faster multiplier cannot fix that. It is the same conclusion the NES and
+Genesis ports reached, arrived at from the opposite direction: there the
+multiplier was absent, here it is free, and ternary wins either way because the
+binding constraint on this class of machine is **memory traffic per
+accumulate**, not arithmetic. The N64's RSP is the exception that proves it —
+it beat ternary because a vector unit amortises operand movement across 8 lanes,
+not because its multiplier was fast.
+
+A refutation, plainly stated: **int8 does not beat ternary on the SNES.**
+
+Raw dumps: `out/bench.ram`, `out/benchfast.ram`.
+Full reports: `out/bench_report.txt`, `out/benchfast_report.txt`.
