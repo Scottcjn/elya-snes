@@ -1,0 +1,50 @@
+Modules list:
+-------------
+fx2.o:
+    CODE              Offs=000000  Size=000189  Align=00001  Fill=0000
+    RODATA            Offs=000000  Size=0010FE  Align=00100  Fill=0000
+    GSUEMPTY          Offs=000000  Size=000080  Align=00001  Fill=0000
+    GSUINT8           Offs=000000  Size=000080  Align=00001  Fill=0000
+    GSUTERN           Offs=000000  Size=000080  Align=00001  Fill=0000
+    GSUNOMUL          Offs=000000  Size=000080  Align=00001  Fill=0000
+    FXCODE            Offs=000000  Size=0000C1  Align=00001  Fill=0000
+    SNESHDR           Offs=000000  Size=000020  Align=00001  Fill=0000
+    VECTORS           Offs=000000  Size=000020  Align=00001  Fill=0000
+
+
+Segment list:
+-------------
+Name                   Start     End    Size  Align
+----------------------------------------------------
+FXCODE                000300  0003C0  0000C1  00001
+CODE                  008000  008188  000189  00001
+GSUEMPTY              009000  00907F  000080  00001
+GSUINT8               009200  00927F  000080  00001
+GSUTERN               009400  00947F  000080  00001
+GSUNOMUL              009600  00967F  000080  00001
+RODATA                009800  00A8FD  0010FE  00100
+SNESHDR               00FFC0  00FFDF  000020  00001
+VECTORS               00FFE0  00FFFF  000020  00001
+
+
+Exports list by name:
+---------------------
+__FXCODE_LOAD__           00A8FE RLA    __FXCODE_RUN__            000300 RLA    
+__FXCODE_SIZE__           0000C1 REA    
+
+
+Exports list by value:
+----------------------
+__FXCODE_SIZE__           0000C1 REA    __FXCODE_RUN__            000300 RLA    
+__FXCODE_LOAD__           00A8FE RLA    
+
+
+Imports list:
+-------------
+__FXCODE_LOAD__ ([linker generated]):
+    fx2.o                     rom/fx2.s(19)
+__FXCODE_RUN__ ([linker generated]):
+    fx2.o                     rom/fx2.s(19)
+__FXCODE_SIZE__ ([linker generated]):
+    fx2.o                     rom/fx2.s(19)
+

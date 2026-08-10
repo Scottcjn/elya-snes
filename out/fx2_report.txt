@@ -1,0 +1,34 @@
+============================================================================
+SUPERFX / GSU-1 -- EMULATOR ONLY (the Kaico Super DSP cart cannot
+run SuperFX; ares is bsnes-derived but it is not silicon)
+============================================================================
+
+CORRECTNESS
+  int8   got $9A38  want $9A38  ok
+  tern   got $FCFB  want $FCFB  ok
+  -> PASS
+
+RAW WINDOWS
+  empty @16  V1=0    H1=219  V2=4    H2=264  wall=5636
+  empty @8   V1=0    H1=154  V2=2    H2=234  wall=3048
+  int8  @16  V1=0    H1=150  V2=47   H2=262  wall=64556
+  int8  @8   V1=0    H1=200  V2=24   H2=161  wall=32580
+  tern  @16  V1=0    H1=169  V2=38   H2=244  wall=52132
+  tern  @8   V1=0    H1=158  V2=19   H2=279  wall=26400
+  nomul @16  V1=0    H1=208  V2=44   H2=299  wall=60380
+  nomul @8   V1=0    H1=229  V2=23   H2=4    wall=30472
+
+GSU invocation overhead (start + STOP handshake + CPU driver): 323.5 wall master clocks
+
+============================================================================
+GSU CYCLES PER MULTIPLY-ACCUMULATE
+============================================================================
+kernel       wall      cpu  GSU clk       ns    kMAC/s  description
+int8        28.70    27.86    14.35     1336     748.4  int8 MAC, signed 8x8 via GSU MULT
+nomul       26.68    25.90    13.34     1242     805.0  control: int8 kernel with MULT replaced by ADD
+tern        22.60    21.94    11.30     1052     950.3  ternary sign-separated gather (no multiply)
+
+MULT itself costs 1.01 GSU clocks more than ADD -- one cycle, as documented.
+ternary is 1.27x cheaper than int8 on the GSU.
+Of the 3.05 GSU-clock gap, only 1.01 is the multiply; the rest is the memory
+access pattern (the kernels execute the same 11 instructions per MAC).

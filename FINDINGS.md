@@ -351,3 +351,111 @@ This is a refutation of the coprocessor idea on transfer cost, exactly as the
 scope note asked me to test rather than argue. If the firmware ever becomes
 available the measurement should be redone — but it can only move the number
 up from 314, never down, so the ordering will not change.
+
+---
+
+## 2026-08-10 — 5. SuperFX, phase two. EMULATOR ONLY.
+
+**Label first, because it matters: none of this has a path to real silicon.**
+The target cart is a Kaico Super DSP V3.1, which carries DSP-1/2/3/4 and
+**cannot run SuperFX**. ares's SNES core is bsnes-derived, which is the
+accurate lineage, but a bsnes-derived GSU model is not a GSU. Everything in
+this entry is emulator-only and should be read that way. The non-FX table in
+entry 3 is the one that decides the design.
+
+Asar 1.91 (`~/bin/asar`, `arch superfx`, `--no-title-check`) assembles GSU
+code; ca65 does the 65816 side and the kernels are `.incbin`'d.
+
+### Getting a GSU to run at all: three silent failures
+
+**ares instantiates a GSU from the header alone** — map mode `$20`, cart type
+`$15`, no manifest, no game folder. Confirmed by writing `$1234`/`$ABCD` into
+GSU R0/R1 at `$00:3000` and reading them back intact, with VCR = `$04`.
+
+Then three failures in a row, none of which announced themselves:
+
+1. **The poll raced the start.** Writing R15 does not set the GO flag on the
+   very next CPU cycle in ares. A naive "wait until GO clears" saw GO=0, decided
+   the GSU had finished, and pulled SCMR out from under a *running* GSU. The
+   register dump gave it away: R0 held `$BEEF`, so the kernel had executed, but
+   nothing reached memory. Fixed by polling SFR bit 15 (IRQ), which `STOP`
+   latches and which cannot be raced.
+
+2. **SCMR's documented bit assignment is wrong.** [SnesLab](https://sneslab.net/wiki/Super_FX)
+   gives bit 4 = RAN, bit 5 = RON. bsnes and ares use **bit 3 = RAN, bit 4 =
+   RON**. With `SCMR = $30` the GSU got ROM but not RAM, so code executed
+   perfectly and the first `stw` to Game Pak RAM **hung the GSU forever** —
+   waiting for RAM it did not own. `SCMR = $18` fixed it instantly. Bisected by
+   cutting the kernel down to `stop`, which worked, proving the harness was fine
+   and the store was not.
+
+3. **The kernels contained absolute addresses and were linked somewhere else.**
+   `iwt r13,#inner` bakes the LOOP target as an absolute address. asar
+   assembled at `org $8000`; ld65 placed the blob wherever RODATA happened to
+   land. Result: the GSU ran, the loop target was garbage, the kernel fell
+   straight through to `STOP`, and the measurement came back as **0.96 master
+   clocks per MAC** — 128 multiply-accumulates in 124 master clocks, which is
+   impossible and was the only reason I caught it. Fixed with a dedicated
+   linker config (`rom/lorom32fx.cfg`) that pins each kernel to the address
+   asar assembled it for.
+
+Number three is the entry-2 lesson repeating: a wrong number that *looks* like
+a spectacular win is the most dangerous output an instrument can produce.
+
+### The controlled A/B
+
+Same instrument, same operand data, same console, same cartridge bus, one
+variable changed. Both kernels are unrolled by two and software-pipelined —
+the GSU stalls if a RAM load's destination register is used by the very next
+instruction, and the first int8 kernel did exactly that, costing it 1 GSU clock
+per MAC that had nothing to do with int8. Both kernels execute **the same 11
+instructions per MAC** and both are verified against a host-computed sum.
+
+```
+kernel       wall      cpu  GSU clk       ns    kMAC/s  description
+int8        28.70    27.86    14.35     1336     748.4  signed 8x8 via GSU MULT
+nomul       26.68    25.90    13.34     1242     805.0  control: MULT -> ADD
+tern        22.60    21.94    11.30     1052     950.3  ternary gather, no multiply
+```
+
+Correctness: `int8` = `$9A38`, `tern` = `$FCFB`, both matching the host. GSU
+invocation overhead (start, `STOP` handshake, CPU-side driver) measured
+separately at 323.5 wall master clocks and subtracted.
+
+**Ternary wins again, but only by 1.27x**, against 2.02x on the stock 5A22.
+
+The control kernel says why. Replacing `MULT` with `ADD` recovers only **1.01
+GSU clocks** — the multiply is genuinely one cycle, exactly as documented. The
+other 2.04 clocks of the gap are the **memory access pattern**: int8 reads two
+bytes through two independently-advancing pointers in two different RAM pages,
+while the ternary gather's first two reads are sequential from one pointer.
+Same instruction count, different locality.
+
+**Honest limit on this result:** 1.27x is narrow enough that I cannot rule out
+a better-scheduled int8 GSU kernel closing or reversing it. I scheduled both as
+well as I could and made them instruction-count-equal, but "as well as I could"
+is not "optimal", and on the 5A22 the margin was wide enough (2.02x) that
+scheduling could not have flipped it. Here it might. Treat the SuperFX arm as
+*ternary is at least competitive and probably ahead*, not as a settled 1.27x.
+
+### What the trend across arms actually says
+
+| arm | ternary | best int8 | ternary advantage |
+|---|---|---|---|
+| 5A22 SlowROM 2.68 MHz | 109.2 | 220.5 (PPU M7) | 2.02x |
+| 5A22 FastROM 3.58 MHz | 86.5 | 179.2 (PPU M7) | 2.07x |
+| GSU-1 10.74 MHz | 22.6 | 28.7 (GSU MULT) | 1.27x |
+| N64 RSP (sibling port) | — | — | int8 wins by 12% |
+
+(wall master clocks per MAC; the GSU column is emulator-only)
+
+The advantage shrinks monotonically as the arithmetic unit gets closer to the
+operands. It is 2x when the multiplier is across a register bus, 1.27x when the
+multiplier is in the same datapath as the pointers, and it inverts on the RSP
+where one instruction moves eight lanes. **Ternary's win is not a fact about
+multipliers. It is a fact about how many memory transactions an accumulate
+costs**, and it survives exactly as long as the machine charges per operand.
+
+Files: `rom/fx1.s` (bring-up), `rom/fx2.s` (benchmark), `rom/gsu/*.asm`,
+`rom/lorom32fx.cfg`, `tools/analyze_fx.py`, raw dump `out/fx2.ram`,
+report `out/fx2_report.txt`.
