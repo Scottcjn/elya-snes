@@ -1,0 +1,40 @@
+Modules list:
+-------------
+fx1.o:
+    CODE              Offs=000000  Size=000095  Align=00001  Fill=0000
+    FXCODE            Offs=000000  Size=00004E  Align=00001  Fill=0000
+    SNESHDR           Offs=000000  Size=000020  Align=00001  Fill=0000
+    VECTORS           Offs=000000  Size=000020  Align=00001  Fill=0000
+
+
+Segment list:
+-------------
+Name                   Start     End    Size  Align
+----------------------------------------------------
+FXCODE                000300  00034D  00004E  00001
+CODE                  008000  008094  000095  00001
+SNESHDR               00FFC0  00FFDF  000020  00001
+VECTORS               00FFE0  00FFFF  000020  00001
+
+
+Exports list by name:
+---------------------
+__FXCODE_LOAD__           008100 RLA    __FXCODE_RUN__            000300 RLA    
+__FXCODE_SIZE__           00004E REA    
+
+
+Exports list by value:
+----------------------
+__FXCODE_SIZE__           00004E REA    __FXCODE_RUN__            000300 RLA    
+__FXCODE_LOAD__           008100 RLA    
+
+
+Imports list:
+-------------
+__FXCODE_LOAD__ ([linker generated]):
+    fx1.o                     rom/fx1.s(13)
+__FXCODE_RUN__ ([linker generated]):
+    fx1.o                     rom/fx1.s(13)
+__FXCODE_SIZE__ ([linker generated]):
+    fx1.o                     rom/fx1.s(13)
+

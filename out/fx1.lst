@@ -1,0 +1,222 @@
+ca65 V2.18 - Ubuntu 2.19-2
+Main file   : rom/fx1.s
+Current file: rom/fx1.s
+
+000000r 1               ; ---------------------------------------------------------------------------
+000000r 1               ; fx1.s -- SuperFX bring-up.  EMULATOR ONLY: the target Kaico Super DSP cart
+000000r 1               ; cannot run SuperFX, so nothing in this file has a path to real silicon.
+000000r 1               ;
+000000r 1               ; While the GSU owns ROM (SCMR RON=1) the 65816 cannot fetch instructions from
+000000r 1               ; the cartridge, so the routine that starts the GSU and waits for it has to run
+000000r 1               ; from WRAM.  The FXCODE segment is linked to run at $0300 and copied there.
+000000r 1               ; ---------------------------------------------------------------------------
+000000r 1                       .include "snes.inc"
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; snes.inc -- register names and the cartridge header, shared by every ROM here.
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               
+000000r 2               ; ---- PPU ------------------------------------------------------------------
+000000r 2               INIDISP  = $2100        ; screen on/off + brightness ($8F = forced blank)
+000000r 2               BGMODE   = $2105
+000000r 2               M7SEL    = $211A
+000000r 2               M7A      = $211B        ; Mode 7 matrix A  -- write TWICE (low byte, high byte)
+000000r 2               M7B      = $211C        ; Mode 7 matrix B  -- ALSO the 2nd multiply operand
+000000r 2               M7C      = $211D
+000000r 2               M7D      = $211E
+000000r 2               SLHV     = $2137        ; read: latch H/V counters
+000000r 2               MPYL     = $2134        ; product bits  0.. 7   (M7A * M7B, signed 16x8 -> 24)
+000000r 2               MPYM     = $2135        ; product bits  8..15
+000000r 2               MPYH     = $2136        ; product bits 16..23
+000000r 2               OPHCT    = $213C        ; horizontal counter latch, low/high (dots, 0..339)
+000000r 2               OPVCT    = $213D        ; vertical counter latch, low/high (scanlines)
+000000r 2               STAT78   = $213F        ; read: resets the H/V latch read toggle
+000000r 2               
+000000r 2               ; ---- CPU ------------------------------------------------------------------
+000000r 2               NMITIMEN = $4200
+000000r 2               WRIO     = $4201
+000000r 2               WRMPYA   = $4202        ; hardware multiply operand A (unsigned 8)
+000000r 2               WRMPYB   = $4203        ; operand B; writing this STARTS the 8-cycle multiply
+000000r 2               WRDIVL   = $4204
+000000r 2               WRDIVH   = $4205
+000000r 2               WRDIVB   = $4206
+000000r 2               MEMSEL   = $420D        ; bit0 = FastROM enable
+000000r 2               RDDIVL   = $4214
+000000r 2               RDDIVH   = $4215
+000000r 2               RDMPYL   = $4216        ; product low   (8x8 -> 16 unsigned)
+000000r 2               RDMPYH   = $4217        ; product high
+000000r 2               
+000000r 2               ; ---- where results go -----------------------------------------------------
+000000r 2               ; LoROM battery SRAM. ares flushes this to a .srm next to the ROM on exit,
+000000r 2               ; which is how the host reads numbers back out of the console.
+000000r 2               SRAM     = $700000
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               .macro SNES_HEADER title, mapmode, carttype, romsize, ramsize
+000000r 2                   .segment "SNESHDR"
+000000r 2                   .assert .strlen(title) = 21, error, "cartridge title must be exactly 21 characters"
+000000r 2                   .byte title             ; $FFC0  21 bytes, space padded
+000000r 2                   .byte mapmode           ; $FFD5  $20 = LoROM/SlowROM, $30 = LoROM/FastROM
+000000r 2                   .byte carttype          ; $FFD6  $02 = ROM + RAM + battery
+000000r 2                   .byte romsize           ; $FFD7  log2(KiB): $05 = 32 KiB
+000000r 2                   .byte ramsize           ; $FFD8  log2(KiB): $03 = 8 KiB
+000000r 2                   .byte $01               ; $FFD9  country: NTSC / US
+000000r 2                   .byte $00               ; $FFDA  developer id
+000000r 2                   .byte $00               ; $FFDB  version
+000000r 2                   .word $FFFF             ; $FFDC  checksum complement (patched by tools/fixhdr.py)
+000000r 2                   .word $0000             ; $FFDE  checksum
+000000r 2               .endmacro
+000000r 2               
+000000r 2               .macro SNES_VECTORS reset, nmi, irq
+000000r 2                   .segment "VECTORS"
+000000r 2                   .word $0000, $0000      ; $FFE0 unused
+000000r 2                   .word $0000             ; $FFE4 native COP
+000000r 2                   .word $0000             ; $FFE6 native BRK
+000000r 2                   .word $0000             ; $FFE8 native ABORT
+000000r 2                   .word nmi               ; $FFEA native NMI
+000000r 2                   .word $0000             ; $FFEC unused
+000000r 2                   .word irq               ; $FFEE native IRQ
+000000r 2                   .word $0000, $0000      ; $FFF0 unused
+000000r 2                   .word $0000             ; $FFF4 emu COP
+000000r 2                   .word $0000             ; $FFF6 unused
+000000r 2                   .word $0000             ; $FFF8 emu ABORT
+000000r 2                   .word nmi               ; $FFFA emu NMI
+000000r 2                   .word reset             ; $FFFC emu RESET
+000000r 2                   .word irq               ; $FFFE emu IRQ/BRK
+000000r 2               .endmacro
+000000r 2               
+000000r 1                       .p816
+000000r 1                       .smart -
+000000r 1               
+000000r 1                       .import __FXCODE_LOAD__, __FXCODE_RUN__, __FXCODE_SIZE__
+000000r 1               
+000000r 1               SCMR    = $303A
+000000r 1               SFR     = $3030
+000000r 1               PBR     = $3034
+000000r 1               R15     = $301E
+000000r 1               
+000000r 1                       .segment "CODE"
+000000r 1               reset:
+000000r 1  78                   sei
+000001r 1  18                   clc
+000002r 1  FB                   xce
+000003r 1                       .a16
+000003r 1                       .i16
+000003r 1  C2 38                rep #$38
+000005r 1  A2 FF 1F             ldx #$1FFF
+000008r 1  9A                   txs
+000009r 1  A9 00 00             lda #$0000
+00000Cr 1  5B                   tcd
+00000Dr 1  E2 20                sep #$20
+00000Fr 1                       .a8
+00000Fr 1  4B                   phk
+000010r 1  AB                   plb
+000011r 1  A9 8F                lda #$8F
+000013r 1  8D 00 21             sta INIDISP
+000016r 1  9C 00 42             stz NMITIMEN
+000019r 1  9C 0B 42             stz $420B
+00001Cr 1  9C 0C 42             stz $420C
+00001Fr 1  C2 30                rep #$30
+000021r 1                       .a16
+000021r 1                       .i16
+000021r 1               
+000021r 1                       ; copy the WRAM-resident GSU driver into place
+000021r 1  A2 00 00             ldx #$0000
+000024r 1  BF rr rr rr  :       lda f:__FXCODE_LOAD__, x
+000028r 1  9F rr rr rr          sta f:__FXCODE_RUN__, x
+00002Cr 1  E8                   inx
+00002Dr 1  E8                   inx
+00002Er 1  E0 rr rr             cpx #__FXCODE_SIZE__
+000031r 1  90 F1                bcc :-
+000033r 1               
+000033r 1                       ; clear the two result words so a stale value cannot be mistaken for
+000033r 1                       ; a successful GSU write
+000033r 1  A9 00 00             lda #$0000
+000036r 1  8F 00 01 70          sta f:$700100
+00003Ar 1  8F 02 01 70          sta f:$700102
+00003Er 1               
+00003Er 1  A9 rr rr             lda #(gsu_hello - $8000) + $8000
+000041r 1  85 10                sta $10                 ; GSU entry address for the driver
+000043r 1  20 rr rr             jsr fx_run
+000046r 1               
+000046r 1  E2 20                sep #$20
+000048r 1                       .a8
+000048r 1  A2 00 00             ldx #$0000
+00004Br 1  B5 12        :       lda $12, x
+00004Dr 1  9F 10 00 70          sta f:SRAM+$0010, x
+000051r 1  E8                   inx
+000052r 1  E0 0C 00             cpx #$000C
+000055r 1  90 F4                bcc :-
+000057r 1  A9 46                lda #$46                ; 'F'
+000059r 1  8F 00 00 70          sta f:SRAM+0
+00005Dr 1  A9 58                lda #$58                ; 'X'
+00005Fr 1  8F 01 00 70          sta f:SRAM+1
+000063r 1  A9 44                lda #$44                ; 'D'
+000065r 1  8F 02 00 70          sta f:SRAM+2
+000069r 1  A9 4E                lda #$4E                ; 'N'
+00006Br 1  8F 03 00 70          sta f:SRAM+3
+00006Fr 1  C2 30                rep #$30
+000071r 1                       .a16
+000071r 1                       .i16
+000071r 1  80 FE        halt:   bra halt
+000073r 1               
+000073r 1  40           nmi:    rti
+000074r 1  40           irq:    rti
+000075r 1               
+000075r 1               gsu_hello:
+000075r 1  F1 00 01 F0          .incbin "gsu/hello.bin"
+000079r 1  EF BE B0 31  
+00007Dr 1  F1 02 01 F0  
+000095r 1               
+000095r 1               ; ---------------------------------------------------------------------------
+000095r 1                       .segment "FXCODE"
+000000r 1               ; Runs from WRAM.  $10 holds the GSU entry address.
+000000r 1               .proc fx_run
+000000r 1  E2 20                sep #$20
+000002r 1                       .a8
+000002r 1  9C 34 30             stz PBR                 ; GSU program bank = $00
+000005r 1  A9 30                lda #$30                ; SCMR: bit4 RAN=1, bit5 RON=1 -> GSU owns both
+000007r 1  8D 3A 30             sta SCMR
+00000Ar 1  C2 20                rep #$20
+00000Cr 1                       .a16
+00000Cr 1  A5 10                lda $10
+00000Er 1  8D 1E 30             sta R15                 ; writing R15 high byte sets GO
+000011r 1                       ; bounded poll: a hang here tells us nothing, a timeout plus a register
+000011r 1                       ; dump tells us where the GSU actually went
+000011r 1  A2 00 00             ldx #$0000
+000014r 1  E2 20        :       sep #$20
+000016r 1                       .a8
+000016r 1  AD 30 30             lda SFR
+000019r 1  29 20                and #$20
+00001Br 1  C2 20                rep #$20
+00001Dr 1                       .a16
+00001Dr 1  F0 03                beq done
+00001Fr 1  E8                   inx
+000020r 1  D0 F2                bne :-
+000022r 1               done:
+000022r 1  86 12                stx $12                 ; poll iterations used ($0000 = stopped at once)
+000024r 1  AD 30 30             lda SFR
+000027r 1  85 14                sta $14
+000029r 1  AD 1E 30             lda R15
+00002Cr 1  85 16                sta $16
+00002Er 1  AD 00 30             lda $3000
+000031r 1  85 18                sta $18
+000033r 1  AD 02 30             lda $3002
+000036r 1  85 1A                sta $1A
+000038r 1  AD 3E 30             lda $303E
+00003Br 1  85 1C                sta $1C
+00003Dr 1  E2 20                sep #$20
+00003Fr 1                       .a8
+00003Fr 1  9C 3A 30             stz SCMR                ; hand ROM and RAM back to the CPU
+000042r 1  C2 30                rep #$30
+000044r 1                       .a16
+000044r 1                       .i16
+000044r 1  60                   rts
+000045r 1               .endproc
+000045r 1               
+000045r 1  45 4C 59 41          SNES_HEADER "ELYA SNES FX BRINGUP ", $20, $15, $05, $05
+000049r 1  20 53 4E 45  
+00004Dr 1  53 20 46 58  
+000020r 1  00 00 00 00          SNES_VECTORS reset, nmi, irq
+000024r 1  00 00 00 00  
+000028r 1  00 00 rr rr  
+000020r 1               

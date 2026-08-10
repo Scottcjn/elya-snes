@@ -21,7 +21,7 @@ rm -f "$RAM"
 DISPLAY=:0 flatpak run dev.ares.ares --system "Super Famicom" --no-file-prompt \
     "$STAGE/$BASE.sfc" >"$STAGE/$BASE.log" 2>&1 &
 
-done_ok() { [ -f "$RAM" ] && [ "$(dd if="$RAM" bs=1 skip=8 count=4 2>/dev/null)" = "DONE" ]; }
+done_ok() { [ -f "$RAM" ] && [ "$(dd if="$RAM" bs=1 skip=$((${MARK_OFF:-8})) count=4 2>/dev/null)" = "${MARK:-DONE}" ]; }
 
 for _ in $(seq 90); do
     done_ok && break
