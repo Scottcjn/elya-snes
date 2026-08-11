@@ -14,6 +14,13 @@
 
 `logo_preview3x.png` is exactly what the PPU renders, at 3x for inspection.
 
+**The palette row is an argument.** `png2snes.py ... 4 ramp 2` puts `2` in every
+tilemap word's palette field, and the ROM loads `logo.pal` to CGRAM 32, which
+is palette 2. Before that argument existed the tool emitted no palette field at
+all, so the map selected palette 0 while the colours were loaded at 32 — and
+the logo drew in the *text* palette, black and white, with both assets
+perfectly correct. See FINDINGS entry 9.
+
 ### Why 4 colours and not 15
 
 A frequency-based quantiser is the wrong tool for a two-tone logo. Red covers

@@ -101,6 +101,11 @@ nn:
 # rom/game.inc is pulled into rom/nn.s by -DGAME, so there is one engine and
 # one set of weights, not two.
 game:
+	# The logo's palette ROW is an argument, not a default: a tilemap that does
+	# not say which palette it wants gets palette 0, and the ROM loads the
+	# logo's colours at palette 2.  That mismatch is why the logo drew in black
+	# and white.  The invocation lives here so it cannot be forgotten.
+	python3 tools/png2snes.py assets/logo_source.png assets/logo 4 ramp 2
 	python3 tools/mkfont.py assets/font
 	python3 tools/mkart.py assets/obj
 	python3 tools/mkbg.py assets
