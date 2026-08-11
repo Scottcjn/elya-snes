@@ -1,0 +1,42 @@
+== the run ==
+  frames              1671   (27.8 s at 60.1 Hz)
+  tokens committed     118
+  coins spawned        118
+  coins queued           0
+  act 1 threshold       64 tokens
+  act 3 answers          2 of 6 questions
+
+== the binding: a coin may only come from a committed token ==
+
+== the negative control: -DNOGEN, the forward pass removed ==
+  frames 1707, tokens 0, coins 0
+
+== the generated text, against host/ref.py ==
+  act 1 free run  'because and said, "you ca'
+  act 2 line      seed 's' -> ' a big big because and '
+  act 3 q1 'what now? '   -> 'he said, "yes, i'
+  act 3 q2 'once upon '   -> 'her friends. she sa'
+
+== what the PPU actually holds ==
+  OAM read back through $2138 agrees with the shadow in 544/544 bytes
+
+  ok    final: 118 spawned + 0 queued == 118 committed
+  ok    every one of 104 trace samples: spawned + queued == committed
+  ok    coins never once ran ahead of the token count
+  ok    the state machine ran logo -> play -> stop -> line -> ask -> answer
+  ok    -DNOGEN: 1707 frames, 0 tokens, 0 coins -- the coins stall exactly when inference does
+  ok    act 1's free run: 20/20 tokens identical to host/ref.py
+  ok    act 2's line: 19/19 tokens identical, generated from act 1's last token -- so it depends on how the platformer went
+  ok    act 3 answer 0: 12/12 tokens identical to host/ref.py
+  ok    act 3 answer 1: 13/13 tokens identical to host/ref.py
+  ok    the BG3 tilemap read back out of VRAM through $2139 equals the WRAM shadow, all 1024 entries
+  ok    OAM read back through $2138 matches the shadow the DMA sent
+  ok    CGRAM   1.. 11 holds bg3.pal exactly, read back through $213B
+  ok    CGRAM  32.. 47 holds bg1.pal exactly, read back through $213B
+  ok    CGRAM  48.. 63 holds bg2.pal exactly, read back through $213B
+  ok    CGRAM 128..143 holds obj.pal exactly, read back through $213B
+  ok    CGRAM entry 0 holds the sky HDMA's last band ($7F76): the gradient channel really is driving the backdrop
+  ok    the act 1 frame snapshot is complete (state play, 40 tokens)
+  ok    the act 3 frame snapshot is complete (state end, 118 tokens)
+
+PASS: 18 checks

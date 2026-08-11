@@ -979,7 +979,7 @@ intervals instead of being calibrated away.
                    engine    +game    delta   engine    +game    delta
 wall clocks/token  3,055,173 3,805,702 +24.6% 2,678,280 3,344,006 +24.9%
 seconds/token         0.1423  0.1772           0.1247    0.1557
-TOKENS PER SECOND      7.030   5.643  -19.7%    8.019    6.423  -19.9%
+TOKENS PER SECOND      7.030   5.644  -19.7%    8.019    6.423  -19.9%
 ```
 
 **The game costs 19.7% of the model's speed on SlowROM and 19.9% on FastROM.**
@@ -1020,19 +1020,46 @@ NMI handler, 170 frames of act 1     master clocks     % of a 356,816 frame
 So of the 70,472 clocks a frame the presentation costs, **60,688 are inside the
 handler and 9,784 (2.74% of a frame) are outside it** — HDMA, which runs during
 active display, and whatever else the DMA controller steals while the CPU is
-running the model.
+running the model. The next section takes that 9,784 apart.
 
 ### What the design document claimed about the sky, and what is true
 
 `docs/SPRITE_DESIGN.md` says the HDMA gradient costs "zero CPU cycles in the
-inference loop". It does not, and the difference is measurable: an arm built
-with `-DNOSKY`, which is the same cartridge with `sky_hdma` never called,
-isolates it. See the table in `out/nosky_profile.txt`.
+inference loop". It does not. An arm built with `-DNOSKY` — the same cartridge
+with `sky_hdma` never called, one HDMA channel the only difference — isolates
+it exactly:
 
-The honest version of the claim is the one entry 3 already made about screen-on
-versus forced-blank: the *renderer* costs the CPU nothing, and the DMA
-controller costs it something small. 28 bands of 8 scanlines rather than 224
-separate writes is an eighth of that something.
+```
+                        wall clocks/token   tokens/s
+game, sky HDMA on            3,805,702        5.644
+game, sky HDMA off           3,717,168        5.778
+the sky                         88,534        -2.32%
+                        = 8,313 master clocks a frame = 2.33% of a frame
+```
+
+**The HDMA sky costs 2.33% of the model's throughput.** Small, real, not zero.
+
+That closes the accounting on the 70,472 clocks a frame the presentation costs:
+
+```
+  inside the NMI handler        60,688     17.01%   (measured directly)
+  the sky's HDMA channel         8,313      2.33%   (measured by -DNOSKY)
+  everything else                1,471      0.41%
+  ------------------------------------------------
+  total presentation            70,472     19.75%
+```
+
+The commonly quoted HDMA model — about 18 master cycles per active channel per
+scanline plus 8 per byte transferred — predicts 224 x 18 + 28 x 32 = 4,928 for
+this table, and the measurement is 8,313. The measurement is what this repo
+quotes; the model is noted because the gap is 1.7x and somebody should find out
+which of the two is wrong, on hardware.
+
+The honest version of the design's claim is the one entry 3 already made about
+screen-on versus forced-blank: the *renderer* costs the CPU nothing (220.51
+against 220.51 wall master clocks per MAC with the screen genuinely on), and
+the DMA controller costs it something small. 28 bands of 8 scanlines rather
+than 224 separate writes is an eighth of that something.
 
 ### Verifying a game on a machine that cannot screenshot
 

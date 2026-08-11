@@ -81,7 +81,7 @@ and pushes one byte into a ring — no PPU register, no formatting, no VRAM.
 
 ```
                    engine only    with the game     delta
-SlowROM 2.68 MHz     7.030 tok/s     5.643 tok/s   -19.7%
+SlowROM 2.68 MHz     7.030 tok/s     5.644 tok/s   -19.7%
 FastROM 3.58 MHz     8.019 tok/s     6.423 tok/s   -19.9%
 ```
 
@@ -91,9 +91,11 @@ presentation is 70,472 master clocks on SlowROM and 71,124 on FastROM — 0.9%
 apart. A frame of game is a frame of game whatever the CPU clock is, because
 the game layer is DMA and WRAM traffic and `MEMSEL` touches neither.
 
-Of that, 60,688 clocks a frame (17.0%) are measured *inside* the NMI handler
-and 9,784 (2.7%) are outside it — HDMA, which keeps running during active
-display and, it turns out, during forced blank as well.
+Of that, 60,688 clocks a frame (17.0%) are measured *inside* the NMI handler,
+8,313 (2.3%) are the sky's HDMA channel — isolated by building the same
+cartridge with it switched off — and 1,471 are everything else. The design
+document called the HDMA sky "zero CPU cycles"; it is 2.33% of the model's
+throughput. Small, real, not zero.
 
 ### Seeing it, on a machine that cannot take a screenshot
 
@@ -226,7 +228,7 @@ could not separate the two questions.
 | internals | 960/960 residual-stream and attention values, 3 positions |
 | cycles/token | 3,055,173 wall master (SlowROM) · 2,678,280 (FastROM) |
 | tokens/s | **7.030** (SlowROM) · **8.019** (FastROM) |
-| with the game layer | 3,805,702 · 3,344,006 → **5.643** · **6.423** tok/s |
+| with the game layer | 3,805,702 · 3,344,006 → **5.644** · **6.423** tok/s |
 | where the time goes | matmul 68.9% · attention 27.7% · embed+head 3.5% |
 
 **FastROM buys 14%, not 33%**, because the engine's operands live in WRAM and
