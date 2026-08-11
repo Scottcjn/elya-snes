@@ -811,3 +811,95 @@ Files: `rom/nn.s`, `tools/emit.py`, `rom/lorom256.cfg`, `build_nn.sh`,
 instruments `tools/prof_nn.py` / `stage_nn.py`, reports `out/nn_profile.txt`,
 `out/nnfast_profile.txt`, `out/nn_stages.txt`, `out/nn_survey.txt`,
 `out/nn_internals.txt`.
+
+---
+
+## 2026-08-10 — 8. Re-laddering AV_SHIFT: it transfers, and it could not not have
+
+`AV_SHIFT` is the shift that requantises the attention output back to a 4-bit
+activation. The brief flagged it as an open question — the 6502's optimum
+might not survive a machine with a 16-bit accumulator — so it was re-run here
+rather than carried over, `train/av_ladder.sh`, five rungs, two seeds, 12,000
+steps each, exactly the settings the NES port's ladder used.
+
+```
+== AV_SHIFT ladder, 12,000 steps, exact softmax normaliser, two seeds ==
+             this tree (SNES)     elya-nes (6502)      delta
+AV_SHIFT    seed 1   seed 2     mean       mean nats/char       mean
+1           2.2889   2.3047   2.2968     2.2968   1.5799    -0.0000
+2           2.2035   2.2066   2.2050     2.2050   1.5168    -0.0000
+3           2.1882   2.1935   2.1909     2.1909   1.5071    +0.0000
+4           2.2587   2.2534   2.2560     2.2561   1.5519    -0.0000
+5           2.2662   2.2677   2.2670     2.2670   1.5594    +0.0000
+```
+
+**AV_SHIFT = 3 wins on both trees**, and the two ladders agree to twelve
+decimal places at all ten rungs — the difference is exactly 0.00e+00 at every
+one. (A correction to the premise: `AV_SHIFT = 2` was the 6502 optimum under
+the **power-of-two** softmax normaliser. Under the **exact** normaliser this
+port ships, the NES port re-laddered and moved to 3, and that is what
+reproduces here.)
+
+**Say plainly what that does and does not prove.** The trainer is deterministic
+given its seed, so re-running it on a faithful copy of the tree reproduces the
+numbers bit for bit. That confirms this repo's trainer and corpus are the same
+ones — worth having — but a bit-identical reproduction is not an independent
+measurement of the ladder, and it should not be presented as one.
+
+### What is actually 65816-specific, and what it measures
+
+The interesting claim is not "3 wins again". It is **that the accumulator width
+cannot move the answer at all**, and there are two measurements behind it.
+
+**The arithmetic is width-independent, and the console proves it.** `AV_SHIFT`
+selects among values of an exact integer expression that `host/ref.py` defines.
+The 6502 evaluated the attention accumulator in blocks of ten, which is
+*provably* lossless — the AV product table is biased so ten entries cannot
+exceed 250 and no carry can leave a byte — and the 65816 evaluates it flat in
+sixteen bits. Different implementations, identical integers. That is checked
+rather than argued: `-DDEBUG` compares all 64 attention outputs of layer 0 (and
+the residual stream after every layer) against the reference trace at three
+positions, 960 values, all identical. And a **second cartridge was built at
+`AV_SHIFT = 1`** with the ladder's own `av1_exact_s1` weights and a host
+reference configured to match; it also matches, 20/20 tokens. Two different
+shifts, two different models, both bit-exact.
+
+**AV_SHIFT is cost-neutral on the 65816.** Diffing the `$8000` code region of
+the `AV_SHIFT = 1` and `AV_SHIFT = 3` cartridges:
+
+```
+$8194  AVOFF     $0E vs $38     7<<1 = 14   against  7<<3 = 56
+$844E  LIMAV     $1E vs $78    15<<1 = 30   against 15<<3 = 120
+$8453  LIMAV-1   $1D vs $77
++ 34 bytes of JSL target addresses, which differ because the two models have
+  different weight counts and therefore different weight-program layouts
+```
+
+**Three immediate operands. No instruction added, none removed.** The
+saturating requantise is a range test and a table lookup whose *size* depends
+on the shift but whose *code* does not — the same reason it was free on the
+6502.
+
+### A by-product worth more than the ladder
+
+Two whole cartridges, verified independently, differing in weight count:
+
+```
+                nnz       wall master clocks / token
+AV_SHIFT 3   52,764              3,055,173
+AV_SHIFT 1   54,998              3,129,559
+marginal cost of one extra non-zero weight:   33.30 wall master clocks
+entry 6's isolated `codesgn` kernel:          33.09          (+0.63%)
+```
+
+Predicting the second cartridge's cost from the first plus 33.09 per extra
+non-zero weight gives 3,129,096 against a measured 3,129,559 — **0.015%.**
+
+The kernel A/B measured one instruction pair in a tight loop; this measures the
+same quantity as the *marginal* cost of a weight in a 3-million-clock forward
+pass with attention, softmax, quantisation and 1,408 subroutine calls around
+it. They agree to well under one percent, which is the strongest evidence in
+this repo that entry 6's table describes the engine and not just the bench.
+
+Files: `train/av_ladder.sh`, `train/av_table.py`, `runs/avladder/*`,
+report `out/av_ladder.txt`, the `AV_SHIFT = 1` profile `out/nnav1_profile.txt`.

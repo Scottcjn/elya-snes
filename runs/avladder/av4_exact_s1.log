@@ -4,3 +4,23 @@ av4_exact_s1                 step  1000  fit 2.9350  val 2.9332  density 0.5474 
 av4_exact_s1                 step  1500  fit 2.7685  val 2.7585  density 0.5478  20s
 av4_exact_s1                 step  2000  fit 2.6241  val 2.6358  density 0.5481  26s
 av4_exact_s1                 step  2500  fit 2.5618  val 2.5682  density 0.5466  33s
+av4_exact_s1                 step  3000  fit 2.5094  val 2.5243  density 0.5459  40s
+av4_exact_s1                 step  3500  fit 2.5081  val 2.5150  density 0.5453  46s
+av4_exact_s1                 step  4000  fit 2.4756  val 2.4658  density 0.5439  53s
+av4_exact_s1                 step  4500  fit 2.4395  val 2.4396  density 0.5434  59s
+av4_exact_s1                 step  5000  fit 2.4424  val 2.4403  density 0.5422  66s
+av4_exact_s1                 step  5500  fit 2.4096  val 2.4174  density 0.5413  72s
+av4_exact_s1                 step  6000  fit 2.4134  val 2.4066  density 0.5414  79s
+av4_exact_s1                 step  6500  fit 2.4016  val 2.4121  density 0.5416  85s
+av4_exact_s1                 step  7000  fit 2.4153  val 2.4192  density 0.5407  92s
+av4_exact_s1                 step  7500  fit 2.3653  val 2.3738  density 0.5396  98s
+av4_exact_s1                 step  8000  fit 2.3689  val 2.3733  density 0.5392  104s
+av4_exact_s1                 step  8500  fit 2.3677  val 2.3722  density 0.5394  111s
+av4_exact_s1                 step  9000  fit 2.3667  val 2.3588  density 0.5390  117s
+av4_exact_s1                 step  9500  fit 2.3613  val 2.3594  density 0.5384  124s
+av4_exact_s1                 step 10000  fit 2.3447  val 2.3497  density 0.5397  130s
+av4_exact_s1                 step 10500  fit 2.3625  val 2.3536  density 0.5390  137s
+av4_exact_s1                 step 11000  fit 2.3539  val 2.3492  density 0.5389  143s
+av4_exact_s1                 step 11500  fit 2.3127  val 2.3109  density 0.5395  149s
+av4_exact_s1                 step 12000  fit 2.2444  val 2.2553  density 0.5399  156s
+FINAL av4_exact_s1             fit 2.2494  val 2.2587  (uniform 4.1589)  nnz 55289/102400 = 0.5399
