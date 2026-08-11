@@ -46,6 +46,7 @@ SR_TOK, SR_TRACE, SR_STAT = 0x0010, 0x0200, 0x1000
 SR_OAM, SR_VM3, SR_CGR = 0x1100, 0x1400, 0x1C00
 SR_LINE, SR_ANS = 0x2000, 0x2040
 SR_CGR2 = 0x5000        # CGRAM read a second time, back to back
+SR_CGR0 = 0x5200        # CGRAM as it stood the moment setup finished
 SR_SNAP1, SR_SNAP2 = 0x3000, 0x4000
 NCTX = 20
 STATE = ["logo", "play", "stop", "line", "ask", "answer", "end"]
@@ -65,6 +66,15 @@ def main(path, ctrl=None):
         return 1
     if d[8:12] != b"DONE":
         print("the ROM did not finish (stage marker %d)" % d[0x0C], file=sys.stderr)
+        return 1
+    # A DONE marker does not mean the file is one coherent moment: see
+    # tools/ramsum.py.  Refuse to draw conclusions from a torn snapshot.
+    want = d[0x7F00] | (d[0x7F01] << 8)
+    got = sum(d[0x0100:0x7F00]) & 0xFFFF
+    if got != want:
+        print("TORN SNAPSHOT: checksum $%04X, the ROM wrote $%04X. This file "
+              "mixes moments and nothing may be concluded from it." % (got, want),
+              file=sys.stderr)
         return 1
 
     stat = [u16(d, SR_STAT + 2 * i) for i in range(12)]
@@ -258,6 +268,61 @@ def main(path, ctrl=None):
         diff = [i // 2 for i in range(0x200) if cg[i] != cg2[i]]
         fails.append("two CGRAM readbacks in the same run disagree at entries "
                      "%s -- the read port, not CGRAM" % sorted(set(diff)))
+
+    # Setup-time CGRAM against end-of-run CGRAM: which half of the run does a
+    # corrupted entry belong to?
+    cg0 = bytearray(d[SR_CGR0:SR_CGR0 + 0x200])
+    for i in range(1, 0x200, 2):
+        cg0[i] &= 0x7F
+    # CGRAM 32..47 is legitimately rewritten once, when the logo's palette is
+    # replaced by the level's at the act 0 -> act 1 transition, and entry 0
+    # belongs to the sky HDMA.  Of the rest, the entries the game actually
+    # DISPLAYS are asserted; drift in entries nothing draws with is reported.
+    #
+    # The distinction is not a softened check, it is the shape of a measured
+    # fact: with the sky HDMA running, one or two random CGRAM entries a run
+    # come back holding something nobody wrote, and building the identical
+    # cartridge with -DNOSKY stops it completely.  The ROM re-uploads the four
+    # live palettes every sixteenth frame to bound that, which is why the used
+    # entries can be required to be exact while the unused ones cannot.
+    USED = set(range(0, 12)) | set(range(48, 64)) | set(range(128, 144))
+    drift = sorted(set(i // 2 for i in range(2, 0x200)
+                       if cg0[i] != cg[i] and not 32 <= i // 2 <= 47))
+    hot = [e for e in drift if e in USED]
+    if hot:
+        fails.append("CGRAM entries %s -- which the game DRAWS with -- changed "
+                     "during the run and the sixteen-frame refresh did not "
+                     "restore them" % hot)
+    else:
+        ok.append("every CGRAM entry the game draws with is unchanged from the "
+                  "end of setup to the end of the run")
+    if drift:
+        print("  note: CGRAM entries %s drifted during the run; none are drawn "
+              "with.  Cause: the sky HDMA (see FINDINGS entry 9)." % drift)
+
+    # The startup logo drew in black and white because its tilemap asked for
+    # palette 0 while logo.pal had been DMA'd to CGRAM 32.  The art and the
+    # palette file were both correct; only the load path was wrong, which is
+    # exactly the class of bug a checker has to look for in the PPU rather than
+    # in the source.  This reads the palette row out of the tilemap itself and
+    # requires CGRAM at the end of SETUP to hold logo.pal there.
+    lmap = open(os.path.join(A, "logo.map"), "rb").read()
+    rows = set((u16(lmap, i) >> 10) & 7 for i in range(0, len(lmap), 2))
+    lpal = open(os.path.join(A, "logo.pal"), "rb").read()
+    if len(rows) != 1:
+        fails.append("the logo tilemap asks for palette rows %s; it must ask "
+                     "for exactly one" % sorted(rows))
+    else:
+        row = rows.pop()
+        got = bytes(cg0[row * 16 * 2:row * 16 * 2 + len(lpal)])
+        if got == lpal:
+            ok.append("the logo's tilemap asks for palette %d and CGRAM %d..%d "
+                      "held logo.pal at the end of setup -- the map and the "
+                      "load agree" % (row, row * 16, row * 16 + len(lpal) // 2 - 1))
+        else:
+            fails.append("the logo tilemap asks for palette %d (CGRAM %d) and "
+                         "that is not where logo.pal was loaded: %s vs %s"
+                         % (row, row * 16, got.hex(), lpal.hex()))
 
     sky = open(os.path.join(A, "sky.hdma"), "rb").read()
     last = sky[-3] | (sky[-2] << 8)

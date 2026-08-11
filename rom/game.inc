@@ -253,6 +253,9 @@ SR_ANS   = $2040        ; act 3: [q][n][20 tokens] per answer
 SR_SHAD  = $2200        ; the OAM shadow in WRAM, for comparison with SR_OAM
 SR_NMI   = $6000        ; -DNMIPROF: 256 frames of (V,H) at NMI entry/exit
 SR_CGR2  = $5000        ; CGRAM read a second time, back to back
+SR_CGR0  = $5200        ; CGRAM as it stood the moment setup finished
+SR_SUM   = $7F00        ; additive checksum of $0100..$7EFF, written LAST
+SR_BEAT  = $7F10        ; the heartbeat, deliberately OUTSIDE the summed range
 SR_SNAP1 = $3000        ; a frame captured mid-act-1, coins in the air
 SR_SNAP2 = $4000        ; the last frame of the run, act 3 on screen
                         ; each is OAM shadow (544) + BG3 shadow (2048) + scroll
@@ -716,6 +719,27 @@ rask:
         DMACG g_bg2pal, (g_bg2pal_end - g_bg2pal), 48
         DMACG g_objpal, (g_objpal_end - g_objpal), 128
 
+        ; CGRAM as it stands right now -- before HDMA is enabled, before the
+        ; screen comes on, before a single frame of game.  A run came back with
+        ; one palette entry wrong; this says which half of the run to look in.
+        sep #$20
+        .a8
+        stz CGADD
+        rep #$30
+        .a16
+        .i16
+        ldx #$0000
+:       sep #$20
+        .a8
+        lda RDCGRAM
+        sta f:SRAM + SR_CGR0, x
+        rep #$30
+        .a16
+        .i16
+        inx
+        cpx #$0200
+        bne :-
+
         sep #$20
         .a8
         lda #$09                        ; mode 1, BG3 priority high
@@ -919,6 +943,7 @@ game_nmi:
 
         ; ---- PPU work first, while it is still vblank ---------------------
         jsr oam_dma
+        jsr refresh_pal
         jsr scroll_out
         lda a:BG3DRT
         beq :+
@@ -1026,6 +1051,39 @@ nmi_out:
         rep #$30
         .a16
         .i16
+        rts
+.endproc
+
+; Re-upload the palettes every sixteenth frame.
+;
+; Measured, not defensive-by-habit: with the sky HDMA running, one or two
+; CGRAM entries per 1,600-frame run come back holding something nobody wrote
+; there, at a different random index each run.  Building the identical
+; cartridge with -DNOSKY makes it stop completely, so the HDMA channel that
+; drives the backdrop is what does it.  It has twice landed on an entry the
+; game actually uses -- the amber question ink, and the nabla's red.
+;
+; 120 bytes across four transfers, once every sixteen frames: about 119 wall
+; master clocks a frame, 0.03% of one.  It bounds how long a corrupted entry
+; can be on screen to a quarter of a second.  It does not explain the cause,
+; and FINDINGS says so.
+.proc refresh_pal
+        .a16
+        .i16
+        ; early returns rather than branches over the block: four DMACG
+        ; expansions are 120 bytes and a conditional branch cannot reach past
+        ; them
+        lda a:GSTATE
+        bne :+
+        rts                             ; act 0 owns CGRAM 32 for the logo
+:       lda a:FRAMEC
+        and #$000F
+        beq :+
+        rts
+:       DMACG g_bg3pal, (g_bg3pal_end - g_bg3pal), 0
+        DMACG g_bg1pal, (g_bg1pal_end - g_bg1pal), 32
+        DMACG g_bg2pal, (g_bg2pal_end - g_bg2pal), 48
+        DMACG g_objpal, (g_objpal_end - g_objpal), 128
         rts
 .endproc
 
@@ -1872,7 +1930,7 @@ done:   lda a:FRAMEC
         and #$000F
         bne :+
         lda a:FRAMEC
-        sta f:SRAM + SR_STAT + 24       ; heartbeat: keeps the save RAM dirty
+        sta f:SRAM + SR_BEAT            ; heartbeat: keeps the save RAM dirty
 :       rts
 .endproc
 
@@ -2534,6 +2592,11 @@ done:   rts
 .proc trace
         .a16
         .i16
+        ; Once the dump is written, the trace must stop: it writes inside the
+        ; range the anti-tearing checksum covers, and a checksum that goes
+        ; stale one frame after it is computed is worse than no checksum.
+        lda a:GDONE
+        bne done
         lda a:FRAMEC
         and #$000F
         bne snapcheck
@@ -2813,6 +2876,37 @@ l2:     lda a:BG3SH, x
         sta f:SRAM + SR_STAT + 20
         lda #$C0DE
         sta f:SRAM + SR_STAT + 22
+
+        ; ---- the anti-tearing checksum ------------------------------------
+        ; ares's autosave is NOT a coherent snapshot of save RAM.  One gate run
+        ; produced a file that contained the DONE marker -- written last of all
+        ; -- while a 512-byte block written BEFORE it was still $FF.  So a
+        ; check reading that file can fail on data the console never had, and,
+        ; far worse, could pass on stale data.
+        ;
+        ; Everything from $0100 to $7EFF is summed here and the total written
+        ; above it; tools/ramsum.py recomputes it.  DONE alone no longer means
+        ; the file is usable.
+        rep #$30
+        .a16
+        .i16
+        lda #$0000
+        sta a:TMPW
+        ldx #$0100
+sumlp:  sep #$20
+        .a8
+        lda f:SRAM, x
+        rep #$20
+        .a16
+        and #$00FF
+        clc
+        adc a:TMPW
+        sta a:TMPW
+        inx
+        cpx #$7F00
+        bne sumlp
+        lda a:TMPW
+        sta f:SRAM + SR_SUM
 
         sep #$20
         .a8

@@ -24,7 +24,7 @@ run() {                 # run <name> <defs> <fast> <checker>
     echo "=== $name ==="
     SNES_FAST=$fast NAME=$name DEFS="$defs" ./build_nn.sh > "out/$name.build" 2>&1 \
         || { echo "BUILD FAILED"; cat "out/$name.build"; FAIL=1; return; }
-    MARK=DONE WAIT=190 bash tools/run_ares.sh "out/$name.sfc" > /dev/null 2>&1 \
+    MARK=DONE CKSUM=1 WAIT=190 bash tools/run_ares.sh "out/$name.sfc" > /dev/null 2>&1 \
         || { echo "RUN FAILED (no DONE marker)"; FAIL=1; return; }
     cp "$HOME/snesroms/$name.ram" "out/$name.ram"
     if [ "$check" != none ]; then
@@ -47,7 +47,7 @@ for P in 0 9 18; do
     echo "=== nndbg, position $P ==="
     SNES_FAST=0 NAME=nndbg DEFS="-DDEBUG -DDBGPOS=$P" ./build_nn.sh \
         > out/nndbg.build 2>&1 || { echo "BUILD FAILED"; FAIL=1; continue; }
-    MARK=DONE WAIT=190 bash tools/run_ares.sh out/nndbg.sfc > /dev/null 2>&1 \
+    MARK=DONE CKSUM=1 WAIT=190 bash tools/run_ares.sh out/nndbg.sfc > /dev/null 2>&1 \
         || { echo "RUN FAILED"; FAIL=1; continue; }
     cp "$HOME/snesroms/nndbg.ram" "out/nndbg_$P.ram"
     python3 tools/check_nn.py "out/nndbg_$P.ram" | tail -n 1 || FAIL=1

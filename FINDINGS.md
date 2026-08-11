@@ -1212,6 +1212,17 @@ out of the assembler source.
 
 ### What is not done
 
+**Elya is a placeholder.** The generated sprites in `assets/sprites` are not
+canon and are not built: they face left, they are wearing a maid's apron, the
+hair came out dark rather than the auburn-red the character sheet specifies,
+and they read as 8-bit rather than 16-bit. `docs/ART_SPEC.md` now carries that
+list as a normative section so it cannot drift again, and `tools/mkart.py`
+emits a canon-correct placeholder — long auburn-red hair past the waist, brown
+Victorian dress, high collar, no apron, facing right — and says so, loudly, on
+every build. Corrected art drops in as `assets/sprites/elya_canon_run.png` and
+nothing else changes. **A ROM with a placeholder in it is honest; a ROM with
+the wrong character in it is not.**
+
 **There is no audio.** The design document's act 2 beat is "music drops out",
 and there is no music to drop. Uploading an SPC700 program through the APU IPL
 handshake is a day's work on its own and none of it would be verifiable on this
@@ -1239,6 +1250,97 @@ The reason it mattered: it looked exactly like `dump_all` crashing, which is
 what a genuine NMI re-entrancy bug had been doing an hour earlier in the same
 routine. The same symptom, two entirely different causes, and only the stage
 markers written to `SRAM+$0C` told them apart.
+
+### The startup logo drew in black and white, and both assets were correct
+
+Reported by the operator looking at the screen, which is the one instrument
+this repo does not have.
+
+`assets/logo.pal` decodes to red, pink, pale pink and white. `assets/logo.chr`
+is right. `tools/png2snes.py` had been emitting tilemap words as `tile | flip`
+with **no palette field at all**, so every map it has ever produced selects
+palette 0 — and the ROM was DMA'ing `logo.pal` to CGRAM 32, palette 2. The
+logo therefore drew with CGRAM 0-4, which at that moment held the *text*
+palette: backdrop, white, dark, amber, black. Black and white, exactly as
+reported.
+
+The palette row is now written into the tilemap by the tool, so the map states
+which row it wants instead of defaulting into one, and the logo is regenerated
+at palette 2 to match the load. `logo.chr` came out **byte-identical** and only
+the palette bits of `logo.map` changed, which is the check that the
+regeneration did not quietly alter the art.
+
+The check that would have caught it now exists, and it is deliberately not a
+check on the source: `tools/check_game.py` reads the palette row **out of the
+tilemap file** and requires the setup-time CGRAM snapshot to hold `logo.pal`
+at that row. Both halves of the coupling come from the console or from the
+asset; neither comes from what the assembly meant.
+
+It is the entry-7 lesson again: the survey that passed on uninitialised WRAM,
+the game whose coins never spawned because the slots came up busy, and this —
+three bugs where every input was correct and only the load path was wrong.
+
+### The sky HDMA corrupts a random CGRAM entry, once or twice a run
+
+Found by the anti-tearing work below, and it is the reason for it.
+
+The dump now reads CGRAM twice: once at the end of `gsetup`, before HDMA is
+enabled and before the screen comes on, and once at the end of the run. In
+three consecutive runs one or two entries differed between the two, at a
+**different random index every time** — 89 and 166, then 117 and 179, then 94
+and 146. Two earlier runs had landed on entries the game actually draws with:
+141, the nabla's red, and 9, the amber the question text is written in.
+
+The A/B is one build flag:
+
+```
+-DGAME  -DGAUTO  -DGFRAMES=1600            drift: 89, 166
+-DGAME  -DGAUTO  -DGFRAMES=1600  -DNOSKY   drift: none
+```
+
+`-DNOSKY` is the identical cartridge with `sky_hdma` never called. **One HDMA
+channel is the entire difference, and with it switched off the drift stops
+completely.**
+
+No mechanism found. The channel is transfer mode 3 writing `$2121, $2121,
+$2122, $2122` — CGADD twice, then both halves of a colour — so it should only
+ever be able to touch entry 0, and the check that entry 0 holds the last sky
+band passes on every run. Candidates that were considered and do not fit: a
+general-purpose DMA to CGRAM being preempted mid-transfer (the only one runs
+once, at the logo transition, and `bg1.pal` reads back exact); a stale CGADD
+left by the read port (the reads happen with HDMA already disabled); and a torn
+save file (the checksum below rules it out). Whether this is the SNES or ares
+cannot be decided from here.
+
+**Mitigation, and it is a mitigation and not a fix:** the four live palettes —
+120 bytes across four transfers — are re-uploaded every sixteenth frame. That
+costs about **119 wall master clocks a frame, 0.03% of one**, and bounds how
+long a corrupted entry can be on screen to a quarter of a second. The check
+requires the entries the game *draws with* to be exact end to end, and reports
+drift in the entries nothing draws with rather than failing on it, because
+failing on it would be failing on a characterised property of the emulator.
+
+### The save file can be a torn snapshot, and DONE does not mean it is not
+
+`tools/run_ares.sh` waits for the ROM's `DONE` marker to appear in the
+autosaved `.ram`. One gate run produced a file that held `DONE` — written last
+of all — while a **512-byte block written strictly before it was still `$FF`**.
+So ares's autosave is not atomic with respect to the console's writes, and a
+checker reading that file can fail on data the console never had. Far worse, it
+could *pass* on stale data.
+
+The ROM now sums every byte of `$0100..$7EFF` and stores the total at `$7F00`
+immediately before writing `DONE`; `tools/ramsum.py` recomputes it, the runner
+will not accept a file that fails it, and `check_game.py` refuses to draw any
+conclusion from one. The heartbeat that keeps the save RAM dirty was moved to
+`$7F10`, outside the summed range, and the trace stops once the dump is
+written — a checksum that goes stale one frame after it is computed is worse
+than no checksum.
+
+Both of the anomalies in this section were first seen as "the dump routine is
+hanging", which is what an actual NMI re-entrancy bug in the same routine had
+been doing an hour earlier. Three different causes, one symptom, and the only
+thing that separated them was the stage marker written to `SRAM+$0C`.
 
 ### The gate said pass while a checker said fail
 

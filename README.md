@@ -266,6 +266,12 @@ into the same SRAM.
   that reconstruction came off the console, and it caught two bugs no counter
   could have — but it is a reconstruction, and it renders one frame rather than
   motion. Nothing here says the animation looks right at 60 Hz.
+* **Elya is a placeholder.** The generated sprites are not canon — they face
+  left, wear a maid's apron and the hair came out dark instead of auburn-red —
+  so they are not built. `tools/mkart.py` emits a canon-correct placeholder and
+  says so on every build, and `docs/ART_SPEC.md` carries the character sheet as
+  a normative section. A ROM with a placeholder in it is honest; a ROM with the
+  wrong character in it is not.
 * **No audio.** The design's act 2 beat is "the music drops out", and there is
   no music to drop. Uploading an SPC700 program through the APU IPL handshake
   is a day's work on its own and none of it would be verifiable here, since

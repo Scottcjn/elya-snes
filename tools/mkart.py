@@ -3,12 +3,18 @@
 
 Two sources, and the split is deliberate.
 
-*Elya* comes from the SDXL + trained-LoRA generations in assets/sprites.  They
-are ~1024 px paintings of pixel art, not pixel art, so they are pixelised here
-against the hardware: crop to content, box-filter down to the OAM cell, then
-snap every pixel to the ONE fifteen-colour object palette.  Doing it here and
-not in the generator is the whole point of ART_SPEC -- the constraint decides
-the art, not the other way round.
+*Elya* comes from a generated render, pixelised here against the hardware:
+crop to content, box-filter down to the OAM cell, then snap every pixel to the
+ONE fifteen-colour object palette.  Doing it here and not in the generator is
+the whole point of ART_SPEC -- the constraint decides the art, not the other
+way round.
+
+She is NOT, at the time of writing, built from the renders sitting in
+assets/sprites: those face left, put her in a maid's apron, came out with dark
+hair instead of auburn-red, and read as 8-bit.  docs/ART_SPEC.md is normative
+and they fail it on four counts, so this file emits a canon-correct PLACEHOLDER
+and says so on every build.  A ROM with a placeholder in it is honest; a ROM
+with the wrong character in it is not.
 
 *Everything else* -- the @ block, the coin, the nabla -- is authored directly
 at native size as an ASCII grid below.  A 16x16 object has 256 pixels; a
@@ -31,28 +37,112 @@ from PIL import Image
 # transparent.  Exact repeated triples, per ART_SPEC -- two reds that merely
 # look alike cost a palette entry each and buy nothing.
 # ---------------------------------------------------------------------------
+# CANON, from docs/ART_SPEC.md: auburn-RED hair, BROWN Victorian dress, no
+# apron and no maid gear.  The first batch of generated art drifted on every
+# one of those, so the palette itself now has no apron white and no blue-grey
+# dress to drift into -- there is nowhere for a maid outfit to live.
 OBJPAL = [
     (0, 0, 0),          # 0  transparent (never written)
     (16, 16, 24),       # 1  outline
     (248, 208, 176),    # 2  skin
     (200, 152, 120),    # 3  skin shadow
-    (176, 104, 56),     # 4  hair, auburn light
-    (104, 56, 32),      # 5  hair, auburn dark
-    (56, 56, 80),       # 6  dress mid
-    (32, 32, 48),       # 7  dress dark
-    (248, 248, 248),    # 8  apron / spike white
-    (184, 184, 200),    # 9  apron shade
+    (216, 104, 56),     # 4  hair, auburn-red light
+    (168, 68, 32),      # 5  hair, auburn-red mid
+    (104, 40, 20),      # 6  hair, auburn-red dark
+    (164, 120, 76),     # 7  dress brown light
+    (124, 84, 52),      # 8  dress brown mid
+    (80, 52, 32),       # 9  dress brown dark
     (255, 232, 120),    # 10 gold light
     (232, 176, 40),     # 11 gold mid
     (152, 96, 8),       # 12 gold dark
     (224, 48, 48),      # 13 nabla red
     (128, 16, 16),      # 14 nabla red dark
-    (120, 120, 136),    # 15 neutral grey
+    (248, 248, 248),    # 15 white -- collar, cuffs, the nabla's spikes
 ]
 
 # Elya may only use these: snapping her to the gold or the nabla red would
 # make her flicker between palette neighbours frame to frame.
 ELYA_INK = [1, 2, 3, 4, 5, 6, 7, 8, 9, 15]
+
+# ---------------------------------------------------------------------------
+# The corrected generations are not here yet.  Building the ones that ARE here
+# is not an option: they face left, they are wearing a maid's apron, the hair
+# came out dark instead of auburn-red and they read as 8-bit.  A ROM with a
+# placeholder in it is honest; a ROM with the wrong character in it is not.
+#
+# When corrected art lands, drop it in as assets/sprites/elya_canon_run.png and
+# assets/sprites/elya_canon_idle.png and this file will use it instead --
+# CANON_RUN existing is the whole switch.
+# ---------------------------------------------------------------------------
+CANON_RUN = 'elya_canon_run.png'
+CANON_IDLE = 'elya_canon_idle.png'
+
+
+def placeholder(pose=0):
+    """A deliberately plain Elya, drawn from geometry: long auburn-red hair
+    past the waist, a brown floor-length Victorian dress with a high white
+    collar, facing RIGHT.  It is canon-correct and it is obviously a
+    placeholder, which is exactly what it is for.
+
+    pose 0/1 are the two-frame run, 2 is the jump, 3-5 the idle."""
+    W = H = 32
+    g = [[0] * W for _ in range(H)]
+
+    def ell(cx, cy, rx, ry, v, y0=0, y1=H):
+        for y in range(max(0, y0), min(H, y1)):
+            for x in range(W):
+                if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0:
+                    g[y][x] = v
+
+    def trap(y0, y1, x0a, x1a, x0b, x1b, v):
+        for y in range(y0, y1):
+            t = (y - y0) / max(1, y1 - 1 - y0)
+            l = round(x0a + (x0b - x0a) * t)
+            r = round(x1a + (x1b - x1a) * t)
+            for x in range(l, r + 1):
+                if 0 <= x < W:
+                    g[y][x] = v
+
+    sway = (0, 1, 2, 0, 0, 1)[pose]          # the hem and hair trail behind
+    lift = (0, 0, 0, 0, 0, 0)[pose]
+
+    # hair mass down the back, drawn first so everything overlaps it
+    trap(4, 25 - lift, 9 - sway, 15, 7 - sway * 2, 14, 5)
+    ell(13, 6, 5, 6, 5)                      # the back of the head
+    # skirt, floor length
+    trap(17, 30, 12, 19, 9 - sway, 23 + sway, 8)
+    for y in range(17, 30):                  # a light seam down the front
+        g[y][min(W - 1, 18 + (y - 17) // 4)] = 7
+    trap(28, 31, 9 - sway, 23 + sway, 9 - sway, 23 + sway, 9)
+    # bodice, high collar, sleeve
+    trap(11, 18, 13, 19, 12, 20, 8)
+    trap(10, 12, 13, 19, 13, 19, 15)         # the white collar
+    trap(12, 19, 18, 21, 19, 22, 8)          # the arm, in front
+    g[18][21] = g[18][22] = 2                # the hand
+    # head and face, looking RIGHT
+    ell(15, 6, 4, 5, 2)
+    ell(14, 5, 4, 5, 4)                      # the hair over the crown
+    g[6][18] = g[7][18] = 2                  # nose
+    g[5][17] = 1                             # eye
+    g[7][17] = 3
+    # hair highlight, so the auburn reads as auburn and not as brown
+    for y in range(5, 22):
+        x = 10 - sway + (y - 5) // 8
+        if 0 <= x < W and g[y][x] == 5:
+            g[y][x] = 4
+
+    # a one-pixel outline round the whole silhouette
+    out = [row[:] for row in g]
+    for y in range(H):
+        for x in range(W):
+            if g[y][x]:
+                continue
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                yy, xx = y + dy, x + dx
+                if 0 <= yy < H and 0 <= xx < W and g[yy][xx]:
+                    out[y][x] = 1
+                    break
+    return out
 
 # ---------------------------------------------------------------------------
 # Hand-authored objects.  Digits are palette indices, '.' is transparent.
@@ -192,12 +282,12 @@ COIN = ["""
 # gradients in it at all, which is the joke -- the thing from training that
 # cannot touch her any more, still chasing.
 NABLA = ["""
-...8...8...8....
-..888.888.888...
+...F...F...F....
+..FFF.FFF.FFF...
 EEEEEEEEEEEEEEEE
 EDDDDDDDDDDDDDDE
-.EDD888DD888DDE.
-.EDD818DD818DDE.
+.EDDFFFDDFFFDDE.
+.EDDF1FDDF1FDDE.
 ..EDDDDDDDDDDE..
 ..EDDDDDDDDDDE..
 ...EDDDDDDDDE...
@@ -212,7 +302,7 @@ EDDDDDDDDDDDDDDE
 
 HEXMAP = {'.': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
           '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14,
-          'W': 8, 'F': 15}
+          'F': 15}
 
 
 def grid(art, w, h):
@@ -340,32 +430,40 @@ def main(out_prefix='assets/obj'):
     # -- Elya.  The tap sheet holds four standing poses across 1024 px; the run
     #    sheet holds one moving pose.  Backgrounds differ between the two, and
     #    the run sheet has a black border the crop must stay inside of.
-    tap = os.path.join(sp, 'elya_tap_sheet.png')
-    run = os.path.join(sp, 'elya_run.png')
-    TAPBG, RUNBG = (243, 242, 239), (160, 160, 160)
-
-    # run: one generated pose.  The inner crop dodges the black frame the
-    # generator drew round the sheet, which is not background and would
-    # otherwise decide the bounding box.
-    r0 = pixelise(run, (30, 20, 1000, 492), (32, 32), RUNBG)
-    # frame two: the same pose lifted a pixel.  A two-frame run is what the
-    # 16-bit era shipped, and a bob the eye reads as a stride is cheaper in
-    # VRAM than a second generation -- which would not be the same Elya.
-    r1 = [[0] * 32] + [row[:] for row in r0[:-1]]
-    # jump: higher still, which is all a one-frame jump needs to read
-    jp = [[0] * 32, [0] * 32] + [row[:] for row in r0[:-2]]
-
-    # idle: the foot-tap sheet holds four standing poses, but pose 0 is drawn
-    # with a WHITE apron where 1-3 are dark, so cycling all four flashes.  The
-    # loop is the three that agree, played 0,1,2,1 -- a four-frame tap out of
-    # three frames of VRAM.
-    idle = [pixelise(tap, (i * 256, 0, (i + 1) * 256, 512), (32, 32), TAPBG)
-            for i in (1, 2, 3)]
-
-    # Both generations draw her facing LEFT.  She runs right, so every frame is
-    # mirrored once here and the OAM H-flip bit -- which is free -- is spent on
-    # the rarer direction instead of the common one.
-    elya = [[row[::-1] for row in f] for f in ([r0, r1, jp] + idle)]
+    canon_run = os.path.join(sp, CANON_RUN)
+    canon_idle = os.path.join(sp, CANON_IDLE)
+    if os.path.exists(canon_run):
+        # Corrected art.  Same pixelising as before: coverage mask downscaled
+        # separately from premultiplied colour, scale fixed by HEIGHT.
+        BG = Image.open(canon_run).convert('RGB').getpixel((0, 0))
+        r0 = pixelise(canon_run, (0, 0) + Image.open(canon_run).size, (32, 32), BG)
+        r1 = [[0] * 32] + [row[:] for row in r0[:-1]]
+        jp = [[0] * 32, [0] * 32] + [row[:] for row in r0[:-2]]
+        src = canon_idle if os.path.exists(canon_idle) else canon_run
+        BG2 = Image.open(src).convert('RGB').getpixel((0, 0))
+        w, h = Image.open(src).size
+        n = 3 if os.path.exists(canon_idle) else 1
+        idle = [pixelise(src, (i * w // n, 0, (i + 1) * w // n, h), (32, 32), BG2)
+                for i in range(n)]
+        while len(idle) < 3:
+            idle.append([row[:] for row in idle[-1]])
+        elya = [r0, r1, jp] + idle
+        print("elya    : %s (corrected art)" % CANON_RUN)
+    else:
+        # THE SPRITES IN assets/sprites ARE NOT CANON and are not built.  They
+        # face left, they are wearing a maid's apron, the hair came out dark
+        # rather than auburn-red, and they read as 8-bit.  docs/ART_SPEC.md
+        # says what they have to be.  Until corrected art lands this emits a
+        # placeholder that IS canon -- auburn-red hair past the waist, brown
+        # Victorian dress, high collar, no apron, facing right -- and says so
+        # on every single build.
+        elya = [placeholder(i) for i in range(6)]
+        print("elya    : *** PLACEHOLDER *** -- assets/sprites/%s is not there,"
+              % CANON_RUN)
+        print("          and the generations that ARE there are not canon:")
+        print("          they face left, wear an apron, and the hair is dark.")
+        print("          See docs/ART_SPEC.md.  Drop corrected art in as")
+        print("          assets/sprites/%s and rebuild." % CANON_RUN)
 
     objs16 = [at_block(16), at_block(12)]
     objs16 += [grid(c, 16, 16) for c in COIN]

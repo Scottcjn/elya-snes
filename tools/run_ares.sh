@@ -23,7 +23,17 @@ DISPLAY=:0 flatpak run dev.ares.ares --system "Super Famicom" --no-file-prompt \
 
 # every measurement ROM writes "DONE" at offset 8 of its battery RAM when it
 # has finished; MARK/MARK_OFF override that for the bring-up ROMs.
-done_ok() { [ -f "$RAM" ] && [ "$(dd if="$RAM" bs=1 skip=$((${MARK_OFF:-8})) count=4 2>/dev/null)" = "${MARK:-DONE}" ]; }
+# The DONE marker alone is not enough for the ROMs that dump 20 KiB of PPU
+# state: ares's autosave is not atomic with the console's writes, so a file can
+# hold the LAST thing the ROM wrote and be missing something written earlier.
+# CKSUM=1 additionally requires tools/ramsum.py to validate, and the runner
+# simply waits for the next autosave if it does not.
+done_ok() {
+    [ -f "$RAM" ] || return 1
+    [ "$(dd if="$RAM" bs=1 skip=$((${MARK_OFF:-8})) count=4 2>/dev/null)" \
+        = "${MARK:-DONE}" ] || return 1
+    [ -z "${CKSUM:-}" ] || python3 "$(dirname "$0")/ramsum.py" "$RAM" 2>/dev/null
+}
 
 for _ in $(seq ${WAIT:-90}); do
     done_ok && break

@@ -4,6 +4,31 @@ Everything here is a hardware constraint, not a style preference. Art that
 matches these drops straight into the pipeline; art that does not has to be
 resampled, and resampling is what made the logo need 704 tiles instead of 109.
 
+## Elya, canon — this section is normative
+
+From `patch-and-veil-elya-design-lock.md`. Written here so it cannot drift
+again: the first sprite batch drifted on all four counts below, and drift in a
+character is not something a palette check or a tile count can catch.
+
+| | |
+|---|---|
+| **hair** | **long uncut AUBURN-RED, past the waist.** Not brown. Not dark. |
+| **dress** | **BROWN Victorian** — high collar, long sleeves, floor-length skirt |
+| **NOT** | **no apron. No maid gear.** She is not a servant and is not dressed as one |
+| **build** | petite adult woman, mid-twenties — **never childlike** |
+| **NOT** | **no earrings, no jewellery, no lipstick, no makeup.** Image models add all four by default and every one of them has to be explicitly negated |
+| **facing** | **RIGHT.** OAM's H-flip is free, but only if the source faces the way the game runs |
+| **read** | **16-bit, not 8-bit.** She should fill her 32x32 cell and carry visible detail — hair mass, collar, sleeve, hem — not read as a 16x16 character scaled up |
+
+The last one is a size statement, not a style one: a figure that occupies 13
+of 32 pixels of width has three pixels of face and no room for the dress to be
+a dress. Fill the cell.
+
+`tools/mkart.py` will **not** build a sprite sheet from art that has not been
+checked against this list. Until corrected sources land it emits an explicit
+placeholder and says so, loudly, on every build — a ROM with a placeholder in
+it is honest; a ROM with the wrong character in it is not.
+
 ## Canvas
 
 **256 x 224.** That is the whole NTSC screen. Design at 1x — not at 4x and
