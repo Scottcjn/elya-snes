@@ -19,7 +19,7 @@
 
 == what the PPU actually holds ==
   OAM read back through $2138 agrees with the shadow in 544/544 bytes
-  note: CGRAM entries [255] drifted during the run; none are drawn with.  Cause: the sky HDMA (see FINDINGS entry 9).
+  note: CGRAM entries [73, 76] drifted during the run; none are drawn with.  Cause: the sky HDMA (see FINDINGS entry 9).
 
   ok    final: 118 spawned + 0 queued == 118 committed
   ok    every one of 104 trace samples: spawned + queued == committed

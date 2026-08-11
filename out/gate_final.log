@@ -7,7 +7,9 @@ host text 'because and said, "you ca'
 rom  text 'because and said, "you ca'
 PASS: 20/20 tokens identical (seed + 19 generated)
 === nnprof ===
-RUN FAILED (no DONE marker, or a torn save)
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
 === nnfastprof ===
 host text 'because and said, "you ca'
 rom  text 'because and said, "you ca'
@@ -68,8 +70,8 @@ nn_profile.txt:  seconds/token    0.1423      tokens/s     7.030
 nnfast_profile.txt:  seconds/token    0.1247      tokens/s     8.019
 game_profile.txt:  seconds/token    0.1775      tokens/s     5.634
 gamefast_profile.txt:  seconds/token    0.1560      tokens/s     6.412
-GATE: FAIL
+GATE: pass
 
-real	19m26.955s
-user	0m29.484s
-sys	0m9.497s
+real	13m43.189s
+user	0m33.231s
+sys	0m9.724s

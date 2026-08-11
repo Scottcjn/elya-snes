@@ -35,7 +35,19 @@ PASS: all 320 intermediate values identical at position 9
 === nndbg, position 18 ===
 PASS: 20/20 tokens identical (seed + 19 generated)
 PASS: all 320 intermediate values identical at position 18
+=== gameqa ===
+=== gamectl ===
+=== gamepad ===
+=== the game, real controller path ===
+PASS: 18 checks
+=== the game ===
+
+PASS: 21 checks
+out/frames/frame_act1.png    state play   frame  632  tokens  40  coins  40  camera  90,0
+out/frames/frame_act3.png    state end    frame 1674  tokens 118  coins 118  camera  15,48
 === cartridge headers ===
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
 PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
 PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
 === reports ===
@@ -51,4 +63,15 @@ PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enha
   mean/token         433290 FastROM cycles
   seconds/token    0.1247      tokens/s     8.019
   first / last token: 2327934 / 3026303  (30.0% growth over 19 positions)
+=== gameprof ===
+=== gamefastprof ===
+=== tokens per second, engine only vs with the game ===
+nn_profile.txt:  seconds/token    0.1423      tokens/s     7.030
+nnfast_profile.txt:  seconds/token    0.1247      tokens/s     8.019
+game_profile.txt:  seconds/token    0.1775      tokens/s     5.634
+gamefast_profile.txt:  seconds/token    0.1560      tokens/s     6.412
 GATE: pass
+
+real	13m43.189s
+user	0m33.231s
+sys	0m9.724s
