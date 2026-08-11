@@ -151,6 +151,33 @@ display could not be verified, and nothing unverified ships.
   controlled A/B anyway, because it is the cleanest architecture comparison
   available: same console, same bus, one variable changed.
 
+## What is not done
+
+* **No real hardware.** Everything here is measured under ares, whose SNES core
+  is bsnes-derived — the accurate lineage — and whose timing model this repo
+  calibrated against hand-derived 65816 timings to 0.06%. That is not the same
+  as a cartridge in a console. `tools/kaico_check.py` says the image is *valid*
+  for the Kaico Super DSP; it does not say it has run on one.
+* **No screen output.** The cartridge sits in forced blank and the tokens leave
+  through battery SRAM. Screen capture is impossible on this development host
+  (GNOME/Wayland, no `wlr-screencopy`), so a display could not be verified, and
+  an unverifiable feature is not a feature. Reading the tokens back off a real
+  cartridge needs whatever save-dumping the flashcart provides, which was also
+  not tested.
+* **Context stops at 20 positions**, because the positional table the model was
+  trained with has twenty rows. The KV caches on this port would hold far more —
+  they are 4 KiB and 5 KiB of a 128 KiB WRAM — so the ceiling here is the
+  weights, not the machine. The 6502 port's ceiling was the opposite.
+* **The row overhead is the largest thing left unoptimised.** 446 wall master
+  clocks per row on top of the accumulates, or 36% — the `JSL`/`RTL` pair and
+  the quantise-and-store handler. Inlining the handler would cost about 56 KiB
+  of ROM to buy back perhaps 8% of a token.
+* **The DSP-1 was never executed**, only bounded: its firmware is not available
+  on this machine and cannot be synthesised. The bound is enough to rule it out
+  (entry 4) but it is a bound.
+* **The AV_SHIFT ladder is a deterministic reproduction**, not an independent
+  re-measurement — see entry 8, which says so plainly.
+
 Sibling ports: [elya-nes](https://github.com/Scottcjn/elya-nes) ·
 [legend-of-elya-genesis](https://github.com/Scottcjn/legend-of-elya-genesis) ·
 [legend-of-elya-n64](https://github.com/Scottcjn/legend-of-elya-n64) ·
