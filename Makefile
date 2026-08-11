@@ -14,7 +14,8 @@ FXCFG  := rom/lorom32fx.cfg
 
 GSUKERNELS := $(addprefix rom/gsu/,k_empty.bin k_int8.bin k_tern.bin k_nomul.bin)
 
-all: out/boot.sfc out/bench.sfc out/benchfast.sfc out/fx1.sfc out/fx2.sfc
+all: out/boot.sfc out/bench.sfc out/benchfast.sfc out/kern.sfc out/kernfast.sfc \
+     out/fx1.sfc out/fx2.sfc nn
 
 rom/data.inc: tools/gendata.py
 	python3 tools/gendata.py $@
@@ -33,7 +34,18 @@ rom/gsu/hello.bin: rom/gsu/hello.asm
 	@head -c 32768 /dev/zero > out/_blank.sfc && $(ASAR) --no-title-check $< out/_blank.sfc
 	@dd if=out/_blank.sfc of=$@ bs=1 skip=0 count=128 status=none
 
-out/boot.sfc out/bench.sfc out/fx1.sfc: out/%.sfc: out/%.o $(CFG)
+out/kern.o: rom/kern.s rom/snes.inc rom/kern.inc
+	@mkdir -p out
+	$(CA65) --cpu 65816 -I rom -o $@ -l out/kern.lst rom/kern.s
+
+out/kernfast.o: rom/kern.s rom/snes.inc rom/kern.inc
+	@mkdir -p out
+	$(CA65) --cpu 65816 -DFASTROM=1 -I rom -o $@ -l out/kernfast.lst rom/kern.s
+
+rom/kern.inc: tools/genkern.py
+	python3 tools/genkern.py $@
+
+out/boot.sfc out/bench.sfc out/kern.sfc out/kernfast.sfc out/fx1.sfc: out/%.sfc: out/%.o $(CFG)
 	$(LD65) -C $(CFG) -o $@ -m out/$*.map $<
 	python3 tools/fixhdr.py $@
 
@@ -76,6 +88,27 @@ fx: out/fx2.sfc
 	python3 tools/analyze_fx.py out/fx2.ram | tee out/fx2_report.txt
 
 # ---- run and analyse -------------------------------------------------------
+# ---- the transformer cartridge --------------------------------------------
+# Two-pass build (see build_nn.sh): the weight program calls the row handlers,
+# so tools/emit.py needs addresses only ld65 knows.
+nn:
+	./build_nn.sh
+	SNES_FAST=1 NAME=nnfast DEFS=-DFASTROM=1 ./build_nn.sh
+
+# Build every variant, run every one under ares, check every token against
+# host/ref.py.  This is the shipping gate.
+gate:
+	./gate.sh
+
+# the gather-kernel A/B of FINDINGS entry 6
+kernels: out/kern.sfc out/kernfast.sfc
+	bash tools/run_ares.sh out/kern.sfc >/dev/null
+	cp $(HOME)/snesroms/kern.ram out/kern.ram
+	python3 tools/analyze_kern.py out/kern.ram | tee out/kern_report.txt
+	bash tools/run_ares.sh out/kernfast.sfc >/dev/null
+	cp $(HOME)/snesroms/kernfast.ram out/kernfast.ram
+	python3 tools/analyze_kern.py out/kernfast.ram --fast | tee out/kernfast_report.txt
+
 measure: out/bench.sfc out/benchfast.sfc
 	bash tools/run_ares.sh out/bench.sfc >/dev/null
 	cp $(HOME)/snesroms/bench.ram out/bench.ram
@@ -87,5 +120,5 @@ measure: out/bench.sfc out/benchfast.sfc
 clean:
 	rm -f out/*.o out/*.sfc out/*.map out/*.lst out/_blank.sfc
 
-.PHONY: all clean measure fx
+.PHONY: all clean measure fx nn gate kernels
 .PRECIOUS: out/%.o rom/gsu/%.bin
