@@ -65,7 +65,14 @@ BG3PAL = [
     (248, 248, 248),    # 5  text ink, in the box
     (24, 24, 56),       # 6  box fill             page-1 paper: opaque
     (120, 128, 208),    # 7  box border
+    (0, 0, 0),          # 8  unused (palette 2's transparent index)
+    (255, 216, 96),     # 9  the QUESTION's ink, amber
+    (24, 24, 56),       # 10 the same box fill
+    (120, 128, 208),    # 11 the same box border
 ]
+# Palette 2 exists so the same page-1 tiles can be drawn in two inks: what the
+# player asked in amber, what the console generated in white.  The screen then
+# shows, without a caption, which characters came out of the model.
 
 # ---------------------------------------------------------------------------
 # BG1 tiles.  Hex digits are palette indices.

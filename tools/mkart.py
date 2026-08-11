@@ -382,20 +382,23 @@ def main(out_prefix='assets/obj'):
     h = rows32 * 32 + ((len(objs16) * 16 + SHEET_W - 1) // SHEET_W) * 16
     sheet = [[0] * SHEET_W for _ in range(h)]
 
+    NAMES32 = ['run0', 'run1', 'jump', 'idle0', 'idle1', 'idle2']
+    NAMES16 = ['blk_rest', 'blk_hit', 'coin0', 'coin1', 'coin2', 'coin3',
+               'nabla0', 'nabla1']
     index = {}
     for i, g in enumerate(elya):
         ox, oy = (i % 4) * 32, (i // 4) * 32
         for y in range(32):
             for x in range(32):
                 sheet[oy + y][ox + x] = g[y][x]
-        index['elya%d' % i] = (oy // 8) * 16 + ox // 8
+        index['elya_' + NAMES32[i]] = (oy // 8) * 16 + ox // 8
     base16 = rows32 * 32
     for i, g in enumerate(objs16):
         ox, oy = (i % 8) * 16, base16 + (i // 8) * 16
         for y in range(16):
             for x in range(16):
                 sheet[oy + y][ox + x] = g[y][x]
-        index['obj%d' % i] = (oy // 8) * 16 + ox // 8
+        index[NAMES16[i]] = (oy // 8) * 16 + ox // 8
 
     # -- CHR, row-major over the 16-wide tile grid
     chr_data = bytearray()

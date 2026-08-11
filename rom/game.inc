@@ -47,7 +47,9 @@ BG3SC    = $2109
 BG12NBA  = $210B
 BG34NBA  = $210C
 BG1HOFS  = $210D
+BG1VOFS  = $210E
 BG2HOFS  = $210F
+BG2VOFS  = $2110
 BG3HOFS  = $2111
 BG3VOFS  = $2112
 VMAIN    = $2115
@@ -220,6 +222,7 @@ GP1     = $13D2                 ; gputc
 GP2     = $13D4
 GBUSY   = $13D6                 ; the main thread has a job in flight
 NMIBUSY = $13DA                 ; the vblank handler is already inside itself
+CAMY    = $13DC                 ; the camera tilts up when she stops talking
 SCR2    = $13D8                 ; hit_test's sample cursor
 
 OAMBUF  = $1400                 ; 512 B, DMA'd to OAM every frame
@@ -384,9 +387,9 @@ mloop:
         ; The token boundaries the profiler measures are the FIRST NGEN+1 of
         ; the free run, at the same positions the engine-only build measures,
         ; so the two numbers are directly comparable.
-        lda a:TOKN
-        cmp #(NGEN + 1)
-        bcs :+
+        lda a:SMPX
+        cmp #($0140 + (NGEN + 1) * 6)   ; exactly NGEN+1 boundaries, which is
+        bcs :+                          ; what tools/prof_nn.py reads
         lda a:GENMODE
         cmp #GM_FREE
         bne :+
@@ -403,9 +406,10 @@ nojob:
         beq mfeed
 
         ; ---- one generated token ------------------------------------------
-.ifndef NOGEN
+.ifdef NOGEN
+        brl mloop                       ; the control: no forward pass, so no
+.endif                                  ; commit, so no coin, ever
         jsr step
-.endif
         jsr gcommit
         lda a:POSP
         inc a
@@ -431,23 +435,23 @@ mfeed:
         sta a:TOKP
         ora #$0080                      ; ring flag: draw it as the question
         jsr ring_push
-.ifndef NOGEN
         jsr step
-.endif
         lda a:PROMPTI
         inc a
         sta a:PROMPTI
         sta a:POSP
         cmp a:PROMPTN
         bcc mloop
-        ; the last feed step's output IS the first generated token
-        jsr gcommit
+        ; The last feed step's output IS the first generated token.  Switch
+        ; mode BEFORE committing it: the SRAM recorder keys off GENMODE, and
+        ; committing first dropped this token from every recorded answer.
         lda #19
         sec
         sbc a:PROMPTN
         sta a:GENLEFT
         lda #GM_GEN
         sta a:GENMODE
+        jsr gcommit
         brl mloop
 .endproc
 
@@ -958,6 +962,16 @@ nmi_out:
         sta BG1HOFS
         rep #$20
         .a16
+        lda a:CAMY
+        sta a:TMPW
+        sep #$20
+        .a8
+        lda a:TMPW
+        sta BG1VOFS
+        lda a:TMPW + 1
+        sta BG1VOFS
+        rep #$20
+        .a16
         lda a:CAMX                      ; clouds at half speed: parallax, free
         lsr a
         sta a:TMPW
@@ -967,6 +981,17 @@ nmi_out:
         sta BG2HOFS
         lda a:TMPW + 1
         sta BG2HOFS
+        rep #$20
+        .a16
+        lda a:CAMY
+        lsr a
+        sta a:TMPW
+        sep #$20
+        .a8
+        lda a:TMPW
+        sta BG2VOFS
+        lda a:TMPW + 1
+        sta BG2VOFS
         stz BG3HOFS
         stz BG3HOFS
         stz BG3VOFS
@@ -1293,11 +1318,20 @@ done:   rts
         cmp a:HUDN
         beq done
         sta a:HUDN
+        lda a:TCOL
+        pha
+        lda a:TROW
+        pha
+        lda a:TPAGE
+        pha
+        lda a:TPAL
+        pha
         lda #$0001
         sta a:TCOL
         sta a:TROW
-        stz a:TPAGE
-        lda #(1 << 13)                  ; palette 0, above the sprites
+        lda #FONT_PAGE1                 ; opaque paper: the counter has to stay
+        sta a:TPAGE                     ; legible over a white cloud
+        lda #((1 << 10) | (1 << 13))
         sta a:TPAL
         lda #'@'
         jsr gputc
@@ -1309,6 +1343,14 @@ done:   rts
         jsr gputc
         lda a:HUDN
         jsr put3
+        pla
+        sta a:TPAL
+        pla
+        sta a:TPAGE
+        pla
+        sta a:TROW
+        pla
+        sta a:TCOL
         lda #$0001
         sta a:BG3DRT
 done:   rts
@@ -1510,6 +1552,18 @@ done:   rts
 .proc state_update
         .a16
         .i16
+.ifdef GFRAMES
+        lda a:FRAMEC
+        cmp #GFRAMES
+        bcc :+
+        lda a:GSTATE
+        cmp #ST_END
+        beq :+
+        lda #ST_END
+        sta a:GSTATE
+        stz a:GTIMER
+:
+.endif
         lda a:GTIMER
         inc a
         sta a:GTIMER
@@ -1556,6 +1610,7 @@ done:   rts
         stz a:ANIMF
         stz a:ANIMT
         stz a:CAMX
+        stz a:CAMY
         stz a:NX
         lda #12
         sta a:NVX
@@ -1612,7 +1667,12 @@ left:   lda a:TMPW
         bra phys
 halt:   stz a:VXX
         stz a:FACING
-phys:   jsr do_physics_noinput
+phys:   lda a:CAMY                      ; tilt up over the stop, so the box
+        cmp #48                         ; does not land on top of her
+        bcs :+
+        inc a
+        sta a:CAMY
+:       jsr do_physics_noinput
         jsr move_nabla
         jsr hud
         lda a:GTIMER
@@ -2197,6 +2257,8 @@ next:   inx
         lsr a
         lsr a
         lsr a
+        sec
+        sbc a:CAMY
         sta a:OSY
         ldx a:ANIMF
         lda f:GDBASE + elya_tiles, x
@@ -2221,10 +2283,14 @@ next:   inx
         lda a:BLKT
         beq :+
         lda #(BLK_Y + 2)
+        sec
+        sbc a:CAMY
         sta a:OSY
         lda #OBJT_BLK_HIT
         bra :++
 :       lda #BLK_Y
+        sec
+        sbc a:CAMY
         sta a:OSY
         lda #OBJT_BLK_REST
 :       sta a:OST
@@ -2245,6 +2311,8 @@ next:   inx
         sbc a:CAMX
         sta a:OSX
         lda a:NY
+        sec
+        sbc a:CAMY
         sta a:OSY
         lda a:NANIM
         and #$0010
@@ -2287,6 +2355,8 @@ live:   lda a:COINX, x
         lsr a
         lsr a
         lsr a
+        sec
+        sbc a:CAMY
         sta a:OSY
         lda a:COINF, x
         tax
@@ -2483,6 +2553,8 @@ l2:     lda a:BG3SH, x
         sta f:SRAM + dst + $0A28
         lda #$5A5A
         sta f:SRAM + dst + $0A2A
+        lda a:CAMY
+        sta f:SRAM + dst + $0A2C
 .endmacro
 
 .proc snap1
@@ -2514,6 +2586,13 @@ l2:     lda a:BG3SH, x
         DMARK 1
         sep #$20
         .a8
+        ; HDMA KEEPS RUNNING IN FORCED BLANK.  The sky channel writes CGADD=0
+        ; and a colour every eight scanlines, and the CGRAM readback below
+        ; spans a third of a frame -- so the read address was being reset out
+        ; from under the loop about every thirty entries, and the dump came
+        ; back as the palettes interleaved with each other.  It read exactly
+        ; like a broken read port.
+        stz HDMAEN
         lda #$8F
         sta INIDISP                     ; the PPU only reads back reliably in
         rep #$30                        ; blank, and the run is over anyway
@@ -2548,8 +2627,20 @@ l2:     lda a:BG3SH, x
         sta VMAIN
         rep #$20
         .a16
+        ; The VRAM read port hands back the word BEFORE the one the address
+        ; points at: read k returns VRAM[addr + k - 1].  Measured by an A/B in
+        ; one run -- reasoning about the prefetch produced three mutually
+        ; contradictory models, and the first attempted fix changed the base
+        ; address AND added a dummy read, which cancelled exactly and looked
+        ; like the dummy doing nothing.  One dummy pair, address unchanged.
         lda #V_BG3MAP
         sta VMADDL
+        sep #$20
+        .a8
+        lda RDVRAML
+        lda RDVRAML + 1
+        rep #$20
+        .a16
         ldx #$0000
 :       sep #$20
         .a8
@@ -2567,6 +2658,12 @@ l2:     lda a:BG3SH, x
 
         DMARK 3
         ; ---- CGRAM, through $213B -----------------------------------------
+        ; Same lag as the VRAM port, established by an A/B in one run: a
+        ; readback started at colour 0 put every palette one entry late, a
+        ; second readback started at colour 120 -- with the port already
+        ; streaming -- put them exactly where they were DMA'd to.  So the
+        ; palettes were always right and the first read of a freshly addressed
+        ; port hands back one stale pair.  Throw it away.
         sep #$20
         .a8
         stz CGADD
