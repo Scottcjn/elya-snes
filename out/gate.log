@@ -1,0 +1,45 @@
+=== nn ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnfast ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnprof ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnfastprof ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnstage ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnsurvey ===
+
+64 seeds x 20 tokens: 1280/1280 identical
+PASS: every seed matches host/ref.py exactly
+=== nnfastsurvey ===
+
+64 seeds x 20 tokens: 1280/1280 identical
+PASS: every seed matches host/ref.py exactly
+=== cartridge headers ===
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+=== reports ===
+
+  total            58048292 wall master clocks for 19 tokens
+  mean/token        3055173 wall        2965579 cpu
+  mean/token         370697 SlowROM cycles
+  seconds/token    0.1423      tokens/s     7.030
+  first / last token: 2689060 / 3418457  (27.1% growth over 19 positions)
+
+  total            50887321 wall master clocks for 19 tokens
+  mean/token        2678280 wall        2599738 cpu
+  mean/token         433290 FastROM cycles
+  seconds/token    0.1247      tokens/s     8.019
+  first / last token: 2327934 / 3026303  (30.0% growth over 19 positions)
+GATE: pass

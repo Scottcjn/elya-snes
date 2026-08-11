@@ -1,0 +1,30 @@
+== where one token's master clocks go (last position) ==
+stage                wall   share
+embed+pos           22808   0.66%
+L0 Wq              103548   3.00%
+L0 Wk              104296   3.02%
+L0 Wv              104140   3.02%
+L0 attention       317292   9.19%
+L0 Wo              110196   3.19%
+L0 W1              198880   5.76%
+L0 W2              179204   5.19%
+L1 Wq              102184   2.96%
+L1 Wk              103268   2.99%
+L1 Wv              104140   3.02%
+L1 attention       318040   9.22%
+L1 Wo              109196   3.16%
+L1 W1              198332   5.75%
+L1 W2              175124   5.08%
+L2 Wq              103088   2.99%
+L2 Wk              103624   3.00%
+L2 Wv              101604   2.94%
+L2 attention       319176   9.25%
+L2 Wo              108300   3.14%
+L2 W1              198568   5.75%
+L2 W2              169204   4.90%
+head                96508   2.80%
+TOTAL             3450717
+
+  matmul          2376894   68.88%
+  attention        954507   27.66%
+  embed/head       119316    3.46%

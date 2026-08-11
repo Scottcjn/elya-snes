@@ -1,0 +1,26 @@
+image        out/nn.sfc
+size         262144 bytes = 2 Mbit
+title        'ELYA SNES TERNARY LM '
+map mode     $20  LoROM / SlowROM
+cart type    $02  ROM + RAM + battery
+rom size     $08  256 KiB declared, 256 KiB actual
+sram size    $03  8 KiB
+country      $01  USA (NTSC)
+checksum     $1A92  complement $E56D
+reset vector $8000
+
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+
+image        out/nnfast.sfc
+size         262144 bytes = 2 Mbit
+title        'ELYA SNES TERNARY LM '
+map mode     $30  LoROM / FastROM
+cart type    $02  ROM + RAM + battery
+rom size     $08  256 KiB declared, 256 KiB actual
+sram size    $03  8 KiB
+country      $01  USA (NTSC)
+checksum     $474A  complement $B8B5
+reset vector $8000
+
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+

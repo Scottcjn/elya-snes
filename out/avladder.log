@@ -1,2 +1,5 @@
 launch av1_exact_s1
 launch av1_exact_s2
+launch av2_exact_s1
+launch av2_exact_s2
+launch av3_exact_s1

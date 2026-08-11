@@ -1,0 +1,26 @@
+av2_exact_s2                 step     1  fit 7.7691  val 7.7817  density 0.5491  2s
+av2_exact_s2                 step   500  fit 3.1281  val 3.1280  density 0.5483  29s
+av2_exact_s2                 step  1000  fit 2.9188  val 2.9194  density 0.5481  52s
+av2_exact_s2                 step  1500  fit 2.7426  val 2.7387  density 0.5465  78s
+av2_exact_s2                 step  2000  fit 2.6410  val 2.6477  density 0.5456  108s
+av2_exact_s2                 step  2500  fit 2.5738  val 2.5768  density 0.5447  129s
+av2_exact_s2                 step  3000  fit 2.5275  val 2.5402  density 0.5429  155s
+av2_exact_s2                 step  3500  fit 2.4743  val 2.4958  density 0.5431  181s
+av2_exact_s2                 step  4000  fit 2.5157  val 2.5077  density 0.5422  206s
+av2_exact_s2                 step  4500  fit 2.4491  val 2.4498  density 0.5418  231s
+av2_exact_s2                 step  5000  fit 2.4409  val 2.4353  density 0.5408  267s
+av2_exact_s2                 step  5500  fit 2.3994  val 2.4064  density 0.5407  293s
+av2_exact_s2                 step  6000  fit 2.4119  val 2.4109  density 0.5395  327s
+av2_exact_s2                 step  6500  fit 2.4066  val 2.4214  density 0.5391  356s
+av2_exact_s2                 step  7000  fit 2.3781  val 2.3828  density 0.5394  384s
+av2_exact_s2                 step  7500  fit 2.3730  val 2.3833  density 0.5385  421s
+av2_exact_s2                 step  8000  fit 2.3748  val 2.3698  density 0.5377  449s
+av2_exact_s2                 step  8500  fit 2.3605  val 2.3648  density 0.5386  483s
+av2_exact_s2                 step  9000  fit 2.3513  val 2.3376  density 0.5373  513s
+av2_exact_s2                 step  9500  fit 2.3516  val 2.3500  density 0.5374  547s
+av2_exact_s2                 step 10000  fit 2.3429  val 2.3541  density 0.5378  575s
+av2_exact_s2                 step 10500  fit 2.3358  val 2.3250  density 0.5378  611s
+av2_exact_s2                 step 11000  fit 2.3560  val 2.3438  density 0.5375  639s
+av2_exact_s2                 step 11500  fit 2.3134  val 2.3106  density 0.5373  677s
+av2_exact_s2                 step 12000  fit 2.1999  val 2.2064  density 0.5371  706s
+FINAL av2_exact_s2             fit 2.2007  val 2.2066  (uniform 4.1589)  nnz 55002/102400 = 0.5371

@@ -94,12 +94,19 @@ YARG    = $2A           ; the chain's 8-bit index, staged here
 TB2     = $2C           ; (p+1)*2, the live byte count of the word arrays
 SRAMB   = $36           ; SRAM offset this run's tokens are written to
 SEEDN   = $38           ; SURVEY: which seed token is being run
-SMPX    = $2E           ; PROFILE: the next sample's SRAM offset
-VSCR    = $30           ; PROFILE: latched V
-HSCR    = $32           ; PROFILE: latched H
-FSCR    = $34           ; PROFILE: latched frame count
 
 FRAMES  = $076C         ; PROFILE: vblank counter, maintained by the NMI
+; The profile instrument's scratch is ABSOLUTE, not direct page.  It is called
+; from stage boundaries where D may still be pointing at an activation array,
+; and a DP cell there would land inside the model's own activations and feed
+; the forward pass timing-dependent garbage.  That is not hypothetical: it is
+; what the first STAGEPROF build did, and the tell was tokens that changed from
+; run to run under a wholly deterministic engine.
+SMPX    = $0780         ; PROFILE: the next sample's SRAM offset
+VSCR    = $0782         ; PROFILE: latched V
+HSCR    = $0784         ; PROFILE: latched H
+FSCR    = $0786         ; PROFILE: latched frame count
+SMPY    = $0788         ; STAGEPROF: the stage sampler's own cursor
 
 .ifdef FASTROM
 MAPMODE = $30
@@ -127,6 +134,18 @@ ok:     asl a
         tax
 .endmacro
 
+; STAGEPROF samples the multi-frame clock at every stage boundary, overwriting
+; the same SRAM block each token, so what survives is a breakdown of the LAST
+; and most expensive position.  It is a no-op in every other build.
+.macro STAGE
+.ifdef STAGEPROF
+        ; MUST be placed where D is the driver's own direct page: the sampler
+        ; keeps its cursor there, and running it with D pointing at ACTA reads
+        ; an activation as the SRAM offset and scribbles over both.
+        jsr stagesmp
+.endif
+.endmacro
+
 ; ===========================================================================
 ; One layer.  Segment addresses are assembled constants and the 65816 has no
 ; indirect long call, so the layer loop is unrolled; three copies of this cost
@@ -141,6 +160,7 @@ ok:     asl a
         jsl sq
         lda #$0000
         tcd
+        STAGE
         ; Wk: Y = d*64 + (l*NCTX + p), stepping 64
         lda POSP
         clc
@@ -152,6 +172,7 @@ ok:     asl a
         jsl sk
         lda #$0000
         tcd
+        STAGE
         ; Wv: Y = p*256 + (l*64 + d), stepping 1
         lda POSP
         .repeat 8
@@ -166,9 +187,11 @@ ok:     asl a
         jsl sv
         lda #$0000
         tcd
+        STAGE
         lda #l
         sta LAYER
         jsr attention
+        STAGE
         ; Wo reads ACTB (the attention output) and updates ACTA in place
         ldy #$0000
         lda #ACTB
@@ -177,6 +200,7 @@ ok:     asl a
         jsl so
         lda #$0000
         tcd
+        STAGE
         ; W1 reads ACTA (x) and writes the biased hidden layer to ACTB
         ldy #$0000
         lda #ACTA
@@ -185,6 +209,7 @@ ok:     asl a
         jsl s1
         lda #$0000
         tcd
+        STAGE
         ; W2 reads ACTB and updates ACTA in place
         ldy #$0000
         lda #ACTB
@@ -193,6 +218,7 @@ ok:     asl a
         jsl s2
         lda #$0000
         tcd
+        STAGE
 .endmacro
 
         .segment "CODE"
@@ -270,7 +296,7 @@ fast_entry:
         .i16
         cli
         lda #$0140
-        sta SMPX
+        sta a:SMPX
 .endif
 
 .ifdef SURVEY
@@ -298,9 +324,11 @@ survey: lda SEEDN
         cmp #NSEEDS
         bne survey
 .else
-        lda #$0010
-        sta SRAMB
-        jsr generate
+        lda #SEEDTOK            ; the single-seed path has to seed TOKP itself:
+        sta TOKP                ; generate() stopped doing it when the survey
+        lda #$0010              ; made the seed a parameter, and for three
+        sta SRAMB               ; builds this line's absence let the cartridge
+        jsr generate            ; start from whatever WRAM happened to hold
 .endif
 .ifdef PROFILE
         sep #$20
@@ -412,6 +440,11 @@ loop:
 .proc step
         .a16
         .i16
+.ifdef STAGEPROF
+        lda #$0400              ; the stage block is rewritten every token, so
+        sta a:SMPY                ; what survives is the LAST and dearest position
+        jsr stagesmp
+.endif
         ; ---- x = clamp7(emb[tok] + pos[p]) + 7, into ACTA ------------------
         ; Both tables are stored pre-biased, so their sum is x+14 and the very
         ; same TCLAMP the residual adds use turns that into clamp7(x)+7.
@@ -441,6 +474,7 @@ xloop:  lda (EPTR), y
         iny
         cpy #(NDMODEL * 2)
         bne xloop
+        STAGE                   ; stage 0 closes here: the embedding lookup
 
         lda POSP
         inc a
@@ -506,6 +540,7 @@ noterm:
         jsl SEG_head
         lda #$0000
         tcd
+        STAGE
         lda a:BESTI
         lsr a
         sta NEXTT
@@ -888,6 +923,27 @@ nmi:    rti
 .endif
 irq:    rti
 
+.ifdef STAGEPROF
+.proc stagesmp
+        .a16
+        .i16
+.ifdef STAGENULL
+        rts                     ; bisect: the call sites stay, the sampling goes
+.else
+        lda a:SMPX
+        pha
+        lda a:SMPY
+        sta a:SMPX
+        jsr sample
+        lda a:SMPX
+        sta a:SMPY
+        pla
+        sta a:SMPX
+        rts
+.endif
+.endproc
+.endif
+
 .ifdef PROFILE
 ; ---------------------------------------------------------------------------
 ; PROFILE: sample (frames, V, H) into SRAM.  FRAMES is re-read after the latch
@@ -898,38 +954,38 @@ irq:    rti
         .a16
         .i16
 retry:  lda a:FRAMES
-        sta FSCR
+        sta a:FSCR
         sep #$20
         .a8
         lda f:SLHV
         lda f:STAT78
         lda f:OPHCT
-        sta HSCR
+        sta a:HSCR
         lda f:OPHCT
         and #$01
-        sta HSCR+1
+        sta a:HSCR+1
         lda f:OPVCT
-        sta VSCR
+        sta a:VSCR
         lda f:OPVCT
         and #$01
-        sta VSCR+1
+        sta a:VSCR+1
         rep #$30
         .a16
         .i16
         lda a:FRAMES
         cmp FSCR
         bne retry
-        ldx SMPX
-        lda FSCR
+        ldx a:SMPX
+        lda a:FSCR
         sta f:SRAM, x
-        lda VSCR
+        lda a:VSCR
         sta f:SRAM+2, x
-        lda HSCR
+        lda a:HSCR
         sta f:SRAM+4, x
         txa
         clc
         adc #6
-        sta SMPX
+        sta a:SMPX
         rts
 .endproc
 
@@ -964,13 +1020,13 @@ retry:  lda a:FRAMES
         lda f:SLHV
         lda f:STAT78
         lda f:OPVCT
-        sta VSCR
+        sta a:VSCR
         lda f:OPVCT
         and #$01
-        sta VSCR+1
+        sta a:VSCR+1
         rep #$20
         .a16
-        lda VSCR
+        lda a:VSCR
         rts
 .endproc
 
@@ -978,7 +1034,7 @@ retry:  lda a:FRAMES
         .a16
         .i16
         lda #$0100
-        sta SMPX
+        sta a:SMPX
         stz a:FRAMES
         lda #1000
 cl:     sta TMPB

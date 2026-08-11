@@ -1,7 +1,7 @@
 Modules list:
 -------------
 nn.o:
-    CODE              Offs=000000  Size=000544  Align=00001  Fill=0000
+    CODE              Offs=000000  Size=00055B  Align=00001  Fill=0000
     RODATA            Offs=000000  Size=003900  Align=00001  Fill=0000
     WEIGHTS           Offs=000000  Size=020000  Align=00001  Fill=0000
     PTABSEG           Offs=000000  Size=005012  Align=00001  Fill=0000
@@ -13,7 +13,7 @@ Segment list:
 -------------
 Name                   Start     End    Size  Align
 ----------------------------------------------------
-CODE                  008000  008543  000544  00001
+CODE                  008000  00855A  00055B  00001
 PTABSEG               008000  00D011  005012  00001
 WEIGHTS               008000  027FFF  020000  00001
 RODATA                008600  00BEFF  003900  00001
