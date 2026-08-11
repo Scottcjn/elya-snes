@@ -7,12 +7,14 @@ This compares the residual stream after every layer, and the attention output
 of layer 0, element by element, for one chosen position -- 320 signed values
 that have to agree exactly.
 """
-import json
 import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(ROOT, "host"))
+os.environ.setdefault("NES_T", "20")
+import ref                                                        # noqa: E402
 
 BLOCKS = [("x0", 0x0600), ("L0.x", 0x0640), ("L1.x", 0x0680),
           ("L2.x", 0x06C0), ("att", 0x0700)]
@@ -28,8 +30,16 @@ def main(path, pos):
     if d[0:4] != b"ELYA" or d[8:12] != b"DONE":
         print("bad or unfinished dump", file=sys.stderr)
         return 1
-    exp = json.load(open(os.path.join(ROOT, "out", "model", "expected.json")))
-    tr = exp["trace"][pos]
+    # Re-run the reference rather than read a stored trace: a file on disk goes
+    # stale the moment the weights change and says nothing when it does.
+    npz = os.environ.get("SNES_WEIGHTS",
+                         os.path.join(ROOT, "model", "dense_exact_s1.npz"))
+    m = ref.Model.from_npz(npz)
+    r = ref.Runner(m)
+    cur = d[5]                                    # the seed token the ROM used
+    for p in range(pos + 1):
+        cur = r.step(cur, p)
+    tr = r.trace[pos]
     bad = 0
     for name, base in BLOCKS:
         if name not in tr:
