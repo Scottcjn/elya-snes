@@ -18,6 +18,22 @@ out/nnfastsurvey.sfc
 out/nndbg.sfc
 out/nnav1.sfc
 out/*.build
+# the game's variant cartridges; out/game.sfc and out/gamefast.sfc are the
+# shipping images and are committed
+out/gameqa.sfc
+out/gamectl.sfc
+out/gameprof.sfc
+out/gamefastprof.sfc
+out/gamenmi.sfc
+out/gamef.sfc
+out/nosky.sfc
+out/gamepad.sfc
+out/gamef.ram
+out/gamenmi.ram
+out/gameprof.ram
+out/gamefastprof.ram
+out/nosky.ram
+out/game_qa.ram
 runs/**/*_ckpt.npz
 runs/**/*_ckpt.json
 # host/ref.py is shared with the 6502 port and also emits that port's stream,

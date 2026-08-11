@@ -55,8 +55,14 @@ done
 # gameqa    scripted player, ends after two answers, dumps the PPU to SRAM
 # gamectl   the SAME build with the forward pass removed.  Negative control for
 #           the coin binding: it must produce zero coins over 1,700 frames.
+# gamepad   NO scripted player: the SHIPPING read_pad, polling $4212/$4218.
+#           Nobody presses anything, so it walks itself to the ask menu -- but
+#           the path that ships is the path that ran.
 run gameqa  "-DGAME -DGAUTO -DGRUN=2"                    0 none
 run gamectl "-DGAME -DGAUTO -DNOGEN -DGFRAMES=1700"      0 none
+run gamepad "-DGAME -DGFRAMES=1600"                      0 none
+echo "=== the game, real controller path ==="
+python3 tools/check_game.py out/gamepad.ram | tail -n 1 || FAIL=1
 echo "=== the game ==="
 python3 tools/check_game.py out/gameqa.ram out/gamectl.ram > out/game_check.txt 2>&1 \
     || FAIL=1
@@ -89,11 +95,15 @@ echo "=== tokens per second, engine only vs with the game ==="
 grep "TOKENS\|tokens/s" out/nn_profile.txt out/nnfast_profile.txt \
      out/game_profile.txt out/gamefast_profile.txt | sed 's/^out\///'
 
-# leave the SHIPPING images in place: the gate's last build must not be a
-# profiling or survey variant
-SNES_FAST=0 NAME=nn DEFS="" ./build_nn.sh > /dev/null
-SNES_FAST=1 NAME=nnfast DEFS="-DFASTROM=1" ./build_nn.sh > /dev/null
+# Leave the SHIPPING images in place: the gate's last build must not be a
+# profiling or survey variant.  The ENGINE builds go last, in the same order
+# `make nn` runs them, on purpose: the weight program's JSL targets are the row
+# handlers' addresses, so linking the game layer in emits a DIFFERENT
+# out/model/weights.bin.  Ending on the same build `make nn` ends on is what
+# keeps the tracked intermediates from flapping between the two.
 SNES_FAST=0 NAME=game     DEFS="-DGAME"             ./build_nn.sh > /dev/null
 SNES_FAST=1 NAME=gamefast DEFS="-DGAME -DFASTROM=1" ./build_nn.sh > /dev/null
+SNES_FAST=0 NAME=nn       DEFS=""                   ./build_nn.sh > /dev/null
+SNES_FAST=1 NAME=nnfast   DEFS="-DFASTROM=1"        ./build_nn.sh > /dev/null
 
 [ "$FAIL" = 0 ] && echo "GATE: pass" || { echo "GATE: FAIL"; exit 1; }

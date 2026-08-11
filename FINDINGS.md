@@ -1223,3 +1223,19 @@ Files: `rom/game.inc`, `tools/mkart.py`, `tools/mkbg.py`, `tools/mkfont.py`,
 `rom/lorom256.cfg`, reports `out/game_check.txt`, `out/game_profile.txt`,
 `out/gamefast_profile.txt`, frames `out/frames/frame_act1.png` and
 `out/frames/frame_act3.png`.
+
+### A footnote on the harness, because it wasted an hour
+
+`tools/run_ares.sh` waits for the ROM's own `DONE` marker to appear in the
+autosaved `.ram`. A short game run — 700 frames rather than 1,600 — reliably
+produced a `.ram` file whose last trace record was within *four frames* of the
+dump, twice, with the dump missing. That is not a timer: ares appears to flush
+the save when the cartridge's writes go quiet, so a ROM that finishes and then
+stops writing can be snapshotted a few frames before it finished and never
+again. Lengthening the run past the flush point fixes it, and the fix is in the
+gate as `-DGFRAMES=1600`.
+
+The reason it mattered: it looked exactly like `dump_all` crashing, which is
+what a genuine NMI re-entrancy bug had been doing an hour earlier in the same
+routine. The same symptom, two entirely different causes, and only the stage
+markers written to `SRAM+$0C` told them apart.

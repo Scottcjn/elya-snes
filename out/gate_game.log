@@ -1,0 +1,74 @@
+=== nn ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnfast ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnprof ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnfastprof ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnstage ===
+host text 'because and said, "you ca'
+rom  text 'because and said, "you ca'
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnsurvey ===
+
+64 seeds x 20 tokens: 1280/1280 identical
+PASS: every seed matches host/ref.py exactly
+=== nnfastsurvey ===
+
+64 seeds x 20 tokens: 1280/1280 identical
+PASS: every seed matches host/ref.py exactly
+=== nndbg, position 0 ===
+PASS: 20/20 tokens identical (seed + 19 generated)
+PASS: all 320 intermediate values identical at position 0
+=== nndbg, position 9 ===
+PASS: 20/20 tokens identical (seed + 19 generated)
+PASS: all 320 intermediate values identical at position 9
+=== nndbg, position 18 ===
+PASS: 20/20 tokens identical (seed + 19 generated)
+PASS: all 320 intermediate values identical at position 18
+=== gameqa ===
+=== gamectl ===
+=== the game ===
+
+PASS: 18 checks
+out/frames/frame_act1.png    state play   frame  632  tokens  40  coins  40  camera  90,0
+out/frames/frame_act3.png    state end    frame 1671  tokens 118  coins 118  camera  15,48
+=== cartridge headers ===
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+=== reports ===
+
+  total            58048292 wall master clocks for 19 tokens
+  mean/token        3055173 wall        2965579 cpu
+  mean/token         370697 SlowROM cycles
+  seconds/token    0.1423      tokens/s     7.030
+  first / last token: 2689060 / 3418457  (27.1% growth over 19 positions)
+
+  total            50887321 wall master clocks for 19 tokens
+  mean/token        2678280 wall        2599738 cpu
+  mean/token         433290 FastROM cycles
+  seconds/token    0.1247      tokens/s     8.019
+  first / last token: 2327934 / 3026303  (30.0% growth over 19 positions)
+=== gameprof ===
+=== gamefastprof ===
+=== tokens per second, engine only vs with the game ===
+nn_profile.txt:  seconds/token    0.1423      tokens/s     7.030
+nnfast_profile.txt:  seconds/token    0.1247      tokens/s     8.019
+game_profile.txt:  seconds/token    0.1772      tokens/s     5.644
+gamefast_profile.txt:  seconds/token    0.1557      tokens/s     6.423
+GATE: pass
+
+real	12m45.094s
+user	0m15.266s
+sys	0m3.978s
