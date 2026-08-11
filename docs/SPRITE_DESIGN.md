@@ -129,3 +129,37 @@ the pun to hold together.
 
 Everything expensive is on hardware that is not the CPU. The inference loop
 still only ever sets a flag.
+
+---
+
+## Measured afterwards: the sky is cheap, not free
+
+This document says the HDMA gradient costs "zero CPU cycles in the inference
+loop". Measured, it does not — HDMA steals cycles from the CPU whether or not
+the CPU asked, and it does so during forced blank as well, which is how it
+managed to corrupt a CGRAM readback taken with the screen off (FINDINGS entry
+9). The whole of the presentation outside the NMI handler measures 9,784 wall
+master clocks a frame, 2.7% of a frame, and the sky is part of that.
+
+What the document got right is the comparison. The CPU does not repaint the
+gradient, the DMA controller does, and 28 bands of 8 scanlines is an eighth of
+the transfers a per-scanline table would need. Entry 3 had already measured the
+neighbouring claim exactly: turning the screen *on* costs the 65816 nothing at
+all (220.51 against 220.51 wall master clocks per MAC).
+
+The honest sentence is "the renderer is free and the DMA controller is cheap",
+not "zero".
+
+## Measured afterwards: the cadence
+
+This document guessed the token cadence from the Genesis port and asked to
+revisit it once the engine reported. It reports **7.03 tokens a second on
+SlowROM with the engine alone and 5.64 with the game running**, so a coin every
+10.6 frames. The frame budgets above hold: the coin arc is 48 frames and up to
+eight coins are live at once, so the animation never becomes the bottleneck and
+coins overlap exactly as the document required.
+
+The queue that makes that safe is also what makes the binding provable. Tokens
+increment a queue; the vblank spawner drains it into free slots and stalls if
+there are none, so a coin can be late but never early, and never invented.
+`spawned + queued == committed` holds at every sample of every run.

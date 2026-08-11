@@ -20,7 +20,9 @@ run() {                 # run <name> <defs> <fast> <checker>
     MARK=DONE WAIT=190 bash tools/run_ares.sh "out/$name.sfc" > /dev/null 2>&1 \
         || { echo "RUN FAILED (no DONE marker)"; FAIL=1; return; }
     cp "$HOME/snesroms/$name.ram" "out/$name.ram"
-    python3 "tools/$check" "out/$name.ram" | tail -n 3 || FAIL=1
+    if [ "$check" != none ]; then
+        python3 "tools/$check" "out/$name.ram" | tail -n 3 || FAIL=1
+    fi
 }
 
 run nn            ""                       0 check_nn.py
@@ -45,8 +47,29 @@ for P in 0 9 18; do
     python3 tools/check_debug.py "out/nndbg_$P.ram" "$P" | tail -n 1 || FAIL=1
 done
 
+# ---------------------------------------------------------------------------
+# the game layer.  Its engine is the same rom/nn.s the arms above build, so a
+# change that breaks one breaks both -- which is the point of running the whole
+# matrix rather than the arm that was touched.
+#
+# gameqa    scripted player, ends after two answers, dumps the PPU to SRAM
+# gamectl   the SAME build with the forward pass removed.  Negative control for
+#           the coin binding: it must produce zero coins over 1,700 frames.
+run gameqa  "-DGAME -DGAUTO -DGRUN=2"                    0 none
+run gamectl "-DGAME -DGAUTO -DNOGEN -DGFRAMES=1700"      0 none
+echo "=== the game ==="
+python3 tools/check_game.py out/gameqa.ram out/gamectl.ram > out/game_check.txt 2>&1 \
+    || FAIL=1
+tail -n 2 out/game_check.txt
+python3 tools/render_frame.py out/gameqa.ram out/frames || FAIL=1
+
+# the shipping game images: no scripted player, no end condition
+SNES_FAST=0 NAME=game     DEFS="-DGAME"             ./build_nn.sh > /dev/null
+SNES_FAST=1 NAME=gamefast DEFS="-DGAME -DFASTROM=1" ./build_nn.sh > /dev/null
+
 echo "=== cartridge headers ==="
-python3 tools/kaico_check.py out/nn.sfc out/nnfast.sfc | tee out/kaico_check.txt \
+python3 tools/kaico_check.py out/nn.sfc out/nnfast.sfc out/game.sfc \
+    out/gamefast.sfc | tee out/kaico_check.txt \
     | grep -E "^(PASS|FAIL)" || FAIL=1
 
 echo "=== reports ==="
@@ -57,9 +80,20 @@ python3 tools/check_survey.py out/nnsurvey.ram > out/nn_survey.txt
 tail -n 6 out/nn_profile.txt
 tail -n 6 out/nnfast_profile.txt
 
-# leave the SHIPPING image in place: the gate's last build must not be a
+# the game's own profile arm: cycles per token WITH the presentation layer
+run gameprof     "-DGAME -DGAUTO -DGRUN=1 -DPROFILE"              0 none
+run gamefastprof "-DGAME -DGAUTO -DGRUN=1 -DPROFILE -DFASTROM=1"  1 none
+python3 tools/prof_nn.py out/gameprof.ram          > out/game_profile.txt
+python3 tools/prof_nn.py out/gamefastprof.ram --fast > out/gamefast_profile.txt
+echo "=== tokens per second, engine only vs with the game ==="
+grep "TOKENS\|tokens/s" out/nn_profile.txt out/nnfast_profile.txt \
+     out/game_profile.txt out/gamefast_profile.txt | sed 's/^out\///'
+
+# leave the SHIPPING images in place: the gate's last build must not be a
 # profiling or survey variant
 SNES_FAST=0 NAME=nn DEFS="" ./build_nn.sh > /dev/null
 SNES_FAST=1 NAME=nnfast DEFS="-DFASTROM=1" ./build_nn.sh > /dev/null
+SNES_FAST=0 NAME=game     DEFS="-DGAME"             ./build_nn.sh > /dev/null
+SNES_FAST=1 NAME=gamefast DEFS="-DGAME -DFASTROM=1" ./build_nn.sh > /dev/null
 
 [ "$FAIL" = 0 ] && echo "GATE: pass" || { echo "GATE: FAIL"; exit 1; }

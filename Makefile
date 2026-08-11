@@ -3,6 +3,8 @@
 # are ours.
 #
 # make            build every ROM
+# make game       the game cartridge (three acts on top of the same engine)
+# make gamecheck  drive the game to act 3 and check it from its own SRAM
 # make measure    build, run under ares, and print both cycles-per-MAC tables
 # make fx         the SuperFX arm (EMULATOR ONLY -- the Kaico cart has no GSU)
 
@@ -95,6 +97,30 @@ nn:
 	./build_nn.sh
 	SNES_FAST=1 NAME=nnfast DEFS=-DFASTROM=1 ./build_nn.sh
 
+# The game cartridge: the same engine with a presentation layer on top.
+# rom/game.inc is pulled into rom/nn.s by -DGAME, so there is one engine and
+# one set of weights, not two.
+game:
+	python3 tools/mkfont.py assets/font
+	python3 tools/mkart.py assets/obj
+	python3 tools/mkbg.py assets
+	python3 tools/mkgame.py out/game
+	SNES_FAST=0 NAME=game     DEFS="-DGAME"             ./build_nn.sh
+	SNES_FAST=1 NAME=gamefast DEFS="-DGAME -DFASTROM=1" ./build_nn.sh
+	python3 tools/kaico_check.py out/game.sfc out/gamefast.sfc
+
+# The game's own gate: a scripted player drives it to act 3, the ROM dumps its
+# OAM/VRAM/CGRAM into SRAM, and the host checks the coin binding, re-runs every
+# generated line through host/ref.py and rebuilds the frames.
+gamecheck:
+	SNES_FAST=0 NAME=gameqa  DEFS="-DGAME -DGAUTO -DGRUN=2" ./build_nn.sh
+	SNES_FAST=0 NAME=gamectl DEFS="-DGAME -DGAUTO -DNOGEN -DGFRAMES=1700" ./build_nn.sh
+	bash tools/run_ares.sh out/gameqa.sfc  > /dev/null
+	bash tools/run_ares.sh out/gamectl.sfc > /dev/null
+	cp $(HOME)/snesroms/gameqa.ram $(HOME)/snesroms/gamectl.ram out/
+	python3 tools/check_game.py out/gameqa.ram out/gamectl.ram
+	python3 tools/render_frame.py out/gameqa.ram out/frames
+
 # Build every variant, run every one under ares, check every token against
 # host/ref.py.  This is the shipping gate.
 gate:
@@ -120,5 +146,5 @@ measure: out/bench.sfc out/benchfast.sfc
 clean:
 	rm -f out/*.o out/*.sfc out/*.map out/*.lst out/_blank.sfc
 
-.PHONY: all clean measure fx nn gate kernels
+.PHONY: all clean measure fx nn game gamecheck gate kernels
 .PRECIOUS: out/%.o rom/gsu/%.bin

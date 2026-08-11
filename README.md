@@ -1,7 +1,8 @@
 # elya-snes
 
 A transformer language model that runs on a stock Super Nintendo — no
-enhancement chip, no SuperFX, no DSP — and says something.
+enhancement chip, no SuperFX, no DSP — inside a platformer that stops halfway
+through and starts talking to you.
 
 ```
 seed token 'b'   ->  because and said, "you ca
@@ -30,11 +31,108 @@ NES_T=20 python3 train/sample.py model/dense_exact_s1.npz --seeds 1,3,16,22 --n 
 ```
 
 ```sh
-make nn      # build the cartridge (out/nn.sfc, out/nnfast.sfc)
+make nn      # the engine cartridge (out/nn.sfc, out/nnfast.sfc)
+make game    # the game cartridge  (out/game.sfc, out/gamefast.sfc)
 make gate    # build every variant, run under ares, check every token
 make kernels # the gather-kernel A/B
 make measure # the arithmetic-primitive tables
 ```
+
+---
+
+## The game
+
+Three acts on one cartridge. A logo, a platformer, and a conversation.
+
+Elya runs right, jumps, and strikes a block stamped `@` — the matrix-multiply
+operator, because `A @ B` is what makes the tokens the block gives out. A `∇`
+chases her: the gradient operator, which is funny because the ROM does
+inference and contains no gradients at all, so it is the thing from training
+that cannot touch her any more, still chasing. The sky is an HDMA gradient and
+the clouds are a scrolling background layer.
+
+Then she stops, the nabla loses interest and wanders off, the camera tilts up,
+and she says something the cartridge generated on the spot.
+
+### The rule the whole thing is built around
+
+> **A coin may only be spawned from the code path that commits a generated
+> token.** Not a timer. Not a frame counter.
+
+So the coin count is a *countable* proof of inference: pause the video and
+check coins against characters, trusting no number the ROM prints. It is
+enforced structurally — `gcommit` is the only writer of the coin queue and the
+vblank spawner is the only reader — and proved three ways:
+
+```
+final counters           118 spawned + 0 queued == 118 committed
+every trace sample       104/104 samples satisfy the same identity
+-DNOGEN, forward pass removed, nothing else changed
+                         1,707 frames, 0 tokens, 0 coins
+```
+
+If inference stalls, the coins stall.
+
+### What it costs, and it is not nothing
+
+The main thread is the transformer and nothing else; the vblank NMI is the
+entire game. The inference path only ever stores a token, bumps two counters
+and pushes one byte into a ring — no PPU register, no formatting, no VRAM.
+
+```
+                   engine only    with the game     delta
+SlowROM 2.68 MHz     7.030 tok/s     5.643 tok/s   -19.7%
+FastROM 3.58 MHz     8.019 tok/s     6.423 tok/s   -19.9%
+```
+
+**A fifth of the arithmetic went to making it a game.** The two arms agree on
+something more useful than the percentage: converted to cost *per frame* the
+presentation is 70,472 master clocks on SlowROM and 71,124 on FastROM — 0.9%
+apart. A frame of game is a frame of game whatever the CPU clock is, because
+the game layer is DMA and WRAM traffic and `MEMSEL` touches neither.
+
+Of that, 60,688 clocks a frame (17.0%) are measured *inside* the NMI handler
+and 9,784 (2.7%) are outside it — HDMA, which keeps running during active
+display and, it turns out, during forced blank as well.
+
+### Seeing it, on a machine that cannot take a screenshot
+
+Screen capture does not work here (GNOME/Wayland, no `wlr-screencopy`). So the
+ROM reads its own OAM, VRAM and CGRAM back out **through the PPU** into battery
+SRAM, and `tools/render_frame.py` composites them on the host into exactly what
+the television would show.
+
+That is better than a screenshot rather than a substitute for one: a screenshot
+is a picture you have to trust the emulator's renderer for; this is the object
+table, the tilemaps, the palettes and the scroll registers the picture would be
+made from, composited in code you can read. It also checks itself —
+
+```
+BG3 tilemap read back through $2139 == the WRAM shadow   1024/1024 entries
+OAM read back through $2138        == the DMA'd shadow    544/544 bytes
+CGRAM 1..11, 32..47, 48..63, 128..143 == the palette files, byte for byte
+```
+
+![act 1](out/frames/frame_act1.png)
+![act 3](out/frames/frame_act3.png)
+
+### The conversation
+
+Context is 20 positions because the trained positional table has twenty rows,
+so the six questions are chosen short — a ten-token question leaves ten tokens
+for the answer. The question is *stored* (a prompt is input, not output) and is
+drawn in amber; what the console generated is drawn in white. **The screen
+itself shows which characters came out of the model.**
+
+```
+'what now? '  ->  'he said, "yes, i'       12/12 identical to host/ref.py
+'once upon '  ->  'her friends. she sa'    13/13 identical to host/ref.py
+```
+
+Act 2's line has no stored prompt at all: it is generated from the last token
+act 1 produced, so it depends on how the platformer went. On the recorded run
+the seed was `s` and she said `' a big big because and '`, which is exactly the
+kind of wrong the design asked for. A lookup table cannot make that mistake.
 
 ---
 
@@ -128,15 +226,17 @@ could not separate the two questions.
 | internals | 960/960 residual-stream and attention values, 3 positions |
 | cycles/token | 3,055,173 wall master (SlowROM) · 2,678,280 (FastROM) |
 | tokens/s | **7.030** (SlowROM) · **8.019** (FastROM) |
+| with the game layer | 3,805,702 · 3,344,006 → **5.643** · **6.423** tok/s |
 | where the time goes | matmul 68.9% · attention 27.7% · embed+head 3.5% |
 
 **FastROM buys 14%, not 33%**, because the engine's operands live in WRAM and
 WRAM is 8 master clocks whatever `MEMSEL` says.
 
 The cartridge writes its tokens to battery SRAM, which is how results leave the
-console: ares autosaves it to `<rom>.ram` and the host reads the file. There is
-no screen output — screen capture is impossible on this development host, so a
-display could not be verified, and nothing unverified ships.
+console: ares autosaves it to `<rom>.ram` and the host reads the file. The
+engine image (`out/nn.sfc`) runs in forced blank and draws nothing; the game
+image (`out/game.sfc`) draws, and proves what it drew by reading the PPU back
+into the same SRAM.
 
 ## Targets
 
@@ -158,12 +258,17 @@ display could not be verified, and nothing unverified ships.
   calibrated against hand-derived 65816 timings to 0.06%. That is not the same
   as a cartridge in a console. `tools/kaico_check.py` says the image is *valid*
   for the Kaico Super DSP; it does not say it has run on one.
-* **No screen output.** The cartridge sits in forced blank and the tokens leave
-  through battery SRAM. Screen capture is impossible on this development host
-  (GNOME/Wayland, no `wlr-screencopy`), so a display could not be verified, and
-  an unverifiable feature is not a feature. Reading the tokens back off a real
-  cartridge needs whatever save-dumping the flashcart provides, which was also
-  not tested.
+* **Nobody has watched the game on a screen.** Screen capture does not work on
+  this development host, so what it looks like is reconstructed from OAM, VRAM
+  and CGRAM read back through the PPU and composited on the host. Every byte in
+  that reconstruction came off the console, and it caught two bugs no counter
+  could have — but it is a reconstruction, and it renders one frame rather than
+  motion. Nothing here says the animation looks right at 60 Hz.
+* **No audio.** The design's act 2 beat is "the music drops out", and there is
+  no music to drop. Uploading an SPC700 program through the APU IPL handshake
+  is a day's work on its own and none of it would be verifiable here, since
+  this host has no way to hear the result. A driver that cannot be checked is
+  not something this repo ships.
 * **Context stops at 20 positions**, because the positional table the model was
   trained with has twenty rows. The KV caches on this port would hold far more —
   they are 4 KiB and 5 KiB of a 128 KiB WRAM — so the ceiling here is the

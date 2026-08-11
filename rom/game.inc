@@ -223,6 +223,7 @@ GP2     = $13D4
 GBUSY   = $13D6                 ; the main thread has a job in flight
 NMIBUSY = $13DA                 ; the vblank handler is already inside itself
 CAMY    = $13DC                 ; the camera tilts up when she stops talking
+NPROFP  = $13DE                 ; -DNMIPROF cursor
 SCR2    = $13D8                 ; hit_test's sample cursor
 
 OAMBUF  = $1400                 ; 512 B, DMA'd to OAM every frame
@@ -240,6 +241,7 @@ SR_CGR   = $1C00        ; CGRAM read back, 512 B
 SR_LINE  = $2000        ; act 2: seed + 19 generated tokens
 SR_ANS   = $2040        ; act 3: [q][n][20 tokens] per answer
 SR_SHAD  = $2200        ; the OAM shadow in WRAM, for comparison with SR_OAM
+SR_NMI   = $6000        ; -DNMIPROF: 256 frames of (V,H) at NMI entry/exit
 SR_SNAP1 = $3000        ; a frame captured mid-act-1, coins in the air
 SR_SNAP2 = $4000        ; the last frame of the run, act 3 on screen
                         ; each is OAM shadow (544) + BG3 shadow (2048) + scroll
@@ -726,7 +728,9 @@ rask:
         .a16
         .i16
 
+.ifndef NOSKY
         jsr sky_hdma
+.endif
 
         ldx #$0000
 :       stz a:COINT, x                  ; every slot free.  Without this the
@@ -741,6 +745,7 @@ rask:
         jsr init_play
 
         stz a:NMIBUSY
+        stz a:NPROFP
         stz a:GSTATE
         stz a:GTIMER
         stz a:FRAMEC
@@ -874,11 +879,28 @@ game_nmi:
         sta a:FRAMES
 .endif
         lda a:GNMION
-        beq nmi_out                     ; before gsetup: a frame counter only
-        lda a:NMIBUSY
-        bne nmi_out                     ; a long frame is still in progress
-        lda #$0001
+        bne :+
+        brl nmi_out                     ; before gsetup: a frame counter only
+:       lda a:NMIBUSY
+        beq :+
+        brl nmi_out                     ; a long frame is still in progress
+:       lda #$0001
         sta a:NMIBUSY
+.ifdef NMIPROF
+        ; The logo state fills the buffer before the game starts, so sampling
+        ; begins once there is a game to measure.
+        lda a:GSTATE
+        beq :+
+        jsr latch_hv
+        ldx a:NPROFP
+        cpx #$0800
+        bcs :+
+        lda a:VSCR
+        sta f:SRAM + SR_NMI + 0, x
+        lda a:HSCR
+        sta f:SRAM + SR_NMI + 2, x
+:
+.endif
 
         lda a:FRAMEC
         inc a
@@ -904,6 +926,27 @@ game_nmi:
         jsr move_coins
         jsr build_oam
         jsr trace
+.ifdef NMIPROF
+        lda a:GSTATE
+        beq :+
+        jsr latch_hv
+        ldx a:NPROFP
+        cpx #$0800
+        bcs :+
+        lda a:VSCR
+        sta f:SRAM + SR_NMI + 4, x
+        lda a:HSCR
+        sta f:SRAM + SR_NMI + 6, x
+        lda a:GSTATE
+        sta f:SRAM + SR_NMI + 8, x
+        lda a:COINSP
+        sta f:SRAM + SR_NMI + 10, x
+        txa
+        clc
+        adc #12
+        sta a:NPROFP
+:
+.endif
         stz a:NMIBUSY
 
 nmi_out:
@@ -916,6 +959,32 @@ nmi_out:
         rti
 
 ; ---------------------------------------------------------------------------
+.ifdef NMIPROF
+; latch the PPU's H and V counters -- $2137 samples both, $213C/$213D read them
+.proc latch_hv
+        .a16
+        .i16
+        sep #$20
+        .a8
+        lda SLHV
+        lda STAT78
+        lda OPHCT
+        sta a:HSCR
+        lda OPHCT
+        and #$01
+        sta a:HSCR + 1
+        lda OPVCT
+        sta a:VSCR
+        lda OPVCT
+        and #$01
+        sta a:VSCR + 1
+        rep #$30
+        .a16
+        .i16
+        rts
+.endproc
+.endif
+
 .proc oam_dma
         .a16
         .i16

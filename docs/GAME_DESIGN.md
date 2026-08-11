@@ -77,3 +77,35 @@ The last one is the strongest line available and it is *hers* to deliver.
 
 Whether Act 1 should be short enough that people reach the reveal. On the
 evidence of every demo ever made: yes, and shorter than feels right.
+
+---
+
+## What shipped, and where it differs from the above
+
+Written after the fact, against the measurements in FINDINGS entry 9.
+
+**Act 1 is ~9 seconds, not ~60.** The trigger is 64 committed tokens. The note
+under *Open* — "shorter than feels right" — turned out to be right, and the
+reason is mechanical rather than editorial: the reveal has to land while the
+coins are still being counted, and at the measured 7 tokens a second sixty
+seconds is four hundred coins.
+
+**Act 2's line has no stored prompt at all.** The design says the line is
+generated; it is generated from *the last token act 1 produced*, so it differs
+between runs because the number of tokens act 1 produced differs with how long
+the player took. That is a stronger version of "if it differs slightly between
+runs, that is better": the difference is caused by the play.
+
+**Act 3's questions are stored and act 3's answers are not, and the screen says
+so.** The question is drawn in amber and the generated answer in white, both in
+the same dialogue box. No caption is needed, which is the point.
+
+**"The platformer must not touch the inference budget" is not quite what
+happened.** It costs 19.7% on SlowROM and 19.9% on FastROM, measured. The
+inference path is still flag-set-only — the token commit stores a token, bumps
+two counters and pushes one byte — but the vblank handler that draws the result
+is 17% of a frame and the DMA controller takes another 2.7%. The claim that
+survives is the narrow one: presentation cannot slow the model by *more* than a
+vblank, because it all happens in one.
+
+**There is no music, so nothing drops.** See FINDINGS entry 9.

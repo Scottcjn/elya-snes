@@ -905,3 +905,294 @@ this repo that entry 6's table describes the engine and not just the bench.
 
 Files: `train/av_ladder.sh`, `train/av_table.py`, `runs/avladder/*`,
 report `out/av_ladder.txt`, the `AV_SHIFT = 1` profile `out/nnav1_profile.txt`.
+
+---
+
+## 2026-08-11 — 9. The game. It plays, it stops, it talks, and the coins are the tokens
+
+`out/game.sfc` is the same 256 KiB LoROM cartridge as entry 7 with a
+presentation layer on top: an Elyan Labs logo, a platformer, a halt, and a
+conversation. The engine underneath is untouched — the same `rom/nn.s`, the
+same weights, the same 1280/1280 agreement with `host/ref.py`.
+
+### The architecture, which is inverted on purpose
+
+**The main thread is the transformer and nothing else.** It runs forward passes
+back to back, for ever. Every frame the vblank NMI stops it, does the entire
+game — OAM DMA, scroll, text, input, physics, the state machine — and hands it
+back. So the game loop is the interrupt and the idle task is inference, which
+is the opposite of how a SNES game is normally written.
+
+That is the only arrangement in which presentation cannot slow the model down
+by more than the fixed cost of one vblank, and it is what lets rule 1 be
+structural rather than a promise: `gcommit`, the only place a generated token
+is committed, stores the token, increments two counters and pushes one byte
+into a ring buffer. It touches no PPU register, formats no text and writes no
+VRAM. The NMI drains the ring and does all of that. (The Genesis port's
+`drawTokSpeed()` runs a `sprintf` and a VRAM write *inside* its measured
+interval; this does not.)
+
+The NMI never touches engine state either. It raises a request byte and the
+main thread picks it up between forward passes, where nothing is half-written.
+That is the whole of the concurrency design and it needs no locks.
+
+### The binding rule, and how it is proved rather than asserted
+
+> A coin may only be spawned from the code path that commits a generated token.
+
+`gcommit` is the only writer of `COINQ`. `spawn_coins`, in vblank, is the only
+reader and the only code in the cartridge that ever fills a coin slot. Two
+sites, and `grep COINQ rom/game.inc` shows both.
+
+Three separate checks, because "read the code" is not evidence:
+
+```
+final counters      118 spawned + 0 queued == 118 committed
+every trace sample  104/104 samples satisfy spawned + queued == committed
+coins ahead of tokens                                   0 samples
+```
+
+The invariant is checked at **every** sample and not only at the end, because
+holding only at the end would also be satisfied by a coin source that ran fast
+and then waited.
+
+And the negative control, which is the part that makes it a claim about the
+machine rather than about the source:
+
+```
+-DNOGEN   the forward pass and the commit removed, nothing else changed
+          1,707 frames, 0 tokens, 0 coins
+```
+
+If inference stalls, the coins stall.
+
+### What it costs, measured
+
+Entry 7's instrument, unchanged, re-run with the whole game running. The frame
+length is calibrated *before* the game's NMI is installed — `GNMION` keeps the
+handler down to a bare frame counter until `gsetup` says otherwise — so every
+master clock the presentation costs lands **inside** the measured per-token
+intervals instead of being calibrated away.
+
+```
+                       SlowROM 2.68 MHz          FastROM 3.58 MHz
+                   engine    +game    delta   engine    +game    delta
+wall clocks/token  3,055,173 3,805,702 +24.6% 2,678,280 3,344,006 +24.9%
+seconds/token         0.1423  0.1772           0.1247    0.1557
+TOKENS PER SECOND      7.030   5.643  -19.7%    8.019    6.423  -19.9%
+```
+
+**The game costs 19.7% of the model's speed on SlowROM and 19.9% on FastROM.**
+Say it plainly: presentation is not free here, and a fifth of the arithmetic
+went to making it a game.
+
+The two arms agree on something more useful than the percentage. Converting the
+extra cost to *per frame*:
+
+```
+SlowROM   +750,529 clocks/token over 10.65 frames/token  =  70,472 / frame
+FastROM   +665,726 clocks/token over  9.36 frames/token  =  71,124 / frame
+                                                    0.9% apart
+```
+
+The presentation costs the same number of master clocks per **frame** in both
+clock configurations, to within 0.9%. That is the same structural fact entry 7
+found for the engine, from the other side: FastROM speeds up cartridge fetches
+and the game layer is dominated by DMA and WRAM traffic, neither of which
+MEMSEL touches. A frame of game is a frame of game whatever the CPU clock is.
+
+### Where the 70,000 clocks go
+
+The NMI window is short enough for entry 2's sub-frame instrument — the H/V
+counters are latched at handler entry and exit — and the V-counter wrap is
+handled exactly as `tools/prof_nn.py` handles it, because the NMI fires at
+scanline 225 and that is where the modular arithmetic restarts.
+
+```
+NMI handler, 170 frames of act 1     master clocks     % of a 356,816 frame
+  mean                                     60,688              17.01%
+  min                                      49,820              13.96%
+  max                                     102,264              28.66%
+  frames with no coin spawned              59,663
+  frames where a coin spawned              67,885   (+8,222)
+```
+
+So of the 70,472 clocks a frame the presentation costs, **60,688 are inside the
+handler and 9,784 (2.74% of a frame) are outside it** — HDMA, which runs during
+active display, and whatever else the DMA controller steals while the CPU is
+running the model.
+
+### What the design document claimed about the sky, and what is true
+
+`docs/SPRITE_DESIGN.md` says the HDMA gradient costs "zero CPU cycles in the
+inference loop". It does not, and the difference is measurable: an arm built
+with `-DNOSKY`, which is the same cartridge with `sky_hdma` never called,
+isolates it. See the table in `out/nosky_profile.txt`.
+
+The honest version of the claim is the one entry 3 already made about screen-on
+versus forced-blank: the *renderer* costs the CPU nothing, and the DMA
+controller costs it something small. 28 bands of 8 scanlines rather than 224
+separate writes is an eighth of that something.
+
+### Verifying a game on a machine that cannot screenshot
+
+Entry 1 recorded that screen capture is unavailable here — the ares window is
+Wayland-native, `import -window root` gets nothing and `grim` fails because
+GNOME does not implement `wlr-screencopy`. A platformer verified only by
+counters is a platformer nobody has seen.
+
+So the ROM **reads its own OAM, VRAM and CGRAM back out through the PPU** into
+battery SRAM, and `tools/render_frame.py` composites them on the host into
+exactly what the television would show. That is better than a screenshot, not
+a substitute for one: a screenshot is a picture you have to trust the
+emulator's renderer for, this is the object table, the tilemaps, the palettes
+and the scroll registers the picture would be made from, composited in code
+that can be read.
+
+What that buys, from one run:
+
+```
+BG3 tilemap read back through $2139 == the WRAM shadow      1024/1024 entries
+OAM read back through $2138        == the shadow the DMA sent  544/544 bytes
+CGRAM   1.. 11 == bg3.pal        CGRAM  32.. 47 == bg1.pal
+CGRAM  48.. 63 == bg2.pal        CGRAM 128..143 == obj.pal
+CGRAM entry 0  == the sky HDMA's last band
+```
+
+and two rendered frames, one mid-platformer and one mid-conversation, which is
+how the two worst bugs in this entry were found.
+
+### Three PPU read ports, three different lessons
+
+**The VRAM read port lags one word.** `read k` returns `VRAM[addr + k - 1]`.
+The first attempted fix set the address one word early *and* added a dummy
+read pair; those cancel exactly, so the diff did not move and it looked like
+the dummy doing nothing. An A/B — both setups dumped in the same run — settled
+it in one go. Reasoning about the prefetch had produced three mutually
+contradictory models by then.
+
+**The CGRAM readback came back as the palettes interleaved with each other**,
+and that was not the read port at all. **HDMA keeps running in forced blank.**
+The sky channel rewrites `CGADD` every eight scanlines, and a 512-entry CGRAM
+read spans about a third of a frame, so the read address was being reset out
+from under the loop roughly every thirty entries. It read exactly like a broken
+port. With `stz HDMAEN` at the top of the dump the readback is exact and needs
+no dummy pair at all — the palettes had been right the whole time.
+
+**The OAM read port needed nothing.** 544 of 544 bytes first time.
+
+### Six bugs, and what each one looked like before it was understood
+
+1. **Every coin slot came up busy.** WRAM is not cleared at reset, so a nonzero
+   timer read as "live" and the spawner never found a free slot. Presented as:
+   `COINSP` stayed 0 for an entire run while the queue grew to 93. The counters
+   were self-consistent the whole time — the invariant held, because zero coins
+   is a valid state — which is why the *renderer* was needed to notice.
+
+2. **She walked at two thirds speed and stopped one pixel past her mark.** The
+   horizontal collision test ran against a Y that gravity had already pushed
+   one pixel into the floor, so roughly a third of frames reverted the
+   horizontal move. Resolving Y first fixes it: the X test then always runs
+   against a position known not to be overlapping.
+
+3. **She then could not jump at all.** Resting on a floor is a two-frame cycle
+   — gravity pushes her a pixel in, the next frame snaps her back — so "on the
+   ground" inferred from "did this frame end in a landing" is true on alternate
+   frames *in a fixed phase*. The scripted jump landed on the wrong phase every
+   single time, deterministically, which is why it looked like the jump code
+   never running rather than like a 50/50. `ONGND` now comes from a ground
+   probe and has exactly one writer.
+
+4. **The verification dump appeared to hang inside the VRAM read loop.** It
+   reads about 3,400 registers back through the PPU, which takes three frames,
+   so the vblank NMI re-entered itself, reached `st_end` and started the dump
+   again, and again, until the stack ran out. The readback loop was correct the
+   entire time. There is now a re-entrancy guard.
+
+5. **The HUD and the transcript shared one text cursor.** Every token printed
+   after a HUD update landed next to the coin counter instead of in the
+   dialogue box. On screen: `@ x 118ae` and an answer three characters long.
+   No counter could have caught this; the rendered frame caught it instantly.
+
+6. **The dialogue box covered the character doing the revealing.** The box is
+   the bottom eight rows and she stands in the bottom eight rows. The camera
+   now tilts up as she comes to a halt, which reads as a deliberate move and
+   was not.
+
+A seventh, quieter one: the first generated token of every answer is the output
+of the *last* prompt step, and it was being committed while the mode flag still
+said "feeding" — so the SRAM recorder, which keys off that flag, dropped it and
+every recorded answer was one token short. Caught by the host-side comparison
+against `host/ref.py`, which expects exactly `20 - len(prompt)` tokens.
+
+### The three acts, and what is generated
+
+**Act 0** is the Elyan Labs logo on BG1, 109 tiles from entry's `png2snes.py`.
+
+**Act 1** is the platformer. Elya runs, jumps and strikes a block stamped `@` —
+the matrix-multiply operator, because `A @ B` is what makes the tokens the
+block gives out, and deliberately not a `?`. A nabla chases her: `∇` is the
+gradient operator, and the ROM does inference and contains no gradients at all,
+so it is the thing from training that cannot touch her any more, still chasing.
+The sky is an HDMA gradient and the clouds are a scrolling BG layer.
+
+**Act 2** is the stop. She walks to a mark, the nabla loses interest and wanders
+off, the camera tilts up and a dialogue box opens. Her line is generated from
+**the last token act 1 produced** — no stored prompt at all — so it depends on
+how the platformer went, and a player who takes longer gets a different line.
+On the run recorded here the seed was `s` and she said
+
+```
+ a big big because and
+```
+
+which is 19 tokens, checked against `host/ref.py`, and is exactly the kind of
+wrong the design document said to expect. A lookup table cannot make that
+mistake.
+
+**Act 3** is the conversation. Six questions, chosen short because the trained
+positional table caps context at 20 tokens and a ten-token question leaves ten
+for the answer. The question is stored — a prompt is input, not output — and is
+drawn in **amber**; what the console generated is drawn in **white**. The screen
+itself shows which characters came out of the model, with no caption.
+
+```
+act 3  q1  'what now? '   ->  'he said, "yes, i'      12/12 == host/ref.py
+act 3  q2  'once upon '   ->  'her friends. she sa'   13/13 == host/ref.py
+```
+
+Coins keep popping out of the block behind the dialogue box the whole time she
+is talking, because the binding rule does not have an exception for act 3.
+
+### Cartridge compatibility, from the image bytes
+
+```
+image        out/game.sfc
+size         262144 bytes = 2 Mbit
+map mode     $20  LoROM / SlowROM        (out/gamefast.sfc: $30, FastROM)
+cart type    $02  ROM + RAM + battery
+rom size     $08  256 KiB declared, 256 KiB actual
+sram size    $05  32 KiB
+country      $01  USA (NTSC)
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared,
+      no enhancement chip.
+```
+
+The SRAM grew from 8 KiB to 32 KiB, because the PPU readback dumps need the
+room. It is still an ordinary battery-backed LoROM save, and `tools/
+kaico_check.py` reads every one of those fields out of the image rather than
+out of the assembler source.
+
+### What is not done
+
+**There is no audio.** The design document's act 2 beat is "music drops out",
+and there is no music to drop. Uploading an SPC700 program through the APU IPL
+handshake is a day's work on its own and none of it would be verifiable on this
+host, which has no way to hear the result; a driver that cannot be checked is
+not something this repo ships. Stated plainly rather than quietly omitted.
+
+Files: `rom/game.inc`, `tools/mkart.py`, `tools/mkbg.py`, `tools/mkfont.py`,
+`tools/mkgame.py`, `tools/check_game.py`, `tools/render_frame.py`,
+`rom/lorom256.cfg`, reports `out/game_check.txt`, `out/game_profile.txt`,
+`out/gamefast_profile.txt`, frames `out/frames/frame_act1.png` and
+`out/frames/frame_act3.png`.
