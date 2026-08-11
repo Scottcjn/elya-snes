@@ -20,3 +20,11 @@ out/nnav1.sfc
 out/*.build
 runs/**/*_ckpt.npz
 runs/**/*_ckpt.json
+# host/ref.py is shared with the 6502 port and also emits that port's stream,
+# header table and 8-bit lookup tables.  This cartridge consumes none of them
+# (tools/emit.py derives its own from the same reference), so they are not
+# tracked -- only expected.json, which the internals check reads.
+out/model/stream.bin
+out/model/headers.bin
+out/model/shifts.inc
+out/model/tbl_*.bin
