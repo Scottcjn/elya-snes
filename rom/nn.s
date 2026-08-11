@@ -296,6 +296,9 @@ fast_entry:
         .i16
 
         jsr init_ram
+.ifdef GAME
+        stz a:$1340             ; GNMION: the NMI is a frame counter until
+.endif                          ; gsetup says otherwise (see game.inc)
 
         sep #$20
         .a8
@@ -335,6 +338,11 @@ fast_entry:
         cli
         lda #$0140
         sta a:SMPX
+.endif
+
+.ifdef GAME
+        jmp game_main           ; from here the cartridge is a game and the
+                                ; forward pass is its idle task
 .endif
 
 .ifdef SURVEY
@@ -935,7 +943,14 @@ H_HEAD:
         clc
         rtl
 
-.ifdef PROFILE
+.ifdef GAME
+; The game IS the NMI: see game.inc.  Under -DPROFILE it also keeps FRAMES,
+; and it does nothing at all until gsetup sets GNMION -- so the frame-length
+; calibration runs against the same bare handler the engine-only build uses,
+; and every master clock the game costs therefore lands INSIDE the measured
+; per-token intervals rather than being calibrated away.
+nmi:    jmp game_nmi
+.elseif .defined(PROFILE)
 ; The multi-frame instrument.  Its cost is NOT an error term: the frame length
 ; is calibrated with this same handler running, so whatever it steals per frame
 ; is already subtracted from the calibrated frame length.  See tools/prof_nn.py.
@@ -1119,6 +1134,10 @@ cl:     sta TMPB
 .endproc
 .endif
 
+.ifdef GAME
+        .include "game.inc"
+.endif
+
 ; ===========================================================================
         .segment "RODATA"
 tbl_img:
@@ -1134,5 +1153,11 @@ pos_img:
         .segment "PTABSEG"
         .incbin "out/model/ptab.bin"
 
+.ifdef GAME
+        ; 32 KiB of battery SRAM: the game reads OAM, VRAM and CGRAM back out
+        ; through the PPU into it, because this host cannot capture a screen.
+        SNES_HEADER "ELYA - THE CARTRIDGE ", MAPMODE, $02, $08, $05
+.else
         SNES_HEADER "ELYA SNES TERNARY LM ", MAPMODE, $02, $08, $03
+.endif
         SNES_VECTORS reset, nmi, irq
