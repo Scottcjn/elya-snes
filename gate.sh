@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # The shipping gate.  Build every variant of the cartridge, run every one under
 # ares, and check every token of every one against host/ref.py.
 #
@@ -8,6 +8,9 @@
 # uninitialised WRAM, which passed the 64-seed survey and failed everything
 # else -- and only re-running everything found it.
 set -e
+# bash, not sh: `set -o pipefail` is not in POSIX sh.  The dash on this machine
+# happens to accept it; relying on that is how a gate stops gating somewhere
+# else.
 # pipefail is LOAD-BEARING.  Every checker below is piped into `tail`, and
 # without it the pipeline's status is tail's -- so `check | tail || FAIL=1`
 # never sets FAIL and a failing checker printed "FAIL: ..." while the gate
@@ -19,13 +22,17 @@ cd "$(dirname "$0")"
 mkdir -p out
 FAIL=0
 
-run() {                 # run <name> <defs> <fast> <checker>
-    name=$1; defs=$2; fast=$3; check=$4
+run() {                 # run <name> <defs> <fast> <checker> [cksum]
+    # cksum=1 additionally requires the .ram to pass tools/ramsum.py.  Only the
+    # game arms carry that checksum: they are the ones that dump 20 KiB of PPU
+    # state, and therefore the only ones a non-atomic autosave can catch
+    # half-written.  The engine arms write twenty bytes and finish in seconds.
+    name=$1; defs=$2; fast=$3; check=$4; ck=${5:-}
     echo "=== $name ==="
     SNES_FAST=$fast NAME=$name DEFS="$defs" ./build_nn.sh > "out/$name.build" 2>&1 \
         || { echo "BUILD FAILED"; cat "out/$name.build"; FAIL=1; return; }
-    MARK=DONE CKSUM=1 WAIT=190 bash tools/run_ares.sh "out/$name.sfc" > /dev/null 2>&1 \
-        || { echo "RUN FAILED (no DONE marker)"; FAIL=1; return; }
+    MARK=DONE CKSUM=$ck WAIT=190 bash tools/run_ares.sh "out/$name.sfc" > /dev/null 2>&1 \
+        || { echo "RUN FAILED (no DONE marker, or a torn save)"; FAIL=1; return; }
     cp "$HOME/snesroms/$name.ram" "out/$name.ram"
     if [ "$check" != none ]; then
         python3 "tools/$check" "out/$name.ram" | tail -n 3 || FAIL=1
@@ -47,7 +54,7 @@ for P in 0 9 18; do
     echo "=== nndbg, position $P ==="
     SNES_FAST=0 NAME=nndbg DEFS="-DDEBUG -DDBGPOS=$P" ./build_nn.sh \
         > out/nndbg.build 2>&1 || { echo "BUILD FAILED"; FAIL=1; continue; }
-    MARK=DONE CKSUM=1 WAIT=190 bash tools/run_ares.sh out/nndbg.sfc > /dev/null 2>&1 \
+    MARK=DONE WAIT=190 bash tools/run_ares.sh out/nndbg.sfc > /dev/null 2>&1 \
         || { echo "RUN FAILED"; FAIL=1; continue; }
     cp "$HOME/snesroms/nndbg.ram" "out/nndbg_$P.ram"
     python3 tools/check_nn.py "out/nndbg_$P.ram" | tail -n 1 || FAIL=1
@@ -65,9 +72,9 @@ done
 # gamepad   NO scripted player: the SHIPPING read_pad, polling $4212/$4218.
 #           Nobody presses anything, so it walks itself to the ask menu -- but
 #           the path that ships is the path that ran.
-run gameqa  "-DGAME -DGAUTO -DGRUN=2"                    0 none
-run gamectl "-DGAME -DGAUTO -DNOGEN -DGFRAMES=1700"      0 none
-run gamepad "-DGAME -DGFRAMES=1600"                      0 none
+run gameqa  "-DGAME -DGAUTO -DGRUN=2"                    0 none 1
+run gamectl "-DGAME -DGAUTO -DNOGEN -DGFRAMES=1700"      0 none 1
+run gamepad "-DGAME -DGFRAMES=1600"                      0 none 1
 echo "=== the game, real controller path ==="
 python3 tools/check_game.py out/gamepad.ram | tail -n 1 || FAIL=1
 echo "=== the game ==="
@@ -94,8 +101,8 @@ tail -n 6 out/nn_profile.txt
 tail -n 6 out/nnfast_profile.txt
 
 # the game's own profile arm: cycles per token WITH the presentation layer
-run gameprof     "-DGAME -DGAUTO -DGRUN=1 -DPROFILE"              0 none
-run gamefastprof "-DGAME -DGAUTO -DGRUN=1 -DPROFILE -DFASTROM=1"  1 none
+run gameprof     "-DGAME -DGAUTO -DGRUN=1 -DPROFILE"              0 none 1
+run gamefastprof "-DGAME -DGAUTO -DGRUN=1 -DPROFILE -DFASTROM=1"  1 none 1
 python3 tools/prof_nn.py out/gameprof.ram          > out/game_profile.txt
 python3 tools/prof_nn.py out/gamefastprof.ram --fast > out/gamefast_profile.txt
 echo "=== tokens per second, engine only vs with the game ==="

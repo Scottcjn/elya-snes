@@ -977,12 +977,12 @@ intervals instead of being calibrated away.
 ```
                        SlowROM 2.68 MHz          FastROM 3.58 MHz
                    engine    +game    delta   engine    +game    delta
-wall clocks/token  3,055,173 3,805,702 +24.6% 2,678,280 3,344,006 +24.9%
-seconds/token         0.1423  0.1772           0.1247    0.1557
-TOKENS PER SECOND      7.030   5.644  -19.7%    8.019    6.423  -19.9%
+wall clocks/token  3,055,173 3,811,926 +24.8% 2,678,280 3,349,583 +25.1%
+seconds/token         0.1423  0.1775           0.1247    0.1560
+TOKENS PER SECOND      7.030   5.634  -19.9%    8.019    6.412  -20.0%
 ```
 
-**The game costs 19.7% of the model's speed on SlowROM and 19.9% on FastROM.**
+**The game costs 19.9% of the model's speed on SlowROM and 20.0% on FastROM.**
 Say it plainly: presentation is not free here, and a fifth of the arithmetic
 went to making it a game.
 
@@ -990,8 +990,8 @@ The two arms agree on something more useful than the percentage. Converting the
 extra cost to *per frame*:
 
 ```
-SlowROM   +750,529 clocks/token over 10.65 frames/token  =  70,472 / frame
-FastROM   +665,726 clocks/token over  9.36 frames/token  =  71,124 / frame
+SlowROM   +756,753 clocks/token over 10.67 frames/token  =  70,937 / frame
+FastROM   +671,303 clocks/token over  9.38 frames/token  =  71,606 / frame
                                                     0.9% apart
 ```
 
@@ -1010,15 +1010,13 @@ scanline 225 and that is where the modular arithmetic restarts.
 
 ```
 NMI handler, 170 frames of act 1     master clocks     % of a 356,816 frame
-  mean                                     60,688              17.01%
-  min                                      49,820              13.96%
-  max                                     102,264              28.66%
-  frames with no coin spawned              59,663
-  frames where a coin spawned              67,885   (+8,222)
+  mean                                     61,302              17.18%
+  min                                      50,092              14.04%
+  max                                     102,592              28.75%
 ```
 
-So of the 70,472 clocks a frame the presentation costs, **60,688 are inside the
-handler and 9,784 (2.74% of a frame) are outside it** — HDMA, which runs during
+So of the 70,937 clocks a frame the presentation costs, **61,302 are inside the
+handler and 9,635 (2.70% of a frame) are outside it** — HDMA, which runs during
 active display, and whatever else the DMA controller steals while the CPU is
 running the model. The next section takes that 9,784 apart.
 
@@ -1031,10 +1029,10 @@ it exactly:
 
 ```
                         wall clocks/token   tokens/s
-game, sky HDMA on            3,805,702        5.644
-game, sky HDMA off           3,717,168        5.778
-the sky                         88,534        -2.32%
-                        = 8,313 master clocks a frame = 2.33% of a frame
+game, sky HDMA on            3,811,926        5.634
+game, sky HDMA off           3,723,234        5.768
+the sky                         88,692        -2.32%
+                        = 8,314 master clocks a frame = 2.33% of a frame
 ```
 
 **The HDMA sky costs 2.33% of the model's throughput.** Small, real, not zero.
@@ -1042,11 +1040,11 @@ the sky                         88,534        -2.32%
 That closes the accounting on the 70,472 clocks a frame the presentation costs:
 
 ```
-  inside the NMI handler        60,688     17.01%   (measured directly)
-  the sky's HDMA channel         8,313      2.33%   (measured by -DNOSKY)
-  everything else                1,471      0.41%
+  inside the NMI handler        61,302     17.18%   (measured directly)
+  the sky's HDMA channel         8,314      2.33%   (measured by -DNOSKY)
+  everything else                1,321      0.37%
   ------------------------------------------------
-  total presentation            70,472     19.75%
+  total presentation            70,937     19.88%
 ```
 
 The commonly quoted HDMA model — about 18 master cycles per active channel per

@@ -7,9 +7,7 @@ host text 'because and said, "you ca'
 rom  text 'because and said, "you ca'
 PASS: 20/20 tokens identical (seed + 19 generated)
 === nnprof ===
-host text 'because and said, "you ca'
-rom  text 'because and said, "you ca'
-PASS: 20/20 tokens identical (seed + 19 generated)
+RUN FAILED (no DONE marker, or a torn save)
 === nnfastprof ===
 host text 'because and said, "you ca'
 rom  text 'because and said, "you ca'
@@ -36,16 +34,15 @@ PASS: all 320 intermediate values identical at position 9
 PASS: 20/20 tokens identical (seed + 19 generated)
 PASS: all 320 intermediate values identical at position 18
 === gameqa ===
-RUN FAILED (no DONE marker)
 === gamectl ===
 === gamepad ===
 === the game, real controller path ===
-PASS: 16 checks
+PASS: 18 checks
 === the game ===
 
-FAIL: 1 of 19 checks failed
+PASS: 21 checks
 out/frames/frame_act1.png    state play   frame  632  tokens  40  coins  40  camera  90,0
-out/frames/frame_act3.png    state end    frame 1671  tokens 118  coins 118  camera  15,48
+out/frames/frame_act3.png    state end    frame 1674  tokens 118  coins 118  camera  15,48
 === cartridge headers ===
 PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
 PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
@@ -69,10 +66,10 @@ PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enha
 === tokens per second, engine only vs with the game ===
 nn_profile.txt:  seconds/token    0.1423      tokens/s     7.030
 nnfast_profile.txt:  seconds/token    0.1247      tokens/s     8.019
-game_profile.txt:  seconds/token    0.1772      tokens/s     5.644
-gamefast_profile.txt:  seconds/token    0.1557      tokens/s     6.423
+game_profile.txt:  seconds/token    0.1775      tokens/s     5.634
+gamefast_profile.txt:  seconds/token    0.1560      tokens/s     6.412
 GATE: FAIL
 
-real	19m7.035s
-user	0m16.069s
-sys	0m5.221s
+real	19m26.955s
+user	0m29.484s
+sys	0m9.497s
