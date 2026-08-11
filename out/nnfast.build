@@ -1,5 +1,0 @@
-emit: PASS 1 (handler addresses not yet known)
-emit: 4 weight banks, 1408 rows, 52764 nnz, ptab 20498 B
-emit: handlers resolved H_1=$852C H_HEAD=$854E H_K=$8487 H_O=$84D6 H_Q=$8461 H_V=$84B1 H_W2=$8501
-emit: 4 weight banks, 1408 rows, 52764 nnz, ptab 20498 B
-fixhdr: out/nnfast.sfc  title='ELYA SNES TERNARY LM '  checksum=$474A complement=$B8B5

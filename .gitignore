@@ -8,3 +8,15 @@ out/*.map
 out/*.lbl
 out/.h1
 out/.h2
+# variant cartridges the gate rebuilds on demand; the shipping images
+# out/nn.sfc and out/nnfast.sfc are committed, the rest are 256 KiB each
+out/nnprof.sfc
+out/nnfastprof.sfc
+out/nnstage.sfc
+out/nnsurvey.sfc
+out/nnfastsurvey.sfc
+out/nndbg.sfc
+out/nnav1.sfc
+out/*.build
+runs/**/*_ckpt.npz
+runs/**/*_ckpt.json
