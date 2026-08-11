@@ -108,6 +108,10 @@ HSCR    = $0784         ; PROFILE: latched H
 FSCR    = $0786         ; PROFILE: latched frame count
 SMPY    = $0788         ; STAGEPROF: the stage sampler's own cursor
 
+.ifndef DBGPOS
+DBGPOS  = 0
+.endif
+
 .ifdef FASTROM
 MAPMODE = $30
 .else
@@ -143,6 +147,37 @@ ok:     asl a
         ; keeps its cursor there, and running it with D pointing at ACTA reads
         ; an activation as the SRAM offset and scribbles over both.
         jsr stagesmp
+.endif
+.endmacro
+
+; ===========================================================================
+; DEBUG: dump one 64-element activation array to SRAM as signed bytes, at one
+; chosen position.  The 64-seed survey compares argmaxes; this compares the
+; arithmetic underneath them, which an error that never moves a winner would
+; otherwise survive.
+; ===========================================================================
+.macro DBGV base, src
+.ifdef DEBUG
+        .local lp, skip
+        lda POSP
+        cmp #DBGPOS
+        bne skip
+        ldx #$0000
+        ldy #$0000
+lp:     lda a:src, y
+        sec
+        sbc #BIASV
+        sep #$20
+        .a8
+        sta f:SRAM + base, x
+        rep #$20
+        .a16
+        inx
+        iny
+        iny
+        cpx #NDMODEL
+        bne lp
+skip:
 .endif
 .endmacro
 
@@ -192,6 +227,9 @@ ok:     asl a
         sta LAYER
         jsr attention
         STAGE
+        .if l = 0
+        DBGV $0700, ACTB        ; the attention output, before Wo consumes it
+        .endif
         ; Wo reads ACTB (the attention output) and updates ACTA in place
         ldy #$0000
         lda #ACTB
@@ -475,6 +513,7 @@ xloop:  lda (EPTR), y
         cpy #(NDMODEL * 2)
         bne xloop
         STAGE                   ; stage 0 closes here: the embedding lookup
+        DBGV $0600, ACTA
 
         lda POSP
         inc a
@@ -527,8 +566,11 @@ noterm:
         sta SUBAV
 
         DOLAYER 0, SEG_L0_Wq, SEG_L0_Wk, SEG_L0_Wv, SEG_L0_Wo, SEG_L0_W1, SEG_L0_W2
+        DBGV $0640, ACTA
         DOLAYER 1, SEG_L1_Wq, SEG_L1_Wk, SEG_L1_Wv, SEG_L1_Wo, SEG_L1_W1, SEG_L1_W2
+        DBGV $0680, ACTA
         DOLAYER 2, SEG_L2_Wq, SEG_L2_Wk, SEG_L2_Wv, SEG_L2_Wo, SEG_L2_W1, SEG_L2_W2
+        DBGV $06C0, ACTA
 
         ; ---- output head: greedy argmax, ties to the lowest index ----------
         stz BEST

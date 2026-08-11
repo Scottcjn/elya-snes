@@ -7,3 +7,8 @@ av3_exact_s1                 step  2500  fit 2.5192  val 2.5228  density 0.5454 
 av3_exact_s1                 step  3000  fit 2.4705  val 2.4849  density 0.5452  206s
 av3_exact_s1                 step  3500  fit 2.4525  val 2.4673  density 0.5451  235s
 av3_exact_s1                 step  4000  fit 2.4264  val 2.4192  density 0.5437  270s
+av3_exact_s1                 step  4500  fit 2.4045  val 2.4051  density 0.5420  300s
+av3_exact_s1                 step  5000  fit 2.3884  val 2.3884  density 0.5411  330s
+av3_exact_s1                 step  5500  fit 2.3723  val 2.3835  density 0.5409  366s
+av3_exact_s1                 step  6000  fit 2.3720  val 2.3678  density 0.5409  396s
+av3_exact_s1                 step  6500  fit 2.3504  val 2.3610  density 0.5400  434s

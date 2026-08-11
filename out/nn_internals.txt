@@ -1,0 +1,7 @@
+x0     64/64 identical
+L0.x   64/64 identical
+L1.x   64/64 identical
+L2.x   64/64 identical
+att    64/64 identical
+
+PASS: all 320 intermediate values identical at position 18

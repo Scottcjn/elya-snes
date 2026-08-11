@@ -31,6 +31,20 @@ run nnstage       "-DPROFILE -DSTAGEPROF"  0 check_nn.py
 run nnsurvey      "-DSURVEY"               0 check_survey.py
 run nnfastsurvey  "-DFASTROM=1 -DSURVEY"   1 check_survey.py
 
+# The survey compares argmaxes.  These compare the arithmetic underneath them:
+# the residual stream after every layer and the attention output, element by
+# element, at the first, a middle and the last position.
+for P in 0 9 18; do
+    echo "=== nndbg, position $P ==="
+    SNES_FAST=0 NAME=nndbg DEFS="-DDEBUG -DDBGPOS=$P" ./build_nn.sh \
+        > out/nndbg.build 2>&1 || { echo "BUILD FAILED"; FAIL=1; continue; }
+    MARK=DONE WAIT=190 bash tools/run_ares.sh out/nndbg.sfc > /dev/null 2>&1 \
+        || { echo "RUN FAILED"; FAIL=1; continue; }
+    cp "$HOME/snesroms/nndbg.ram" "out/nndbg_$P.ram"
+    python3 tools/check_nn.py "out/nndbg_$P.ram" | tail -n 1 || FAIL=1
+    python3 tools/check_debug.py "out/nndbg_$P.ram" "$P" | tail -n 1 || FAIL=1
+done
+
 echo "=== cartridge headers ==="
 python3 tools/kaico_check.py out/nn.sfc out/nnfast.sfc | tee out/kaico_check.txt \
     | grep -E "^(PASS|FAIL)" || FAIL=1
