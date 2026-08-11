@@ -8,6 +8,13 @@
 # uninitialised WRAM, which passed the 64-seed survey and failed everything
 # else -- and only re-running everything found it.
 set -e
+# pipefail is LOAD-BEARING.  Every checker below is piped into `tail`, and
+# without it the pipeline's status is tail's -- so `check | tail || FAIL=1`
+# never sets FAIL and a failing checker printed "FAIL: ..." while the gate
+# printed "GATE: pass" underneath it.  That is what happened: the game's
+# real-controller arm failed one of fifteen checks and this script reported a
+# clean run.  It had been true of every arm since the gate was written.
+set -o pipefail
 cd "$(dirname "$0")"
 mkdir -p out
 FAIL=0

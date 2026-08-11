@@ -45,6 +45,7 @@ import mkgame                                                     # noqa: E402
 SR_TOK, SR_TRACE, SR_STAT = 0x0010, 0x0200, 0x1000
 SR_OAM, SR_VM3, SR_CGR = 0x1100, 0x1400, 0x1C00
 SR_LINE, SR_ANS = 0x2000, 0x2040
+SR_CGR2 = 0x5000        # CGRAM read a second time, back to back
 SR_SNAP1, SR_SNAP2 = 0x3000, 0x4000
 NCTX = 20
 STATE = ["logo", "play", "stop", "line", "ask", "answer", "end"]
@@ -240,8 +241,24 @@ def main(path, ctrl=None):
             ok.append("CGRAM %3d..%3d holds %s exactly, read back through $213B"
                       % (first + skip, first + len(want) // 2 - 1, name))
         else:
-            fails.append("CGRAM at %d does not hold %s: %s vs %s"
-                         % (first + skip, name, got.hex(), want[skip * 2:].hex()))
+            bad = [first + skip + i // 2
+                   for i in range(len(got)) if got[i] != want[skip * 2 + i]]
+            fails.append("CGRAM does not hold %s: entries %s differ (got %s, "
+                         "want %s)" % (name, sorted(set(bad)), got.hex(),
+                                       want[skip * 2:].hex()))
+    # The same read, taken again immediately.  One run in nine came back with
+    # a single palette entry wrong; two back-to-back reads say whether it is
+    # CGRAM that is wrong or the read of it.  Never reproduced since.
+    cg2 = bytearray(d[SR_CGR2:SR_CGR2 + 0x200])
+    for i in range(1, 0x200, 2):
+        cg2[i] &= 0x7F
+    if bytes(cg) == bytes(cg2):
+        ok.append("two back-to-back CGRAM readbacks agree on all 256 entries")
+    else:
+        diff = [i // 2 for i in range(0x200) if cg[i] != cg2[i]]
+        fails.append("two CGRAM readbacks in the same run disagree at entries "
+                     "%s -- the read port, not CGRAM" % sorted(set(diff)))
+
     sky = open(os.path.join(A, "sky.hdma"), "rb").read()
     last = sky[-3] | (sky[-2] << 8)
     if (cg[0] | (cg[1] << 8)) == last:

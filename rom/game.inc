@@ -14,10 +14,20 @@
 ; THE BINDING RULE, which is the whole point of the exercise:
 ;
 ;   A COIN MAY ONLY BE SPAWNED FROM THE CODE PATH THAT COMMITS A GENERATED
-;   TOKEN.  `gcommit` is the only writer of COINQ.  `spawn_coins`, in vblank,
-;   is the only reader, and it is the only code that ever puts a coin in a
-;   slot.  There is no timer, no frame counter and no other producer anywhere
-;   in this file -- grep COINQ and there are exactly two sites.
+;   TOKEN.
+;
+; Stated so that grep can check it rather than so that it sounds good:
+;
+;   * COINQ is INCREMENTED in exactly one place, `gcommit`.
+;   * COINQ is DECREMENTED in exactly one place, `spawn_coins`, in vblank.
+;   * COINQ is zeroed once, in `gsetup`.
+;   * A coin slot goes from free to live in exactly one place -- the `sta
+;     a:COINT, x` inside `spawn_coins`, in the same basic block as that
+;     decrement.  `move_coins` only ever counts a live slot down.
+;   * Every other mention of COINQ in this file is a read, into the trace or
+;     the SRAM dump.
+;
+; There is no timer and no frame counter anywhere in the producing path.
 ;
 ; So if inference stalls, the coins stall.  COINSP + COINQ == TOKCNT is an
 ; invariant the ROM writes to SRAM at the end of a run and tools/check_game.py
@@ -242,6 +252,7 @@ SR_LINE  = $2000        ; act 2: seed + 19 generated tokens
 SR_ANS   = $2040        ; act 3: [q][n][20 tokens] per answer
 SR_SHAD  = $2200        ; the OAM shadow in WRAM, for comparison with SR_OAM
 SR_NMI   = $6000        ; -DNMIPROF: 256 frames of (V,H) at NMI entry/exit
+SR_CGR2  = $5000        ; CGRAM read a second time, back to back
 SR_SNAP1 = $3000        ; a frame captured mid-act-1, coins in the air
 SR_SNAP2 = $4000        ; the last frame of the run, act 3 on screen
                         ; each is OAM shadow (544) + BG3 shadow (2048) + scroll
@@ -2744,6 +2755,28 @@ l2:     lda a:BG3SH, x
         .a8
         lda RDCGRAM
         sta f:SRAM + SR_CGR, x
+        rep #$30
+        .a16
+        .i16
+        inx
+        cpx #$0200
+        bne :-
+
+        ; ...and again, immediately.  One run of the real-controller arm came
+        ; back with a single palette entry wrong out of 256 while every other
+        ; run was exact, so the question is whether CGRAM is corrupt or the
+        ; read of it is.  Two back-to-back reads answer that in one run.
+        sep #$20
+        .a8
+        stz CGADD
+        rep #$30
+        .a16
+        .i16
+        ldx #$0000
+:       sep #$20
+        .a8
+        lda RDCGRAM
+        sta f:SRAM + SR_CGR2, x
         rep #$30
         .a16
         .i16

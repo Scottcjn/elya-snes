@@ -1239,3 +1239,48 @@ The reason it mattered: it looked exactly like `dump_all` crashing, which is
 what a genuine NMI re-entrancy bug had been doing an hour earlier in the same
 routine. The same symptom, two entirely different causes, and only the stage
 markers written to `SRAM+$0C` told them apart.
+
+### The gate said pass while a checker said fail
+
+Found by the game's own arm and worth its own paragraph, because it is about
+the thing everything else in this file is trusted through.
+
+`gate.sh` runs every checker as `python3 tools/check_x.py ... | tail -n 3 ||
+FAIL=1`. A pipeline's exit status is the *last* command's, so that is `tail`'s,
+which is always 0. **`FAIL=1` could never be reached from a failing checker.**
+The gate printed the checker's own `FAIL: ...` line and then `GATE: pass`
+underneath it, and exited 0.
+
+```sh
+set -e
+FAIL=0
+false | tail -n 1 || FAIL=1   # FAIL=0
+set -o pipefail
+false | tail -n 1 || FAIL=1   # FAIL=1
+```
+
+This had been true of every arm since the gate was written in entry 7, so the
+gate's **exit code** has never been trustworthy on this tree. Its **output**
+always was — every arm prints its own `PASS:` or `FAIL:` line and those were
+read — which is why nothing bad shipped through it, but "I read the log" is not
+what a gate is for. `set -o pipefail` is now the second line of the file.
+
+The lesson is the entry-2 lesson again in a different costume: an instrument
+that cannot report failure looks exactly like an instrument reporting success.
+
+### One palette entry, once, unexplained
+
+One run of the real-controller arm read CGRAM entry 141 back as `$2DAD` where
+`assets/obj.pal` says `$18DC`. Every other entry in that run was exact, and
+eight other runs of the same build were exact.
+
+It did not reproduce. The dump now reads CGRAM **twice, back to back**, into
+two SRAM buffers, so a recurrence says whether CGRAM is wrong or the read of it
+is; three runs since have agreed on all 256 entries both times. The check is
+deliberately left strict rather than widened, and the entry index is printed.
+
+Candidate explanations that were considered and do not fit: a torn SRAM
+autosave would have left `$FF` in one of the two bytes and did not; an HDMA
+transfer surviving `stz HDMAEN` would have written CGRAM entry 0, not 141; and
+a CGADD reset inside the read loop would have shifted every entry after it,
+not one. **No mechanism found.** Recorded rather than rounded off.
