@@ -2,9 +2,11 @@
 
 Journal. Appended to after every discrete result. Newest at the bottom.
 
-The single question this repo answers first: **which arithmetic primitive is
+The single question this repo answered first: **which arithmetic primitive is
 cheapest per multiply-accumulate on a stock SNES, in exact cycles.** No engine
-is written until that is measured.
+was written until that was measured (entries 1-5). Entry 6 then asked how to
+*write* the winner, entry 7 is the cartridge that resulted, and entry 8 checks
+the one model knob the brief left open.
 
 ---
 

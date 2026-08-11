@@ -22,6 +22,13 @@ element.
 Every number in [FINDINGS.md](FINDINGS.md) is measured on the console. Nothing
 is estimated.
 
+Those four strings are what `out/nnsurvey.ram` holds and what the reference
+prints for the same seeds:
+
+```sh
+NES_T=20 python3 train/sample.py model/dense_exact_s1.npz --seeds 1,3,16,22 --n 19
+```
+
 ```sh
 make nn      # build the cartridge (out/nn.sfc, out/nnfast.sfc)
 make gate    # build every variant, run under ares, check every token
