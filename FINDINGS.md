@@ -604,3 +604,210 @@ flat address space.
 Files: `rom/kern.s`, `tools/genkern.py`, `tools/analyze_kern.py`, raw dumps
 `out/kern.ram` / `out/kernfast.ram`, reports `out/kern_report.txt` /
 `out/kernfast_report.txt`.
+
+---
+
+## 2026-08-10 — 7. The cartridge. It generates text, and it matches the host
+
+`out/nn.sfc` is a 256 KiB LoROM cartridge that runs the ternary transformer
+ported from `~/elya-nes` — V=64, D=64, L=3, H=2, d_head=32, F=128, T=20, the
+exact softmax normaliser, 102,400 ternary weights of which **52,764 are
+non-zero** — and writes its output to battery SRAM. From seed token `b` it
+produces
+
+```
+because and said, "you ca
+```
+
+which is character for character what `host/ref.py` produces from the same
+weights. It is not a demo of a forward pass; it is the forward pass.
+
+### ROM == host
+
+```
+one seed,  19 generated tokens                     20/20      identical
+64 seeds x 19 generated tokens, SlowROM          1280/1280    identical
+64 seeds x 19 generated tokens, FastROM          1280/1280    identical
+residual stream + attention output, 3 positions   960/960     identical
+```
+
+The 64-seed survey is the gate, not the single-seed run. A greedy trajectory's
+first tokens are dominated by the embedding and only start exercising the KV
+cache, the softmax and the value path once there is context, so **a short
+single-seed comparison can pass a genuinely broken build.** It did, on the
+sibling ports, three times. `tools/check_survey.py` runs every vocabulary
+symbol as a seed.
+
+Even the survey is an *output* gate: it compares argmaxes, and an arithmetic
+error that never moved a winner would survive it. So `-DDEBUG` dumps the
+residual stream after every layer and the attention output of layer 0 as signed
+bytes, and `tools/check_debug.py` compares all 320 of them against the
+reference trace at positions 0, 9 and 18. All 960 agree.
+
+### Cycles per token, measured
+
+A token takes eight NTSC frames, so entry 2's sub-frame instrument cannot span
+one — the V counter wraps. `-DPROFILE` adds a vblank counter kept by the NMI
+and stitches the two together as `time = F*FRAME + ((V-225) mod 262)*1364 + H*4`,
+which is monotonic across the wrap because the NMI fires at scanline 225 and
+that is exactly where the second term restarts.
+
+**FRAME is measured, not assumed.** A `dex`/`bne` loop is timed sub-frame at
+four lengths, a line is fitted, and the same loop is run long enough to span
+six frames; the frame length is whatever makes the two agree.
+
+```
+  cal( 1000) =     38304   fit     38318.0   resid  -0.037%
+  cal( 2000) =     75420   fit     75394.0   resid  +0.034%
+  cal( 3000) =    112460   fit    112470.0   resid  -0.009%
+  cal( 4000) =    149544   fit    149546.0   resid  -0.001%
+  loop = 1242.0 + 37.0760*k master clocks
+  cal(60000) spans 6 frames; measured FRAME = 356815.7 master clocks
+```
+
+Two things fall out of that calibration and both are checks, not decoration.
+The loop's slope is **37.076** wall master clocks against a hand-derived
+**36** CPU master clocks — and 36 / 0.970674 = 37.087, so the DRAM-refresh
+model from entry 2 is independently reconfirmed to **0.03%**. And the measured
+frame is 0.155% *shorter* than 262 x 1364 = 357,368, which is the NMI handler
+itself: the calibration runs with the same handler, so whatever it steals per
+frame is inside the calibrated frame length and is therefore **subtracted from
+every number below** rather than left as an error term.
+
+```
+                       SlowROM 2.68 MHz      FastROM 3.58 MHz
+wall master clocks     3,055,173             2,678,280
+cpu master clocks      2,965,579             2,599,738
+CPU cycles/token         370,697               433,290
+seconds/token             0.1423                0.1247
+TOKENS PER SECOND          7.030                 8.019
+first -> last token   2,689,060 -> 3,418,457   2,327,934 -> 3,026,303
+growth over 19 positions   +27.1%                +30.0%
+```
+
+**FastROM buys 14.1%, not 33%.** Moving cartridge fetches from 8 master clocks
+to 6 is a 33% cut on the cartridge bus, but the engine's operands live in WRAM
+and **WRAM is 8 master clocks whatever MEMSEL says**. A `codesgn` accumulate is
+`adc <dp`: two of its four bus cycles are the instruction fetch (which FastROM
+speeds up) and two are the WRAM read (which it does not). 32 -> 28, and 28/32 =
+0.875, which is where 14% comes from and 33% never was.
+
+### Where the time goes
+
+`-DSTAGEPROF` samples the clock at all 24 stage boundaries of a forward pass,
+rewriting the same SRAM block each token, so what survives is the breakdown of
+the last and dearest position:
+
+```
+stage                wall   share      stage                wall   share
+embed+pos           22672   0.66%      L1 Wo             109060   3.16%
+L0 Wq              103300   3.00%      L1 W1             198604   5.76%
+L0 Wk              104132   3.02%      L1 W2             174860   5.07%
+L0 Wv              103748   3.01%      L2 Wq             102964   2.99%
+L0 attention       316984   9.19%      L2 Wk             103476   3.00%
+L0 Wo              109936   3.19%      L2 Wv             101248   2.94%
+L0 W1              198696   5.76%      L2 attention      319092   9.26%
+L0 W2              179140   5.20%      L2 Wo             108120   3.14%
+L1 Wq              101960   2.96%      L2 W1             198812   5.77%
+L1 Wk              103112   2.99%      L2 W2             168920   4.90%
+L1 Wv              103952   3.02%      head               96504   2.80%
+L1 attention       318272   9.23%      TOTAL            3447561
+```
+
+```
+  matmul       2374038   68.86%
+  attention     954347   27.68%
+  embed/head    119176    3.46%
+```
+
+Entry 6's `codesgn` figure predicts 52,764 x 33.09 = **1,745,951** wall master
+clocks of pure accumulate. The matmul stages measure 2,374,038, so the **row
+overhead is 628,087 master clocks over 1,408 rows = 446 per row**: the `lda
+#K` that carries the bias correction, the `sec` between the two sign runs, one
+`JSL`/`RTL` pair, and the handler that quantises and stores. At an average of
+37.5 non-zeros per row that is 12 master clocks of overhead per accumulate, or
+36% on top of the 33.09 the accumulate itself costs. It is the price of a row
+being a *row*, and it is the largest single thing left to optimise.
+
+### An independent check of the per-MAC number, from a second cartridge
+
+The AV_SHIFT=1 arm (entry 8) is a different model with a different weight
+count, built and verified the same way. Comparing the two whole cartridges:
+
+```
+                nnz       wall master clocks / token
+AV_SHIFT 3   52,764              3,055,173
+AV_SHIFT 1   54,998              3,129,559
+marginal cost of one extra non-zero weight:  33.30 wall master clocks
+entry 6's isolated `codesgn` measurement:    33.09
+                                             +0.63%
+```
+
+Predicting the second cartridge's cost from the first plus 33.09 per extra
+non-zero gives 3,129,096 against a measured 3,129,559 — **0.015%.** The
+kernel A/B and the whole running engine agree.
+
+### The design, and what the 16-bit accumulator deleted
+
+The engine keeps three things from the NES port and deletes four.
+
+**Kept.** The activation bias (+7, values 0..14). The `[layer][k|v][t]`-style
+cache split, with the key cache transposed and the value cache not, because QK
+walks dimensions for a fixed position and AV walks positions for a fixed
+dimension. And the two attention kernels' *shape* exactly: unrolled chains with
+the accumulate's operand **patched per dimension (QK) and per position (AV)**,
+which is what keeps the accumulator resident in `A`. Attention operands are
+dynamic and cannot be baked into a cartridge, so this is where the NES design
+still wins.
+
+**Deleted, all four by the 16-bit accumulator or the flat address space.**
+
+* **Block 16.** 128 x 14 = 1,792 cannot carry out of a word, so a whole row
+  accumulates with no `clc` and no fold anywhere. The NES needed a block
+  because 16 x 14 = 224 was the largest thing that fitted a byte.
+* **The weight stream.** The gather index lives in the operand byte of the
+  accumulate (entry 6). There is no stream to walk.
+* **The header table** — `n_pos`, `n_neg` and the bias correction were four
+  bytes per row on the NES; here `-7*(n_pos - n_neg)` is folded into the row's
+  own `lda #K` immediate and the counts are implicit in how many `adc`s the
+  emitter wrote.
+* **The bank-chain machinery.** A 24-bit address space and `JSL`/`RTL` replace
+  it; the emitter drops a `JML` at a bank boundary and nothing else notices.
+
+Two SNES-specific pieces are new. The exact softmax normaliser
+`p = min(e*8/S, 7)` is **one flat table lookup** here — `S` is bounded by
+`T*max(exp) = 1,280` and the exp table has 15 entries, so `(S<<4)|bucket`
+indexes the whole division in a 20,498-byte ROM table. On the 6502 that needed
+a row chosen from `(kk, S>>kk)`. And the AV chain's live length is set by
+**writing one `RTS` byte over slot p+1's opcode** and restoring slot p's, two
+byte writes a token, which is why this port has no chain-entry table.
+
+### Three bugs, and what each one taught
+
+**1. The whole engine runs with DBR = $7E, so an absolute access cannot reach a
+hardware register.** The first `-DPROFILE` build's NMI handler read RDNMI with
+`lda $4210`, which at DBR=$7E is a WRAM read: the vblank flag was never
+cleared, the CPU re-entered the handler forever, and the ROM simply never
+finished. Every register touch in the instrument is now `f:`-long.
+
+**2. A profiling probe placed one instruction too early.** `-DSTAGEPROF`'s
+sampler kept its cursor in the direct page and was called *before* the `TCD`
+that restores the driver's direct page — so with D still pointing at the
+activation array it read an activation as an SRAM offset and wrote the PPU's H
+and V counters into the model's own activations. The tell was **tokens that
+changed from run to run under a wholly deterministic engine.** The instrument's
+scratch is now absolute, so where it is called cannot matter.
+
+**3. The one that mattered, and the reason the gate runs everything.** The
+64-seed survey made the seed token a parameter, and `generate` stopped seeding
+`TOKP` itself. The survey path set it; **the single-seed path did not**, and
+for three builds the cartridge started from whatever WRAM happened to hold. The
+64-seed survey passed the whole time. It was caught by re-running the *other*
+arm, and `gate.sh` now builds and checks all nine variants on every change for
+exactly that reason.
+
+Files: `rom/nn.s`, `tools/emit.py`, `rom/lorom256.cfg`, `build_nn.sh`,
+`gate.sh`, checkers `tools/check_nn.py` / `check_survey.py` / `check_debug.py`,
+instruments `tools/prof_nn.py` / `stage_nn.py`, reports `out/nn_profile.txt`,
+`out/nnfast_profile.txt`, `out/nn_stages.txt`, `out/nn_survey.txt`,
+`out/nn_internals.txt`.

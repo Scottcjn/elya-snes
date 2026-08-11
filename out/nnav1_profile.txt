@@ -1,0 +1,36 @@
+== the multi-frame instrument's calibration ==
+  cal( 1000) =     38392   fit     38384.4   resid  +0.020%
+  cal( 2000) =     75472   fit     75474.8   resid  -0.004%
+  cal( 3000) =    112548   fit    112565.2   resid  -0.015%
+  cal( 4000) =    149668   fit    149655.6   resid  +0.008%
+  loop = 1294.0 + 37.0904*k master clocks
+  cal(60000) spans 6 frames; measured FRAME = 356953.7 master clocks
+  262 * 1364 = 357368, so the measurement is -0.116% from nominal
+
+== master clocks per generated token ==
+ pos         wall          cpu         ms
+   0      2762281      2681276     128.61
+   1      2802444      2720261     130.48
+   2      2843389      2760005     132.39
+   3      2885851      2801222     134.37
+   4      2925433      2839643     136.21
+   5      2966985      2879977     138.15
+   6      3007165      2918979     140.02
+   7      3048695      2959290     141.95
+   8      3088999      2998413     143.83
+   9      3128925      3037168     145.69
+  10      3171511      3078505     147.67
+  11      3210335      3116190     149.48
+  12      3250939      3155604     151.37
+  13      3292649      3196090     153.31
+  14      3334615      3236826     155.26
+  15      3373971      3275028     157.09
+  16      3415405      3315246     159.02
+  17      3455757      3354415     160.90
+  18      3496267      3393737     162.79
+
+  total            59461617 wall master clocks for 19 tokens
+  mean/token        3129559 wall        3037783 cpu
+  mean/token         379723 SlowROM cycles
+  seconds/token    0.1457      tokens/s     6.863
+  first / last token: 2762281 / 3496267  (26.6% growth over 19 positions)
