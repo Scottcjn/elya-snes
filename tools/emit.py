@@ -274,6 +274,26 @@ def main():
     resolved = bool(labels)
 
     m = ref.Model.from_npz(npz)
+    # A mixture npz packs SILENTLY here, and wrongly: m.matrices(0) hands back
+    # expert 0 and the other N-1 are discarded, so the cartridge is a dense
+    # model built from one sixty-fourth of the weights.  The NES port carried
+    # the bank-chain machinery that made a mixture executable; this port
+    # deleted it on purpose (rom/nn.s, "the header table and the bank-chain
+    # machinery went with it") because its weights are straight-line 65816 and
+    # not a data stream.  There is no expert path in rom/nn.s to route to.
+    #
+    # The exactness gate would catch it - host/ref.py DOES understand _moe, so
+    # the ROM and the reference would disagree - but "a checker somewhere else
+    # notices" is not the same as refusing to build the wrong thing.
+    if m.moe:
+        raise SystemExit(
+            "%s is a mixture of %d experts and this port has no expert path: "
+            "rom/nn.s emits weights as straight-line code, so an expert is a "
+            "different CODE BLOB in a different bank, not a repointed stream. "
+            "Shipping one needs a router in rom/nn.s, a cartridge config "
+            "larger than the 256 KiB rom/lorom256.cfg, and the gate re-run. "
+            "Refusing rather than packing expert 0 and calling it the model."
+            % (npz, max(m.nexp, m.nexp_head)))
     em = Emitter(handlers, base, base + WBANK0)
     for name, mat in m.matrices(0):
         short = name.split(".")[-1]
