@@ -80,9 +80,24 @@ def main():
     ap.add_argument("--name", default=None)
     ap.add_argument("--out", default="runs/qa")
     ap.add_argument("--eval-answers", type=int, default=1)
+    ap.add_argument("--qnoise", type=float, default=0.0,
+                    help="per-token probability of replacing a QUESTION token "
+                         "with a random one.  The forward pass sees the noisy "
+                         "question and the loss is scored against the clean "
+                         "row, so the model is asked to answer through a "
+                         "corrupted question - the cheapest stand-in for the "
+                         "paraphrases the held-out set is made of.")
+    ap.add_argument("--nopos", type=int, default=0,
+                    help="ablate the learned absolute positional table: zero it "
+                         "and freeze it.  The sibling Genesis port measured "
+                         "0/38 -> 36/38 exact answers from adding exactly this, "
+                         "so it is worth knowing what it is worth here.")
     a = ap.parse_args()
 
-    name = a.name or "qa_e%d_%s_s%d" % (a.nexp, a.route, a.seed)
+    name = a.name or ("qa_e%d_%s%s_s%d"
+                      % (a.nexp, a.route,
+                         ("_nopos" if a.nopos else "") +
+                         ("_qn%g" % a.qnoise if a.qnoise else ""), a.seed))
     os.makedirs(a.out, exist_ok=True)
 
     X, Q, A = load(mono=bool(a.mono))
@@ -91,6 +106,10 @@ def main():
     W = weights(Q, A, T, a.qw, a.aw, a.pw)
     x = torch.from_numpy(X).to(DEV)
     w = torch.from_numpy(W).to(DEV)
+    # mask of the question region, for --qnoise
+    qmask = torch.zeros_like(x, dtype=torch.bool)
+    for r in range(len(Q)):
+        qmask[r, :Q[r]] = True
 
     # The router.  At nexp == V it is the identity - one expert per vocabulary
     # id, no construction to choose and nothing to tune, which is the dumbest
@@ -115,6 +134,13 @@ def main():
         for p in model.parameters():
             if p.dim() >= 2:
                 p.add_(torch.randn_like(p) * 0.1 * a.seed)
+    if a.nopos:
+        # Zero and freeze.  The table still ships - the ROM reads 20 x 64 bytes
+        # whatever is in them - so this ablates the INFORMATION, not the
+        # arithmetic, and the exactness gate is unaffected either way.
+        with torch.no_grad():
+            model.pos.zero_()
+        model.pos.requires_grad_(False)
     model.renorm_()
 
     def scale():
@@ -146,7 +172,12 @@ def main():
     hist = []
     best = None
     for step in range(a.steps):
-        lg = model(x) * scale()
+        if a.qnoise > 0:
+            hit = (torch.rand_like(x, dtype=torch.float) < a.qnoise) & qmask
+            xin = torch.where(hit, torch.randint_like(x, 0, M.V), x)
+        else:
+            xin = x
+        lg = model(xin) * scale()
         loss = loss_of(lg)
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -182,6 +213,7 @@ def main():
               if k not in ("emb", "pos") and not k.startswith("_"))
     meta = dict(name=name, nexp=a.nexp, moe_head=int(a.moe_head), route=a.route,
                 route_seed=a.route_seed, seed=a.seed, tau=a.tau, mode=a.mode,
+                nopos=int(a.nopos), qnoise=a.qnoise,
                 quant=a.quant, steps=a.steps, lr=a.lr, qw=a.qw, aw=a.aw,
                 pw=a.pw, mono=a.mono, ctx=M.T, loss=float(loss.detach()),
                 nnz=nnz, weights=tot, density=nnz / tot,

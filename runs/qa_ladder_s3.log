@@ -1,0 +1,12 @@
+qa_e1_bal_s3           step     1  loss 7.1475  tf-rows   0/102  0s
+qa_e1_bal_s3           step  1000  loss 0.3701  tf-rows  40/102  12s
+qa_e1_bal_s3           step  2000  loss 0.2050  tf-rows  66/102  23s
+qa_e1_bal_s3           step  3000  loss 0.1610  tf-rows  77/102  34s
+qa_e1_bal_s3           step  4000  loss 0.1402  tf-rows  79/102  45s
+qa_e1_bal_s3           step  5000  loss 0.1312  tf-rows  80/102  56s
+qa_e1_bal_s3           step  6000  loss 0.1158  tf-rows  82/102  67s
+qa_e1_bal_s3           step  7000  loss 0.1017  tf-rows  85/102  78s
+qa_e1_bal_s3           step  8000  loss 0.0877  tf-rows  83/102  91s
+train  exact  68/68  = 100.0%   mean prefix 100.0%   degenerate 0
+held   exact   1/35  =   2.9%   mean prefix   8.0%   degenerate 0
+FINAL qa_e1_bal_s3         loss 0.0877  density 0.5444  weights 102400  96s
