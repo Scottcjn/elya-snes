@@ -131,6 +131,17 @@ gamecheck:
 gate:
 	./gate.sh
 
+# What she says.  The exactness gate proves the cartridge computes what the
+# reference computes; it says nothing about whether what they both compute is
+# an answer.  This is the other gate, and it needs no emulator: host/ref.py
+# decoding exactly as rom/game.inc does, scored against train/corpus.py.
+answers:
+	python3 train/eval_answers.py $${SNES_WEIGHTS:-model/elya_qa_s2.npz} --verbose 5
+
+# the whole training grid, aggregated over seeds and scored on answers
+answertable:
+	python3 train/qa_table.py
+
 # the gather-kernel A/B of FINDINGS entry 6
 kernels: out/kern.sfc out/kernfast.sfc
 	bash tools/run_ares.sh out/kern.sfc >/dev/null
@@ -151,5 +162,5 @@ measure: out/bench.sfc out/benchfast.sfc
 clean:
 	rm -f out/*.o out/*.sfc out/*.map out/*.lst out/_blank.sfc
 
-.PHONY: all clean measure fx nn game gamecheck gate kernels
+.PHONY: all answers answertable clean measure fx nn game gamecheck gate kernels
 .PRECIOUS: out/%.o rom/gsu/%.bin

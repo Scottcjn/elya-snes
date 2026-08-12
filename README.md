@@ -14,8 +14,8 @@ are you a table?   ->  no. i can err.
 **102,400 ternary weights**, 55,798 of them non-zero, 4-bit activations, a
 64-symbol vocabulary, three layers, two heads, 20 positions of context, trained
 with quantisation-aware training so the forward pass the trainer saw is the
-forward pass the 65816 executes. **7.03 tokens per second** on a 2.68 MHz Ricoh
-5A22, 8.02 on FastROM. Verified against an exact-integer host reference over
+forward pass the 65816 executes. **6.81 tokens per second** on a 2.68 MHz Ricoh
+5A22, 7.77 on FastROM. Verified against an exact-integer host reference over
 **1,280 tokens — every vocabulary symbol as a seed — on both clock arms**, plus
 the residual stream and the attention output element by element.
 
@@ -138,14 +138,19 @@ drawn in amber; what the console generated is drawn in white. **The screen
 itself shows which characters came out of the model.**
 
 ```
-'what now? '  ->  'he said, "yes, i'       12/12 identical to host/ref.py
-'once upon '  ->  'her friends. she sa'    13/13 identical to host/ref.py
+'what are you? '  ->  'a small model. '     14/14 identical to host/ref.py
+'the coins? '     ->  'one is a token.  '   14/14 identical to host/ref.py
 ```
 
 Act 2's line has no stored prompt at all: it is generated from the last token
 act 1 produced, so it depends on how the platformer went. On the recorded run
-the seed was `s` and she said `' a big big because and '`, which is exactly the
-kind of wrong the design asked for. A lookup table cannot make that mistake.
+act 1 ended on `.` and she said `'t chip? the snes.'` — half a question she was
+never asked, answered. A lookup table cannot make that mistake.
+
+The six she is asked are filtered against the shipped weights by
+`train/pick_menu.py`: inside the ten-token prompt cap, and reproduced exactly
+by `host/ref.py`. She gets all six right on the host and the cartridge
+reproduces the host token for token.
 
 ---
 
@@ -234,16 +239,23 @@ could not separate the two questions.
 | | |
 |---|---|
 | image | 256 KiB LoROM, NTSC, battery SRAM, no coprocessor |
-| weight program | 4 banks of straight-line 65816, 52,764 accumulates |
+| weight program | 4 banks of straight-line 65816, 55,798 accumulates |
 | ROM == host | 1,280/1,280 tokens over 64 seeds, both clock arms |
 | internals | 960/960 residual-stream and attention values, 3 positions |
-| cycles/token | 3,055,173 wall master (SlowROM) · 2,678,280 (FastROM) |
-| tokens/s | **7.030** (SlowROM) · **8.019** (FastROM) |
-| with the game layer | 3,811,926 · 3,349,583 → **5.634** · **6.412** tok/s |
+| cycles/token | 3,152,408 wall master (SlowROM) · 2,763,693 (FastROM) |
+| tokens/s | **6.813** (SlowROM) · **7.771** (FastROM) |
+| with the game layer | 3,932,447 · 3,454,573 → **5.462** · **6.217** tok/s |
 | where the time goes | matmul 68.9% · attention 27.7% · embed+head 3.5% |
 
 **FastROM buys 14%, not 33%**, because the engine's operands live in WRAM and
 WRAM is 8 master clocks whatever `MEMSEL` says.
+
+**The conversational model is 3.1% slower than the story model, and that is
+arithmetic and not a regression.** Its ternary quantiser left 55,798 non-zero
+weights where the old one left 52,764 — 5.75% more — and on this port a
+non-zero weight is an accumulate instruction that has to execute. 7.030 →
+6.813 tok/s SlowROM, 8.019 → 7.771 FastROM. Density is the speed knob here and
+nothing else is.
 
 The cartridge writes its tokens to battery SRAM, which is how results leave the
 console: ares autosaves it to `<rom>.ram` and the host reads the file. The
