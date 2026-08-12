@@ -1,0 +1,13 @@
+route clus N=8  load 0.238 0.127 0.127 0.127 0.059 0.127 0.127 0.066  (max/min = 4.01)
+qa_e8_clus_s3          step     1  loss 7.1725  tf-rows   0/102  1s
+qa_e8_clus_s3          step  1000  loss 0.1376  tf-rows  79/102  60s
+qa_e8_clus_s3          step  2000  loss 0.0961  tf-rows  85/102  120s
+qa_e8_clus_s3          step  3000  loss 0.0898  tf-rows  83/102  182s
+qa_e8_clus_s3          step  4000  loss 0.0880  tf-rows  83/102  242s
+qa_e8_clus_s3          step  5000  loss 0.0853  tf-rows  86/102  303s
+qa_e8_clus_s3          step  6000  loss 0.0835  tf-rows  84/102  362s
+qa_e8_clus_s3          step  7000  loss 0.0828  tf-rows  85/102  424s
+qa_e8_clus_s3          step  8000  loss 0.0813  tf-rows  83/102  476s
+train  exact  55/68  =  80.9%   mean prefix 100.0%   degenerate 0
+held   exact   1/35  =   2.9%   mean prefix  13.9%   degenerate 0
+FINAL qa_e8_clus_s3        loss 0.0813  density 0.5475  weights 446464  484s

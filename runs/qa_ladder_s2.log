@@ -10,3 +10,68 @@ qa_e1_bal_s2           step  8000  loss 0.0876  tf-rows  83/102  91s
 train  exact  54/68  =  79.4%   mean prefix 100.0%   degenerate 0
 held   exact   2/35  =   5.7%   mean prefix  10.3%   degenerate 0
 FINAL qa_e1_bal_s2         loss 0.0876  density 0.5443  weights 102400  96s
+route bal  N=4  load 0.250 0.250 0.250 0.250  (max/min = 1.00)
+qa_e4_bal_s2           step     1  loss 6.9122  tf-rows   0/102  0s
+qa_e4_bal_s2           step  1000  loss 0.1582  tf-rows  72/102  21s
+qa_e4_bal_s2           step  2000  loss 0.1213  tf-rows  86/102  42s
+qa_e4_bal_s2           step  3000  loss 0.1002  tf-rows  81/102  63s
+qa_e4_bal_s2           step  4000  loss 0.0927  tf-rows  82/102  83s
+qa_e4_bal_s2           step  5000  loss 0.0894  tf-rows  84/102  102s
+qa_e4_bal_s2           step  6000  loss 0.0875  tf-rows  84/102  125s
+qa_e4_bal_s2           step  7000  loss 0.0868  tf-rows  84/102  216s
+qa_e4_bal_s2           step  8000  loss 0.0827  tf-rows  86/102  243s
+train  exact  61/68  =  89.7%   mean prefix 100.0%   degenerate 0
+held   exact   0/35  =   0.0%   mean prefix  10.2%   degenerate 0
+FINAL qa_e4_bal_s2         loss 0.0827  density 0.5476  weights 249856  249s
+route bal  N=8  load 0.238 0.110 0.109 0.109 0.109 0.109 0.108 0.108  (max/min = 2.19)
+qa_e8_bal_s2           step     1  loss 7.6432  tf-rows   0/102  0s
+qa_e8_bal_s2           step  1000  loss 0.1226  tf-rows  81/102  29s
+qa_e8_bal_s2           step  2000  loss 0.0964  tf-rows  86/102  57s
+qa_e8_bal_s2           step  3000  loss 0.0903  tf-rows  88/102  84s
+qa_e8_bal_s2           step  4000  loss 0.0877  tf-rows  85/102  111s
+qa_e8_bal_s2           step  5000  loss 0.0877  tf-rows  87/102  142s
+qa_e8_bal_s2           step  6000  loss 0.0857  tf-rows  83/102  180s
+qa_e8_bal_s2           step  7000  loss 0.0842  tf-rows  86/102  231s
+qa_e8_bal_s2           step  8000  loss 0.0816  tf-rows  83/102  285s
+train  exact  63/68  =  92.6%   mean prefix 100.0%   degenerate 0
+held   exact   2/35  =   5.7%   mean prefix  11.4%   degenerate 2
+FINAL qa_e8_bal_s2         loss 0.0816  density 0.5465  weights 446464  298s
+route bal  N=16  load 0.238 0.051 0.051 0.051 0.050 0.052 0.051 0.050 0.051 0.051 0.050 0.051 0.050 0.050 0.050 0.050  (max/min = 4.75)
+qa_e16_bal_s2          step     1  loss 7.5268  tf-rows   0/102  1s
+qa_e16_bal_s2          step  1000  loss 0.1092  tf-rows  85/102  90s
+qa_e16_bal_s2          step  2000  loss 0.0912  tf-rows  84/102  174s
+qa_e16_bal_s2          step  3000  loss 0.0849  tf-rows  88/102  258s
+qa_e16_bal_s2          step  4000  loss 0.0840  tf-rows  85/102  343s
+qa_e16_bal_s2          step  5000  loss 0.0835  tf-rows  85/102  427s
+qa_e16_bal_s2          step  6000  loss 0.0823  tf-rows  87/102  509s
+qa_e16_bal_s2          step  7000  loss 0.0819  tf-rows  87/102  593s
+qa_e16_bal_s2          step  8000  loss 0.0808  tf-rows  86/102  676s
+train  exact  60/68  =  88.2%   mean prefix 100.0%   degenerate 0
+held   exact   1/35  =   2.9%   mean prefix  10.4%   degenerate 0
+FINAL qa_e16_bal_s2        loss 0.0808  density 0.5471  weights 839680  693s
+route bal  N=32  load 0.238 0.038 0.034 0.031 0.030 0.029 0.028 0.028 0.025 0.025 0.021 0.023 0.022 0.024 0.024 0.025 0.023 0.023 0.022 0.022 0.022 0.021 0.021 0.022 0.022 0.021 0.021 0.023 0.024 0.024 0.024 0.024  (max/min = 11.55)
+qa_e32_bal_s2          step     1  loss 7.4487  tf-rows   0/102  1s
+qa_e32_bal_s2          step  1000  loss 0.0934  tf-rows  86/102  148s
+qa_e32_bal_s2          step  2000  loss 0.0853  tf-rows  85/102  295s
+qa_e32_bal_s2          step  3000  loss 0.0829  tf-rows  83/102  444s
+qa_e32_bal_s2          step  4000  loss 0.0824  tf-rows  83/102  590s
+qa_e32_bal_s2          step  5000  loss 0.0814  tf-rows  84/102  734s
+qa_e32_bal_s2          step  6000  loss 0.0813  tf-rows  85/102  878s
+qa_e32_bal_s2          step  7000  loss 0.0811  tf-rows  86/102  1025s
+qa_e32_bal_s2          step  8000  loss 0.0807  tf-rows  83/102  1170s
+train  exact  57/68  =  83.8%   mean prefix 100.0%   degenerate 0
+held   exact   3/35  =   8.6%   mean prefix  15.0%   degenerate 1
+FINAL qa_e32_bal_s2        loss 0.0807  density 0.5484  weights 1626112  1196s
+route id   N=64  load 0.031 0.005 0.013 0.021 0.038 0.009 0.019 0.015 0.028 0.002 0.018 0.025 0.016 0.008 0.015 0.008 0.001 0.020 0.028 0.030 0.013 0.005 0.020 0.002 0.015 0.001 0.238 0.029 0.001 0.000 0.034 0.025 0.004 0.003 0.020 0.017 0.006 0.005 0.014 0.013 0.011 0.012 0.012 0.000 0.011 0.010 0.008 0.009 0.008 0.009 0.009 0.006 0.007 0.007 0.007 0.000 0.009 0.006 0.007 0.008 0.006 0.005 0.006 0.007  (max/min = 237745098039.22)
+qa_e64_id_s2           step     1  loss 8.7160  tf-rows   0/102  1s
+qa_e64_id_s2           step  1000  loss 0.0891  tf-rows  84/102  265s
+qa_e64_id_s2           step  2000  loss 0.0839  tf-rows  84/102  535s
+qa_e64_id_s2           step  3000  loss 0.0827  tf-rows  84/102  802s
+qa_e64_id_s2           step  4000  loss 0.0826  tf-rows  86/102  1078s
+qa_e64_id_s2           step  5000  loss 0.0814  tf-rows  84/102  1344s
+qa_e64_id_s2           step  6000  loss 0.0820  tf-rows  85/102  1595s
+qa_e64_id_s2           step  7000  loss 0.0813  tf-rows  85/102  1818s
+qa_e64_id_s2           step  8000  loss 0.0805  tf-rows  84/102  2046s
+train  exact  67/68  =  98.5%   mean prefix 100.0%   degenerate 0
+held   exact   2/35  =   5.7%   mean prefix  12.7%   degenerate 0
+FINAL qa_e64_id_s2         loss 0.0805  density 0.5498  weights 3198976  2087s

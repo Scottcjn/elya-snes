@@ -1,0 +1,13 @@
+route id   N=64  load 0.031 0.005 0.013 0.021 0.038 0.009 0.019 0.015 0.028 0.002 0.018 0.025 0.016 0.008 0.015 0.008 0.001 0.020 0.028 0.030 0.013 0.005 0.020 0.002 0.015 0.001 0.238 0.029 0.001 0.000 0.034 0.025 0.004 0.003 0.020 0.017 0.006 0.005 0.014 0.013 0.011 0.012 0.012 0.000 0.011 0.010 0.008 0.009 0.008 0.009 0.009 0.006 0.007 0.007 0.007 0.000 0.009 0.006 0.007 0.008 0.006 0.005 0.006 0.007  (max/min = 237745098039.22)
+qa_e64_id_nopos_qn0.15_s1 step     1  loss 8.0239  tf-rows   0/102  1s
+qa_e64_id_nopos_qn0.15_s1 step  1000  loss 0.4578  tf-rows  76/102  334s
+qa_e64_id_nopos_qn0.15_s1 step  2000  loss 0.3908  tf-rows  81/102  803s
+qa_e64_id_nopos_qn0.15_s1 step  3000  loss 0.3273  tf-rows  82/102  1581s
+qa_e64_id_nopos_qn0.15_s1 step  4000  loss 0.2680  tf-rows  85/102  1907s
+qa_e64_id_nopos_qn0.15_s1 step  5000  loss 0.2793  tf-rows  81/102  2215s
+qa_e64_id_nopos_qn0.15_s1 step  6000  loss 0.3094  tf-rows  83/102  2545s
+qa_e64_id_nopos_qn0.15_s1 step  7000  loss 0.2318  tf-rows  84/102  2873s
+qa_e64_id_nopos_qn0.15_s1 step  8000  loss 0.2642  tf-rows  82/102  3204s
+train  exact  64/68  =  94.1%   mean prefix  98.7%   degenerate 0
+held   exact  10/35  =  28.6%   mean prefix  36.1%   degenerate 0
+FINAL qa_e64_id_nopos_qn0.15_s1 loss 0.2642  density 0.5500  weights 3198976  3255s

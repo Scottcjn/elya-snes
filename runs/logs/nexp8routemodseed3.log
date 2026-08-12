@@ -1,0 +1,13 @@
+route mod  N=8  load 0.108 0.059 0.345 0.137 0.100 0.050 0.122 0.080  (max/min = 6.96)
+qa_e8_mod_s3           step     1  loss 8.2978  tf-rows   0/102  1s
+qa_e8_mod_s3           step  1000  loss 0.1467  tf-rows  80/102  49s
+qa_e8_mod_s3           step  2000  loss 0.0995  tf-rows  86/102  77s
+qa_e8_mod_s3           step  3000  loss 0.0925  tf-rows  85/102  106s
+qa_e8_mod_s3           step  4000  loss 0.0884  tf-rows  87/102  133s
+qa_e8_mod_s3           step  5000  loss 0.0846  tf-rows  87/102  162s
+qa_e8_mod_s3           step  6000  loss 0.0845  tf-rows  86/102  190s
+qa_e8_mod_s3           step  7000  loss 0.0833  tf-rows  82/102  218s
+qa_e8_mod_s3           step  8000  loss 0.0816  tf-rows  85/102  247s
+train  exact  49/68  =  72.1%   mean prefix 100.0%   degenerate 0
+held   exact   2/35  =   5.7%   mean prefix  13.2%   degenerate 1
+FINAL qa_e8_mod_s3         loss 0.0816  density 0.5480  weights 446464  255s

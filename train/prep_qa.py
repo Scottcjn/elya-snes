@@ -4,6 +4,13 @@
 Two things happen here that did not happen in train/prep_corpus.py, and both
 are forced by how rom/game.inc actually runs a conversation:
 
+This writes `data/vocab.json`, which is the vocabulary the ROM tools read:
+tools/mkgame.py builds the printable string table from it, tools/check_game.py
+tokenises the menu with it, and train/sample.py detokenises with it.  The
+TinyStories vocabulary the shipped model was fitted to is kept beside it as
+`data/vocab_tinystories.json`, because `model/dense_exact_s1.npz` still needs
+it to be read back and the README reproduces strings with it.
+
 **The merges are relearned on THIS corpus.**  The shipped 64-slot vocabulary
 was fitted to TinyStories, so it spends merges on `he `, `wa`, `ing` and ` the `
 - excellent for children's stories and useless for `no. i get things wrong.`
@@ -146,7 +153,7 @@ def encode(text, vocab):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data")
-    ap.add_argument("--vocab-out", default="data/qa_vocab.json")
+    ap.add_argument("--vocab-out", default="data/vocab.json")
     a = ap.parse_args()
 
     rows = C.qa_lines()

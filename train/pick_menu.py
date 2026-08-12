@@ -33,7 +33,7 @@ import ref
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("npz")
-    ap.add_argument("--vocab", default="data/qa_vocab.json")
+    ap.add_argument("--vocab", default="data/vocab.json")
     ap.add_argument("--maxprompt", type=int, default=10)
     ap.add_argument("--n", type=int, default=6)
     a = ap.parse_args()

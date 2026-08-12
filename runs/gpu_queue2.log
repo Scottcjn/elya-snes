@@ -1,0 +1,12 @@
+launch: --nexp 64 --route id --nopos 1 --seed 1
+launch: --nexp 64 --route id --nopos 1 --qnoise 0.15 --seed 1
+launch: --nexp 8 --route rand --seed 1
+launch: --nexp 8 --route clus --seed 1
+launch: --nexp 8 --route mod --seed 1
+launch: --nexp 8 --route rand --seed 2
+launch: --nexp 8 --route clus --seed 2
+launch: --nexp 8 --route mod --seed 2
+launch: --nexp 8 --route rand --seed 3
+launch: --nexp 8 --route clus --seed 3
+launch: --nexp 8 --route mod --seed 3
+queue done

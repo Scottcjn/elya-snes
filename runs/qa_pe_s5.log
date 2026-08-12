@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/home/scott/elya-snes/train/train_qa.py", line 245, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/scott/elya-snes/train/train_qa.py", line 196, in main
+    pred = model(x).argmax(-1)
+           ~~~~~^^^
+  File "/home/scott/.local/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/scott/.local/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/scott/elya-snes/train/model_nes.py", line 332, in forward
+    sc = qk_scores(qh, kh)                            # (B,H,T,T)
+  File "/home/scott/elya-snes/train/model_nes.py", line 127, in qk_scores
+    return ste((q @ k.transpose(-1, -2)) / (1 << MUL_SHIFT), _hard_qk(q, k))
+                                                             ~~~~~~~~^^^^^^
+  File "/home/scott/elya-snes/train/model_nes.py", line 110, in _hard_qk
+    out[:, :, i:i + _CHUNK] = torch.floor(p / (1 << MUL_SHIFT)).sum(-1)
+                              ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 7.62 GiB of which 39.75 MiB is free. Process 4038 has 3.35 GiB memory in use. Process 2505452 has 1.51 GiB memory in use. Process 471233 has 768.00 MiB memory in use. Process 1095412 has 276.00 MiB memory in use. Process 1095428 has 276.00 MiB memory in use. Process 1095479 has 276.00 MiB memory in use. Including non-PyTorch memory, this process has 216.00 MiB memory in use. Process 1096504 has 148.00 MiB memory in use. Process 1096494 has 148.00 MiB memory in use. Process 1096499 has 148.00 MiB memory in use. Process 1096501 has 148.00 MiB memory in use. Process 1096502 has 148.00 MiB memory in use. Process 1096497 has 148.00 MiB memory in use. Of the allocated memory 37.01 MiB is allocated by PyTorch, and 14.99 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)

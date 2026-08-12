@@ -1,0 +1,4 @@
+launch: --nexp 1 --nopos 1 --qnoise 0.1 --seed 4
+launch: --nexp 1 --nopos 1 --qnoise 0.1 --seed 5
+launch: --nexp 1 --nopos 1 --qnoise 0.05 --seed 4
+launch: --nexp 1 --nopos 1 --qnoise 0.05 --seed 5

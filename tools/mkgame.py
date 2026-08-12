@@ -28,17 +28,23 @@ import sys
 MAXPROMPT = 10          # leaves at least half the context for her answer
 NCTX = 20
 
-# The menu.  Chosen by running host/ref.py over candidates and keeping the ones
-# whose answers are (a) inside the context budget and (b) recognisably replies.
-# 'who are you?' earns its place by being the question everyone asks and by
-# getting a wrong answer, which is the honest half of the demonstration.
+# The menu.  Filtered by train/pick_menu.py against the shipped weights: every
+# question below is inside the ten-token prompt cap AND host/ref.py, decoding
+# the way rom/game.inc does, reproduces the corpus answer exactly.  The six
+# were then chosen for spread - one per topic - and for what they let her say.
+#
+# 'who are you?' earns its place by being the question everyone asks.  It used
+# to earn it by getting a WRONG answer, which was the honest half of the
+# demonstration on the TinyStories model; she now gets it right, and the honest
+# half moved to 'are you a table?' - she answers 'no. i can err.', which is
+# both true and the only defence she has.
 QUESTIONS = [
-    "who are you? ",
-    "what now? ",
-    "once upon ",
-    "and then? ",
-    "why? ",
-    "the end. ",
+    "who are you? ",        #  6 tokens -> 'i am elya.'
+    "what are you? ",       #  7        -> 'a small model.'
+    "the coins? ",          #  6        -> 'one is a token.'
+    "why stop? ",           #  8        -> 'i want to talk.'
+    "are you a table? ",    # 10        -> 'no. i can err.'
+    "can i trust you? ",    # 10        -> 'check the coins.'
 ]
 
 

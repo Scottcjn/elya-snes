@@ -1,0 +1,13 @@
+route rand N=8  load 0.178 0.051 0.068 0.392 0.054 0.025 0.150 0.080  (max/min = 15.38)
+qa_e8_rand_s1          step     1  loss 7.8497  tf-rows   0/102  1s
+qa_e8_rand_s1          step  1000  loss 0.1354  tf-rows  82/102  60s
+qa_e8_rand_s1          step  2000  loss 0.1018  tf-rows  83/102  124s
+qa_e8_rand_s1          step  3000  loss 0.0904  tf-rows  83/102  188s
+qa_e8_rand_s1          step  4000  loss 0.0882  tf-rows  84/102  253s
+qa_e8_rand_s1          step  5000  loss 0.0862  tf-rows  84/102  317s
+qa_e8_rand_s1          step  6000  loss 0.0848  tf-rows  83/102  380s
+qa_e8_rand_s1          step  7000  loss 0.0831  tf-rows  86/102  445s
+qa_e8_rand_s1          step  8000  loss 0.0823  tf-rows  86/102  506s
+train  exact  63/68  =  92.6%   mean prefix 100.0%   degenerate 0
+held   exact   2/35  =   5.7%   mean prefix  17.3%   degenerate 0
+FINAL qa_e8_rand_s1        loss 0.0823  density 0.5474  weights 446464  519s

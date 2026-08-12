@@ -1,0 +1,12 @@
+launch: --nexp 1 --nopos 1 --qnoise 0.05 --seed 1
+launch: --nexp 1 --nopos 1 --qnoise 0.05 --seed 2
+launch: --nexp 1 --nopos 1 --qnoise 0.05 --seed 3
+launch: --nexp 1 --nopos 1 --qnoise 0.1 --seed 1
+launch: --nexp 1 --nopos 1 --qnoise 0.1 --seed 2
+launch: --nexp 1 --nopos 1 --qnoise 0.1 --seed 3
+launch: --nexp 1 --nopos 1 --qnoise 0.15 --seed 4
+launch: --nexp 1 --nopos 1 --qnoise 0.15 --seed 5
+launch: --nexp 1 --nopos 1 --qnoise 0.2 --seed 1
+launch: --nexp 1 --nopos 1 --qnoise 0.2 --seed 2
+launch: --nexp 1 --nopos 1 --qnoise 0.2 --seed 3
+queue done

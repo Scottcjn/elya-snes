@@ -1,0 +1,6 @@
+qa_e1_bal_nopos_qn0.05_s4 step     1  loss 7.3989  tf-rows   0/102  1s
+qa_e1_bal_nopos_qn0.05_s4 step  1000  loss 0.6489  tf-rows  27/102  225s
+qa_e1_bal_nopos_qn0.05_s4 step  2000  loss 0.4520  tf-rows  56/102  444s
+qa_e1_bal_nopos_qn0.05_s4 step  3000  loss 0.3731  tf-rows  65/102  690s
+qa_e1_bal_nopos_qn0.05_s4 step  4000  loss 0.3176  tf-rows  75/102  940s
+qa_e1_bal_nopos_qn0.05_s4 step  5000  loss 0.3224  tf-rows  78/102  1173s

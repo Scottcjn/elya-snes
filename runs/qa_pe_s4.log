@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/home/scott/elya-snes/train/train_qa.py", line 245, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/scott/elya-snes/train/train_qa.py", line 180, in main
+    lg = model(xin) * scale()
+         ~~~~~^^^^^
+  File "/home/scott/.local/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/scott/.local/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/scott/elya-snes/train/model_nes.py", line 322, in forward
+    q = self._mm(x, self._w(self.Wq[l]), K_SHIFT)
+  File "/home/scott/elya-snes/train/model_nes.py", line 260, in _mm
+    acc = x @ w.t()
+          ~~^~~~~~~
+RuntimeError: CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling `cublasCreate(handle)`

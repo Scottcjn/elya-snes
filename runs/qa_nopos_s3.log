@@ -2,3 +2,11 @@ qa_e1_bal_nopos_s3     step     1  loss 7.1949  tf-rows   0/102  0s
 qa_e1_bal_nopos_s3     step  1000  loss 0.4413  tf-rows  26/102  13s
 qa_e1_bal_nopos_s3     step  2000  loss 0.2425  tf-rows  48/102  26s
 qa_e1_bal_nopos_s3     step  3000  loss 0.1796  tf-rows  71/102  40s
+qa_e1_bal_nopos_s3     step  4000  loss 0.1546  tf-rows  72/102  52s
+qa_e1_bal_nopos_s3     step  5000  loss 0.1376  tf-rows  74/102  65s
+qa_e1_bal_nopos_s3     step  6000  loss 0.1199  tf-rows  79/102  79s
+qa_e1_bal_nopos_s3     step  7000  loss 0.1168  tf-rows  76/102  92s
+qa_e1_bal_nopos_s3     step  8000  loss 0.0934  tf-rows  83/102  105s
+train  exact  67/68  =  98.5%   mean prefix  99.5%   degenerate 0
+held   exact   4/35  =  11.4%   mean prefix  17.2%   degenerate 1
+FINAL qa_e1_bal_nopos_s3   loss 0.0934  density 0.5467  weights 102400  109s

@@ -121,7 +121,7 @@ def evaluate(model, vocab, rows, label, verbose=0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("npz")
-    ap.add_argument("--vocab", default="data/qa_vocab.json")
+    ap.add_argument("--vocab", default="data/vocab.json")
     ap.add_argument("--verbose", type=int, default=0)
     ap.add_argument("--json", default=None)
     ap.add_argument("--all", action="store_true", help="print every question")
