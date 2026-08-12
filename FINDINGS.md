@@ -1384,3 +1384,71 @@ autosave would have left `$FF` in one of the two bytes and did not; an HDMA
 transfer surviving `stz HDMAEN` would have written CGRAM entry 0, not 141; and
 a CGADD reset inside the read loop would have shifted every entry after it,
 not one. **No mechanism found.** Recorded rather than rounded off.
+
+---
+
+## 2026-08-12 — 10. She was trained for the wrong job. Retraining her, and what the retrain refuted
+
+Entry 9 shipped a cartridge that talks. Asked `who are you?` it answered
+`make a big p`, and asked anything else it answered with a fragment of a
+children's story, fluently. Nothing was wrong with the ROM. The model was
+trained on TinyStories and it was very good at being TinyStories.
+
+The engine is untouched in this entry: the same `rom/nn.s`, the same
+`host/ref.py`, the same shape — V=64, D=64, L=3, H=2, F=128, T=20, exact
+softmax, `AV_SHIFT = 3`. Everything below is corpus and training.
+
+**Baseline, measured before anything changed.** `train/eval_answers.py` decodes
+exactly as `rom/game.inc` does — question fed from position 0, the last feed
+step's output taken as the first answer token, run to position 19, stop on the
+count — on `host/ref.py`:
+
+```
+model/dense_exact_s1.npz   train  exact   0/68     mean prefix  0.3%
+                           held   exact   0/35     mean prefix  0.2%
+```
+
+### The corpus is bounded by the positional table, not by taste
+
+`train/corpus.py` is 34 facts she can truthfully state, each with two training
+phrasings and one held-out paraphrase the trainer never sees, plus 34
+monologue lines for act 2's free run. Three constraints wrote it:
+
+* **30 symbols.** `train/prep_qa.py` measures the charset instead of inheriting
+  it: this corpus never uses `"`, `'` or `!`, so those three slots become
+  merges. No digits — `102,400 ternary weights` becomes `hundred thousand.`
+  in her mouth, because rounding is not lying and claiming a number she cannot
+  spell would be.
+* **20 positions, total.** `rom/game.inc` feeds the question at positions
+  `0..n-1` and generates `20 - n` tokens. Question plus answer must fit in 20
+  tokens or the tail is never produced. The over-budget report in `prep_qa.py`
+  is what forced every answer down; five separate rewrites of the corpus were
+  driven by it and nothing else.
+* **Position 0 is the start of the question.** The positional table is
+  absolute. `train/train_nes.py` samples random T-long windows out of a
+  concatenated stream, which is right for TinyStories and wrong here: a
+  question the trainer only ever saw at position 11 arrives at run time
+  somewhere it has never been. `train/train_qa.py` trains on fixed 20-token
+  rows — question, answer, then spaces, because this kernel has no
+  end-of-sequence token and the ROM prints every token it generates.
+
+**Relearning the merges on the conversation bought almost nothing, and that is
+a negative result.** The hope was that a vocabulary fitted to `no. i get things
+wrong.` instead of to `he `, `wa` and ` the ` would buy context for free, since
+20 positions of 2.3 characters and 20 positions of 1.45 are different
+conversations. Measured: **1.486 chars/token against TinyStories' 1.454**, a
+2.2% gain. 34 merges over a 3.6 KB corpus is not enough for BPE to find much,
+and the answers had to be shortened by hand instead.
+
+### Loss does not rank the arms. It ranks them slightly backwards
+
+Every arm below lands within seven thousandths of a nat of every other one and
+they differ by twenty points of exact-answer rate. Over the comparable runs:
+
+```
+correlation of fit loss with exact-answer rate, 35 runs:   r = +0.421
+```
+
+A useful loss gives a strongly NEGATIVE r there. This one has the wrong sign:
+across arms, **lower fit loss goes with fewer right answers.** `train/qa_table.py`
+prints this line on every invocation so the claim cannot go stale.
