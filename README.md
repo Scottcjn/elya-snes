@@ -5,29 +5,40 @@ enhancement chip, no SuperFX, no DSP — inside a platformer that stops halfway
 through and starts talking to you.
 
 ```
-seed token 'b'   ->  because and said, "you ca
-seed token 'd'   ->  day, lily said, "that is a
-seed token 'q'   ->  quickly. she said, "thank
-seed token 'w'   ->  with her mommy and said, "than
+who are you?       ->  i am elya.
+what are you?      ->  a small model.
+the coins?         ->  one is a token.
+are you a table?   ->  no. i can err.
 ```
 
-**102,400 ternary weights**, 52,764 of them non-zero, 4-bit activations, a
+**102,400 ternary weights**, 55,798 of them non-zero, 4-bit activations, a
 64-symbol vocabulary, three layers, two heads, 20 positions of context, trained
-on TinyStories with quantisation-aware training so the forward pass the trainer
-saw is the forward pass the 65816 executes. **7.03 tokens per second** on a
-2.68 MHz Ricoh 5A22, 8.02 on FastROM. Verified against an exact-integer host
-reference over **1,280 tokens — every vocabulary symbol as a seed — on both
-clock arms**, plus the residual stream and the attention output element by
-element.
+with quantisation-aware training so the forward pass the trainer saw is the
+forward pass the 65816 executes. **7.03 tokens per second** on a 2.68 MHz Ricoh
+5A22, 8.02 on FastROM. Verified against an exact-integer host reference over
+**1,280 tokens — every vocabulary symbol as a seed — on both clock arms**, plus
+the residual stream and the attention output element by element.
+
+She answers **66 of the 68 questions she was trained on exactly**, and 12 of 35
+paraphrases she has never seen. She was not always able to. The first cartridge
+was trained on TinyStories and answered every question with a fragment of a
+children's story — `who are you?` got `make a big p` — which is fluent, correct
+English and the wrong job. Entry 10 of FINDINGS is the retrain, and the two
+things it refuted along the way.
 
 Every number in [FINDINGS.md](FINDINGS.md) is measured on the console. Nothing
 is estimated.
 
-Those four strings are what `out/nnsurvey.ram` holds and what the reference
-prints for the same seeds:
+She free-runs into her own questions when nothing prompts her, which is what
+act 1 and act 2 do. These are what `out/nnsurvey.ram` holds and what the
+reference prints for seeds `b`, `d`, `q`, `w`:
 
 ```sh
-NES_T=20 python3 train/sample.py model/dense_exact_s1.npz --seeds 1,3,16,22 --n 19
+NES_T=20 python3 train/sample.py model/elya_qa_s2.npz --seeds 1,3,16,22 --n 19
+#  b -> 'block? a multiply.'      d -> 'do you dream? no. i guess.'
+#  q -> 'quite slow, this chip.'  w -> 'would you lie? no. just wrong.'
+
+python3 train/eval_answers.py model/elya_qa_s2.npz   # the answer-quality gate
 ```
 
 ```sh
