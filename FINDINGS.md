@@ -1520,3 +1520,72 @@ four arms. `clus` — the only construction that tries to specialise, balanced
 k-means on P(next | tok) — is nominally best and is not distinguishable from
 `rand`. **Confirmed on a second machine and a different corpus: routing
 construction buys nothing. Do not spend on it.**
+
+### The capacity ladder: more weights, lower loss, worse answers — until 64
+
+The brief's design target was 64 experts, on the NES reasoning that cartridge
+ROM is memory-mapped so activating an expert is repointing a pointer, and
+speed is therefore flat in the expert count. The ladder was run at one, four,
+eight, sixteen, thirty-two and sixty-four feed-forward experts, three seeds
+each, routed by the 64-entry table `train/route.py` builds. At `nexp = V = 64`
+that table is the IDENTITY — one feed-forward per vocabulary id — so there is
+no construction left to choose.
+
+```
+nexp   weights     fit loss   train exact             seeds
+   1     102,400    0.0878    95.0% +- 8.8            97 79 100 99 100
+   4     249,856    0.0826    87.7% +- 2.2            85 90  88
+   8     446,464    0.0814    78.9% +-12.7            76 93  68
+  16     839,680    0.0807    79.9% +-19.7            94 88  57
+  32   1,626,112    0.0806    87.7% +- 3.7            91 84  88
+  64   3,198,976    0.0805    98.0% +- 0.8            99 99  97
+```
+
+**Fit loss falls monotonically across the whole ladder and answer quality is a
+U.** Sixteen times the weights bought 0.0071 nats and cost sixteen points of
+exact answers; sixty-four times the weights bought 0.0073 nats and three points
+of exact answers. Between those two facts sits the entire argument for scoring
+answers.
+
+The U is not mysterious. At `nexp = 64` every token id has its own
+feed-forward and the router is a permutation, so nothing is shared and nothing
+is contended. In the middle of the ladder a handful of experts each serve a
+mixed bag of tokens through one shared attention stack, and the seed spread
+(±19.7 at sixteen experts, with one seed at 57%) says those arms are simply
+hard to optimise rather than short of capacity.
+
+### What a 64-expert cartridge would actually cost on THIS port, measured
+
+The NES arithmetic does not transfer, and the reason is entry 6's result.
+
+On the NES the weights are a **data stream** and the header table walks it, so
+an expert is a different bank of data and switching is repointing. On the SNES
+`tools/emit.py` emits weights as **straight-line 65816 that calls the row
+handlers**, because the cheapest gather on this machine is no gather — 33.09
+wall master clocks per MAC against 72.11 for the best data-driven form. So on
+this port an expert is not a repointed stream. It is a different **code blob**,
+in a different bank, reached by a long jump, and `rom/nn.s` says so at the top:
+*"the header table and the bank-chain machinery went with it."*
+
+Measured from the shipping build: `out/model/weights.bin` is 131,072 bytes for
+55,798 non-zero weights, **2.349 bytes of ROM per non-zero**.
+
+```
+                         non-zeros    straight-line code   cartridge
+dense (shipping)            55,798               0.13 MB   fits 256 KiB
+32 experts                 894,922               2.10 MB   fits LoROM (4 MB max)
+64 experts               1,760,481               4.14 MB   EXCEEDS LoROM
+```
+
+So the storage argument survives — 4.14 MB is inside the Kaico's 6.91 MB — and
+two other things do not. LoROM addresses 32 KiB in each of 250 banks and stops
+at 4 MB, so 64 experts needs a different cartridge map and a different linker
+config than the `rom/lorom256.cfg` this repo wrote. And there is **no expert
+path in `rom/nn.s` to route to at all**: no router, no bank chain, nothing.
+Shipping any mixture here is an engine project — a router in 65816, a new
+cartridge map, `tools/emit.py` emitting 64 copies of the feed-forward code
+into banks, and the whole fifteen-arm gate re-run against it.
+
+`tools/emit.py` was, until this entry, happy to be handed a 64-expert npz: it
+printed `4 weight banks, 1408 rows, 56272 nnz`, exited 0, and packed a dense
+cartridge out of expert 0. It now refuses.
