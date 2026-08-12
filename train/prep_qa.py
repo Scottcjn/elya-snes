@@ -35,11 +35,29 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import corpus as C
 
-BASE = "abcdefghijklmnopqrstuvwxyz .,\"'!?"      # identical to prep_corpus.BASE
-assert len(BASE) == len(set(BASE)) == 33
+# The base symbols are MEASURED, not inherited.  prep_corpus.py fixed 33 for
+# TinyStories, where every one of `.,"'!?` earns its slot because dialogue is
+# everywhere.  This corpus is questions and short answers: it uses no quotes and
+# no exclamation marks at all, and a base symbol that never occurs is a dead
+# head row AND a merge slot not spent.  Anything with a zero count is dropped
+# and the slot goes to a merge; anything that occurs even once is kept, because
+# a symbol the vocabulary lacks is a symbol she can never say.
+CANDIDATES = "abcdefghijklmnopqrstuvwxyz .,\"'!?"
 TARGET = 64
 MAXTOK = 5          # tools/mkgame.py's vocab.tbl row is [len][5 bytes]
 T = 20
+
+
+BASE = ""          # set by set_base() from the measured corpus
+
+
+def set_base(text):
+    global BASE
+    BASE = "".join(c for c in CANDIDATES if c in text)
+    drop = [c for c in CANDIDATES if c not in text]
+    print("base symbols  %d kept, %d dropped (%s) -> %d merge slots"
+          % (len(BASE), len(drop), " ".join(repr(c) for c in drop),
+             TARGET - len(BASE)))
 
 
 def enc_char(s):
@@ -132,6 +150,7 @@ def main():
     a = ap.parse_args()
 
     rows = C.qa_lines()
+    set_base("".join(q + ans for _t, q, ans, _h in rows) + "".join(C.MONOLOGUE))
     train = [(t, q, ans) for t, q, ans, held in rows if not held]
     held = [(t, q, ans) for t, q, ans, held in rows if held]
 
