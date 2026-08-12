@@ -183,7 +183,7 @@ def main():
     meta = dict(name=name, nexp=a.nexp, moe_head=int(a.moe_head), route=a.route,
                 route_seed=a.route_seed, seed=a.seed, tau=a.tau, mode=a.mode,
                 quant=a.quant, steps=a.steps, lr=a.lr, qw=a.qw, aw=a.aw,
-                pw=a.pw, mono=a.mono, ctx=M.T, loss=float(loss),
+                pw=a.pw, mono=a.mono, ctx=M.T, loss=float(loss.detach()),
                 nnz=nnz, weights=tot, density=nnz / tot,
                 secs=time.time() - t0, hist=hist)
 
@@ -205,7 +205,7 @@ def main():
 
     json.dump(meta, open(os.path.join(a.out, name + ".json"), "w"), indent=1)
     print("FINAL %-20s loss %.4f  density %.4f  weights %d  %.0fs"
-          % (name, float(loss), nnz / tot, tot, time.time() - t0))
+          % (name, float(loss.detach()), nnz / tot, tot, time.time() - t0))
     return 0
 
 
