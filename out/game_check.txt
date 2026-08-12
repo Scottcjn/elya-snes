@@ -1,7 +1,7 @@
 == the run ==
-  frames              1674   (27.9 s at 60.1 Hz)
-  tokens committed     118
-  coins spawned        118
+  frames              1718   (28.6 s at 60.1 Hz)
+  tokens committed     120
+  coins spawned        120
   coins queued           0
   act 1 threshold       64 tokens
   act 3 answers          2 of 6 questions
@@ -12,24 +12,24 @@
   frames 1707, tokens 0, coins 0
 
 == the generated text, against host/ref.py ==
-  act 1 free run  'because and said, "you ca'
-  act 2 line      seed 's' -> ' a big big because and '
-  act 3 q1 'what now? '   -> 'he said, "yes, i'
-  act 3 q2 'once upon '   -> 'her friends. she sa'
+  act 1 free run  'block? a multiply.    '
+  act 2 line      seed '.' -> 't chip? the snes.        '
+  act 3 q1 'what are you? ' -> 'a small model. '
+  act 3 q2 'the coins? '  -> 'one is a token.      '
 
 == what the PPU actually holds ==
   OAM read back through $2138 agrees with the shadow in 544/544 bytes
-  note: CGRAM entries [73, 76] drifted during the run; none are drawn with.  Cause: the sky HDMA (see FINDINGS entry 9).
+  note: CGRAM entries [200] drifted during the run; none are drawn with.  Cause: the sky HDMA (see FINDINGS entry 9).
 
-  ok    final: 118 spawned + 0 queued == 118 committed
-  ok    every one of 104 trace samples: spawned + queued == committed
+  ok    final: 120 spawned + 0 queued == 120 committed
+  ok    every one of 107 trace samples: spawned + queued == committed
   ok    coins never once ran ahead of the token count
   ok    the state machine ran logo -> play -> stop -> line -> ask -> answer
   ok    -DNOGEN: 1707 frames, 0 tokens, 0 coins -- the coins stall exactly when inference does
   ok    act 1's free run: 20/20 tokens identical to host/ref.py
   ok    act 2's line: 19/19 tokens identical, generated from act 1's last token -- so it depends on how the platformer went
-  ok    act 3 answer 0: 12/12 tokens identical to host/ref.py
-  ok    act 3 answer 1: 13/13 tokens identical to host/ref.py
+  ok    act 3 answer 0: 13/13 tokens identical to host/ref.py
+  ok    act 3 answer 1: 14/14 tokens identical to host/ref.py
   ok    the BG3 tilemap read back out of VRAM through $2139 equals the WRAM shadow, all 1024 entries
   ok    OAM read back through $2138 matches the shadow the DMA sent
   ok    CGRAM   1.. 11 holds bg3.pal exactly, read back through $213B
@@ -41,6 +41,6 @@
   ok    the logo's tilemap asks for palette 2 and CGRAM 32..36 held logo.pal at the end of setup -- the map and the load agree
   ok    CGRAM entry 0 holds the sky HDMA's last band ($7F76): the gradient channel really is driving the backdrop
   ok    the act 1 frame snapshot is complete (state play, 40 tokens)
-  ok    the act 3 frame snapshot is complete (state end, 118 tokens)
+  ok    the act 3 frame snapshot is complete (state end, 120 tokens)
 
 PASS: 21 checks

@@ -5,3 +5,16 @@ qa_e64_id_nopos_s3     step  2000  loss 0.0971  tf-rows  81/102  544s
 qa_e64_id_nopos_s3     step  3000  loss 0.0889  tf-rows  82/102  832s
 qa_e64_id_nopos_s3     step  4000  loss 0.0846  tf-rows  82/102  1105s
 qa_e64_id_nopos_s3     step  5000  loss 0.0833  tf-rows  83/102  1389s
+qa_e64_id_nopos_s3     step  6000  loss 0.0826  tf-rows  85/102  1683s
+qa_e64_id_nopos_s3     step  7000  loss 0.0813  tf-rows  86/102  1972s
+qa_e64_id_nopos_s3     step  8000  loss 0.0806  tf-rows  84/102  2162s
+Traceback (most recent call last):
+  File "/home/scott/elya-snes/train/train_qa.py", line 245, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/scott/elya-snes/train/train_qa.py", line 227, in main
+    vocab = E.load_vocab("data/qa_vocab.json")
+  File "/home/scott/elya-snes/train/eval_answers.py", line 47, in load_vocab
+    v = json.load(open(path))
+                  ~~~~^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'data/qa_vocab.json'
