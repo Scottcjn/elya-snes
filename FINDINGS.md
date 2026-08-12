@@ -1670,3 +1670,32 @@ k -> 'kep going. i am busy.'         w -> 'would you lie? no. just wrong.'
 `neeed`, `kep`, `litle` — she misspells. That is 102,400 ternary weights doing
 inference and not a string table being indexed, and it is visible on screen
 without a caption.
+
+### The gate was fixed today. A fix is not a proof, so here is the proof
+
+Entry 9 recorded that `gate.sh` had been incapable of failing since it was
+written — every checker piped into `tail`, no `set -o pipefail`, so the
+pipeline's status was `tail`'s and `FAIL=1` was never reached. It printed a
+checker's own `FAIL:` line and `GATE: pass` underneath it. `set -o pipefail`
+went in.
+
+That is a fix. It is not evidence. `tools/gate_selftest.sh` builds the
+cartridge twice and requires the checker to accept one and reject the other.
+The break is `tools/emit.py` writing the attention requantise table at
+`AV_SHIFT - 1` instead of `AV_SHIFT`: a real bug of a class this repo has
+already been bitten by, one that leaves a ROM which builds, boots and generates
+fluent-looking text, and one that does not touch `host/ref.py` — so the
+specification still computes the right answer and the cartridge no longer
+agrees with it. `rom/*.s` is not modified and `tools/emit.py` is restored on
+every exit path.
+
+```
+control  host 'because and said, "you ca'   rom 'because and said, "you ca'
+         PASS: 20/20 tokens identical                            FAIL=0
+
+broken   host 'because and said, "you ca'   rom 'bass the sadradrasrasras'
+         FAIL: 18 of 20 positions differ                         FAIL=1
+```
+
+The checker discriminates and the pipeline propagates. A green gate on this
+tree now means something.
