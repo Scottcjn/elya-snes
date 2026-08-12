@@ -1699,3 +1699,43 @@ broken   host 'because and said, "you ca'   rom 'bass the sadradrasrasras'
 
 The checker discriminates and the pipeline propagates. A green gate on this
 tree now means something.
+
+### What is not done
+
+**Held-out is 34.3% on the shipped seed and 26.7% ± 7.2 as an arm mean, and
+the shipped number is optimistic.** The arm was chosen a priori — best mean
+held-out among the arms within 1.5 points of the best dense train score — but
+the *seed* within it was chosen with the held-out column visible, as a
+tie-break between two seeds at 97.1% train. The unbiased estimate of what this
+recipe generalises to is the arm mean, not the 34.3%. Stated plainly rather
+than quoted as the headline.
+
+**No topic sharding was shipped, and the Genesis's winning structure was not
+reproducible here.** The Genesis reached 91% exact by training one narrow
+single-topic model per shard and picking between them with a keyword router at
+run time. That needs the cartridge to hold several models and choose one, and
+this port has no mechanism to choose — see the expert section above. The
+`TOPICS` labels in `train/corpus.py` are carried for the router that does not
+exist yet, and the sharded arms were not run because a result that cannot ship
+would still have taken GPU hours that the ladder needed.
+
+**The corpus is 34 facts.** It is not a broad conversationalist and cannot be
+at 20 positions and 30 symbols; it is a character who can answer questions
+about herself, the cartridge and the game, truthfully. Every fact she states
+is checkable against this repo.
+
+**No hardware run.** Everything here is ares, as with every other entry. The
+1280/1280 agreement is the same agreement, on the same emulator, that entry 7
+established; nothing about this entry makes it a silicon claim that was not
+one before.
+
+**The trainer's forward pass was re-verified, not assumed.** `train/test_equiv.py`
+still reports `max|torch - ref| = 0` over 1,280 values at every layer, the
+logits and the argmax ids, so the model that was optimised is the model the
+cartridge runs.
+
+Files: `train/corpus.py`, `train/prep_qa.py`, `train/train_qa.py`,
+`train/eval_answers.py`, `train/qa_table.py`, `train/qa_ladder.sh`,
+`train/qa_queue.sh`, `train/pick_menu.py`, `tools/gate_selftest.sh`,
+`runs/qa/*` (53 runs), the shipped weights `model/elya_qa_s2.npz` and the
+vocabulary `data/vocab.json` with its predecessor `data/vocab_tinystories.json`.
