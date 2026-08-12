@@ -1739,3 +1739,46 @@ Files: `train/corpus.py`, `train/prep_qa.py`, `train/train_qa.py`,
 `train/qa_queue.sh`, `train/pick_menu.py`, `tools/gate_selftest.sh`,
 `runs/qa/*` (53 runs), the shipped weights `model/elya_qa_s2.npz` and the
 vocabulary `data/vocab.json` with its predecessor `data/vocab_tinystories.json`.
+
+### The gate, on the retrained cartridge
+
+Fifteen arms, `./gate.sh`, exit 0.
+
+```
+nn / nnfast / nnprof / nnfastprof / nnstage      PASS 20/20 tokens each
+nnsurvey                        64 seeds x 20 tokens: 1280/1280 identical
+nnfastsurvey                    64 seeds x 20 tokens: 1280/1280 identical
+nndbg positions 0, 9, 18        PASS 320/320 intermediate values each
+gamepad (shipping read_pad)     PASS 18 checks
+gameqa + gamectl                PASS 21 checks
+cartridge headers               PASS x4, LoROM NTSC 2 Mbit of 56, no chip
+GATE: pass
+```
+
+The exactness claim is unchanged by the retrain, which is the point: **1280/1280
+over 64 seeds at both clock arms**, plus 960 intermediate residual-stream and
+attention values. And the cartridge is now doing this with them:
+
+```
+act 1 free run  'block? a multiply.'
+act 2 line      seed '.' -> 't chip? the snes.'
+act 3 q1 'what are you? ' -> 'a small model. '     14/14 == host/ref.py
+act 3 q2 'the coins? '    -> 'one is a token.  '   14/14 == host/ref.py
+120 tokens committed, 120 coins spawned, 0 queued; control -DNOGEN: 0 and 0
+```
+
+**The retrain cost 3.1% of the model's speed, and it is arithmetic rather than
+a regression.** The new quantiser left 55,798 non-zero weights where the old
+one left 52,764 — 5.75% more — and on this port a non-zero weight is an
+accumulate instruction in a straight-line weight program, so it has to execute.
+
+```
+                       SlowROM 2.68 MHz     FastROM 3.58 MHz
+wall clocks/token      3,152,408            2,763,693
+TOKENS PER SECOND      6.813  (was 7.030)   7.771  (was 8.019)
+with the game layer    5.462  (was 5.634)   6.217  (was 6.412)
+```
+
+Density is the speed knob on this cartridge and nothing else is. Nobody asked
+the trainer for a sparser model and it was not given a reason to produce one;
+`--tau` is the knob if 3% ever matters more than three questions.
