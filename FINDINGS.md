@@ -1452,3 +1452,71 @@ correlation of fit loss with exact-answer rate, 35 runs:   r = +0.421
 A useful loss gives a strongly NEGATIVE r there. This one has the wrong sign:
 across arms, **lower fit loss goes with fewer right answers.** `train/qa_table.py`
 prints this line on every invocation so the claim cannot go stale.
+
+### The positional table: present, load-bearing on the old model, and a LIABILITY on the new one
+
+The brief expected this to be the big win. The sibling Genesis port measured
+exact complete answers going from **0/38 to 36/38** by adding learned absolute
+positional encoding, for 4 KB of ROM and +3.6% parameters. First question:
+does this port have one at all?
+
+It does. `pos` is a trained 20 x 64 int8 table in the npz, packed to
+`out/model/pos.bin` (2,560 bytes, biased 16-bit), read into `POSW = $4000`, and
+`rom/nn.s` adds it at `x = clamp7(emb[tok] + pos[p])`. It costs 22,672 wall
+master clocks a token, 0.66%. And it is not decorative on the shipped model —
+zeroing it at inference time changes the output:
+
+```
+model/dense_exact_s1.npz, seed 'b'
+  with the trained table   'because and said, "you ca'
+  table zeroed             'but she way. she bello way she '
+```
+
+**On the conversational corpus it makes things worse.** Five seeds each,
+identical in every other respect, the table zeroed and frozen at
+initialisation rather than removed (the ROM reads 20 x 64 bytes whatever is in
+them, so this ablates the information and not the arithmetic — the exactness
+gate is unaffected either way):
+
+```
+                          train exact                      held exact
+learned absolute PE    95.0% +- 8.8   (97 79 100 99 100)   4.0% +- 2.6
+no positional table    97.4% +- 1.2   (97 97  99 96  99)  13.1% +- 2.6
+```
+
+Better on the corpus it must memorise, **three times better** on held-out
+paraphrase, and — the part that is hard to argue with — the seed spread falls
+from 21 points to 3. The positional arm has one seed at 79% and one at 100%.
+
+The mechanism is not mysterious once stated. With an absolute table the model
+can memorise *at position 7, emit `e`*, and a positional rule is brittle to any
+question whose length differs by one token. With no positional information the
+only thing attention can key on is which tokens are present, and a paraphrase
+shares most of its tokens with the phrasing that was trained. **The Genesis
+finding does not transfer to this port, and this is the arm that says so.**
+
+Two caveats, stated rather than buried. This is a 20-position context where the
+Genesis had 64 — a positional table has less to do here. And the failure the
+Genesis fixed was answers *rotting after 13-28 characters*, which is not the
+failure mode here: the answers are at most 19 characters, so this port may
+simply never reach the regime where absolute position starts paying.
+
+### The router: it does not matter here either, exactly as the NES measured
+
+Eight experts, four routing constructions, three seeds each. The NES measured
+balanced, bigram-clustered and random assignments landing within 0.0032 nats
+against 0.009 of seed noise, and said not to spend effort here.
+
+```
+route   train exact             seeds
+clus    85.8% +- 5.2            85 91 81
+rand    79.9% +-17.2            93 87 60
+mod     79.4% +- 6.7            81 85 72
+bal     78.9% +-12.7            76 93 68
+```
+
+The whole spread, 78.9 to 85.8, sits inside the seed spread of three of the
+four arms. `clus` — the only construction that tries to specialise, balanced
+k-means on P(next | tok) — is nominally best and is not distinguishable from
+`rand`. **Confirmed on a second machine and a different corpus: routing
+construction buys nothing. Do not spend on it.**
