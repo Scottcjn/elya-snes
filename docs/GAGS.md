@@ -17,6 +17,35 @@ and role, not hers. It is funny *and* it is the strongest evidence in the projec
 that this is not a lookup table. Lookup tables do not misremember. They hit or
 they miss. Only real inference fails by confidently naming the wrong thing.
 
+### And then the SNES did it again, independently
+
+Different hardware, different corpus, different training run. Asked `who is
+this?` — a phrasing of "who are you?" the model was never trained on — the SNES
+cartridge answers:
+
+> **scoty maker.**
+
+`scott` and `my maker` collapsed into a single word. The corpus contains both
+strings and neither of them is that. It is the same failure in a smaller
+vocabulary, and it reproduces on demand:
+
+```sh
+python3 train/eval_answers.py model/elya_qa_s2.npz --all | grep "who is this"
+```
+
+Two more of the same kind, both on questions she WAS trained on:
+
+```
+who built you?   ->  scott didididi        (she means 'scott did.')
+how much ram?    ->  a littttttt           (she means 'a little.')
+```
+
+And she misspells while free-running: `neeed ram?`, `kep going.`, `very litle
+of me thinks.` **None of these are authored.** Nothing in `train/corpus.py`
+contains a stutter or a misspelling; every one of them is 102,400 ternary
+weights getting it slightly wrong on a 3.58 MHz 65816, and every one is
+visible on screen without a caption explaining it.
+
 ## The idle loop: she taps her foot
 
 When the ROM is not generating, Elya taps her foot.
@@ -70,6 +99,10 @@ about 36 frames for a 3 s cycle against the intro's 414 KB.
 
 * "As a language model, I cannot..." — she is 102,400 ternary weights on a
   cartridge. The joke belongs to a different kind of model and it is not true here.
+* Any answer longer than the context. Question plus answer is TWENTY TOKENS,
+  full stop — `rom/game.inc` feeds the question from position 0 and generates
+  exactly `20 - len(prompt)` tokens. A line that does not fit is not a line she
+  can say; `train/prep_qa.py` refuses to build a corpus containing one.
 * Anything implying she is smarter than she is. The model is small and the
   corpus is saturated; the article says so. A gag that oversells contradicts the
   paper.
