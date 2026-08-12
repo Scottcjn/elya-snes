@@ -62,6 +62,21 @@ def main():
         print("        seeds: train %s   held %s"
               % (" ".join("%.0f%%" % (100 * v) for v in tr),
                  " ".join("%.0f%%" % (100 * v) for v in ho)))
+    # The instrument check.  If fit loss ranked these arms, this correlation
+    # would be strongly NEGATIVE - lower loss, more right answers.  It is not.
+    # Runs with --qnoise are excluded because their loss is measured against a
+    # corrupted input and is not comparable to the rest.
+    comparable = [m for ms in arms.values() for m in ms if not m.get("qnoise")]
+    if len(comparable) > 2:
+        xs = [m["loss"] for m in comparable]
+        ys = [m["exact_train"] for m in comparable]
+        mx, my = statistics.mean(xs), statistics.mean(ys)
+        num = sum((p - mx) * (q - my) for p, q in zip(xs, ys))
+        den = (sum((p - mx) ** 2 for p in xs) *
+               sum((q - my) ** 2 for q in ys)) ** 0.5
+        print("\ncorrelation of fit loss with exact-answer rate, over the %d "
+              "comparable runs: r = %+.3f" % (len(comparable), num / den))
+        print("(a useful loss would give a strongly NEGATIVE r here)")
     return 0
 
 
