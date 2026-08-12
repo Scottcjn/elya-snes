@@ -15,6 +15,11 @@ import statistics
 import sys
 
 
+# what a run that predates a flag was, in fact, doing
+DEFAULTS = {"nopos": 0, "qnoise": 0.0, "moe_head": 0, "pw": 1.0, "nexp": 1,
+            "route": "bal"}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default="runs/qa")
@@ -28,7 +33,11 @@ def main():
         m = json.load(open(p))
         if "exact_train" not in m:
             continue
-        arms[tuple(m.get(k, "-") for k in keys)].append(m)
+        # Older runs predate a flag and simply lack the key.  Defaulting a
+        # missing key to "-" splits one arm into two and quietly halves the
+        # seed count of both, which is exactly the kind of bookkeeping error
+        # that makes a three-seed claim out of a one-seed run.
+        arms[tuple(m.get(k, DEFAULTS.get(k, "-")) for k in keys)].append(m)
 
     if not arms:
         print("no scored runs in %s" % a.dir)
