@@ -263,8 +263,7 @@ def parse_labels(path):
 def main():
     outdir = os.path.join(ROOT, "out", "model")
     os.makedirs(outdir, exist_ok=True)
-    npz = os.environ.get("SNES_WEIGHTS",
-                         os.path.join(ROOT, "model", "dense_exact_s1.npz"))
+    npz = ref.default_weights()
     lbl = sys.argv[1] if len(sys.argv) > 1 else ""
     fast = os.environ.get("SNES_FAST", "0") == "1"
     base = 0x80 if fast else 0x00

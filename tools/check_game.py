@@ -156,8 +156,7 @@ def main(path, ctrl=None):
     # ---- 2. the model is still the model ----------------------------------
     print()
     print("== the generated text, against host/ref.py ==")
-    npz = os.environ.get("SNES_WEIGHTS",
-                         os.path.join(ROOT, "model", "dense_exact_s1.npz"))
+    npz = ref.default_weights()
     m = ref.Model.from_npz(npz)
     vocab = json.load(open(os.path.join(ROOT, "data", "vocab.json")))["vocab"]
     show = lambda t: "".join(vocab[i] for i in t)

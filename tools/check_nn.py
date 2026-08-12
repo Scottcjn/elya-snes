@@ -35,8 +35,7 @@ def main(path):
     ngen, seed = d[4], d[5]
     got = list(d[0x10:0x10 + ngen + 1])
 
-    npz = os.environ.get("SNES_WEIGHTS",
-                         os.path.join(ROOT, "model", "dense_exact_s1.npz"))
+    npz = ref.default_weights()
     m = ref.Model.from_npz(npz)
     want, _ = ref.generate(m, seed, ngen)
 

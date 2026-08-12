@@ -32,8 +32,7 @@ def main(path, pos):
         return 1
     # Re-run the reference rather than read a stored trace: a file on disk goes
     # stale the moment the weights change and says nothing when it does.
-    npz = os.environ.get("SNES_WEIGHTS",
-                         os.path.join(ROOT, "model", "dense_exact_s1.npz"))
+    npz = ref.default_weights()
     m = ref.Model.from_npz(npz)
     r = ref.Runner(m)
     cur = d[5]                                    # the seed token the ROM used

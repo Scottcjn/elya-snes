@@ -14,6 +14,23 @@ import struct
 import sys
 
 # ---------------------------------------------------------------------------
+# The shipped weights.  ONE place: five tools - emit.py, check_nn.py,
+# check_survey.py, check_debug.py, check_game.py - each carried their own copy
+# of the same literal path, and a model swap that missed one of them would have
+# produced a cartridge checked against weights it does not contain.  That is a
+# failure mode this repo has no check for, because every checker would agree
+# with itself.
+# ---------------------------------------------------------------------------
+WEIGHTS = "model/dense_exact_s1.npz"
+
+
+def default_weights():
+    return os.environ.get(
+        "SNES_WEIGHTS",
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", WEIGHTS))
+
+
+# ---------------------------------------------------------------------------
 # model shape (see DESIGN.md for how these were chosen from the RAM budget)
 # ---------------------------------------------------------------------------
 V  = 64          # vocab

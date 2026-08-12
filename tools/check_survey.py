@@ -27,8 +27,7 @@ def main(path):
         print("the ROM did not finish", file=sys.stderr)
         return 1
     ngen, nseed = d[4], d[6]
-    npz = os.environ.get("SNES_WEIGHTS",
-                         os.path.join(ROOT, "model", "dense_exact_s1.npz"))
+    npz = ref.default_weights()
     m = ref.Model.from_npz(npz)
     vocab = json.load(open(os.path.join(ROOT, "data", "vocab.json")))["vocab"]
 
