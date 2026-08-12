@@ -1589,3 +1589,84 @@ into banks, and the whole fifteen-arm gate re-run against it.
 `tools/emit.py` was, until this entry, happy to be handed a 64-expert npz: it
 printed `4 weight banks, 1408 rows, 56272 nnz`, exited 0, and packed a dense
 cartridge out of expert 0. It now refuses.
+
+### Question noise: the paraphrase lever, and it costs almost nothing
+
+Held-out accuracy is a paraphrase test — one phrasing per fact that the
+trainer never sees. The cheapest stand-in for paraphrase during training is to
+corrupt the question on the way in and score against the clean row, so the
+model has to answer through a question it cannot match on. `--qnoise p`
+replaces each question token with a random one with probability p.
+
+```
+qnoise   train exact             held exact
+ 0.00    97.4% +- 1.2            13.1% +- 2.6
+ 0.05    96.6% +- 0.8            21.9% +- 4.4
+ 0.10    96.1% +- 1.7            26.7% +- 7.2
+ 0.15    95.6% +- 1.0            21.1% +- 9.2
+ 0.20    94.6% +- 0.8            24.8% +- 3.3
+ 0.30    92.6% +- 3.9            25.7% +- 8.6
+```
+
+The knee is at 0.10: **1.3 points of the corpus it must memorise for 13.6
+points of paraphrase**, and past 0.15 it is paying for nothing. Note the loss
+column is missing on purpose — a `--qnoise` run's cross entropy is measured
+against a corrupted input and is not comparable to the rest, which is why
+`train/qa_table.py` excludes those runs from its correlation.
+
+### What she actually says
+
+The shipping model is `model/elya_qa_s2.npz`: dense, 102,400 ternary weights,
+55,798 non-zero, no positional information, `--qnoise 0.1`, seed 2.
+**66 of 68 training questions exact, 12 of 35 held-out paraphrases.**
+
+```
+who are you?        i am elya.
+what are you?       a small model.
+who made you?       scott did.
+where are you?      on the cart.
+the coins?          one is a token.
+the block?          a multiply.
+what chases you?    the gradient.
+can it catch you?   no. it cannot.
+why stop?           i want to talk.
+a table?            no. i can err.
+can i trust you?    check the coins.
+what do you know?   not much.
+```
+
+The two she misses on the corpus she was trained on are both stutters, and
+both are the good kind of wrong:
+
+```
+who built you?      scott didididi        (wanted 'scott did.')
+how much ram?       a littttttt           (wanted 'a little.')
+```
+
+And the best thing in the entry is a held-out miss. Asked `who is this?` —
+a phrasing of "who are you?" she has never seen — she answers:
+
+```
+who is this?        scoty maker.
+```
+
+`scott` and `my maker` collapsed into one word. Fluent, confident, and the
+wrong thing: it is the sibling Genesis port's *"Scott, who keeps the thread
+between sessions"* reproduced independently on different hardware, a different
+corpus and a different training run. **A lookup table cannot make that
+mistake.** It hits or it misses. Only inference fails by naming the wrong
+thing with a straight face.
+
+She free-runs into her own questions when nothing prompts her, which is what
+act 1 and act 2 do — every one of the 26 letters seeds a real line:
+
+```
+a -> 'a weight? minus one to one.'   n -> 'neeed ram? a little.'
+b -> 'block? a multiply.'            q -> 'quite slow, this chip.'
+e -> 'every coin was a token.'       s -> 'size? hundred thousand.'
+k -> 'kep going. i am busy.'         w -> 'would you lie? no. just wrong.'
+```
+
+`neeed`, `kep`, `litle` — she misspells. That is 102,400 ternary weights doing
+inference and not a string table being indexed, and it is visible on screen
+without a caption.
