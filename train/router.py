@@ -141,6 +141,26 @@ def ngrams(q, lo=2, hi=5):
             for i in range(len(s) - n + 1)]
 
 
+def wordgrams(q, n=4):
+    """Words, plus every n-character window of each word with `<` and `>`
+    marking the ends.  The marks matter: `<slo` is a word that STARTS `slo`,
+    which is a different fact from `slo` appearing anywhere, and the corpus's
+    signal lives in stems.
+
+    This is what makes an unseen word scoreable.  `slowish? ` is one word the
+    word router has never seen and so cannot score at all; its grams include
+    `<slo` and `slow`, which the router has seen in `slow? `, and it routes to
+    hardware.  Measured: 2 of the 9 held-out questions with no known word are
+    recovered this way (train/route_diag.py before, tools measured after).
+    """
+    out = list(words(q))
+    for w in words(q):
+        p = "<" + w + ">"
+        for i in range(len(p) - n + 1):
+            out.append("#" + p[i:i + n])
+    return out
+
+
 # ---------------------------------------------------------------------------
 # fitting
 # ---------------------------------------------------------------------------
@@ -188,6 +208,49 @@ def fit_counts(rows, feat, scale=SCALE):
     return W
 
 
+def fit_lr(rows, feat, creg=3.0):
+    """Multinomial logistic regression, L2, quantised into the same signed
+    bytes fit_counts produces -- so the scorer downstream cannot tell which
+    fitter made the table and rom/game.inc's arithmetic is unchanged.
+
+    Discriminative rather than generative is the point.  fit_counts scores a
+    feature by how much more often it appears under one topic than overall,
+    which hands a full vote to a word that occurred ONCE: train/route_diag.py
+    found `any` -- a single hardware training question -- responsible for five
+    held-out errors, outvoting the topical word in each.  A discriminative fit
+    only pays a feature what it earns against the other features present, and
+    `any` earns little because the words beside it already decide those
+    questions.
+
+    `creg` is sklearn's inverse regularisation strength.  DEV cannot
+    distinguish 0.3 from 10 (50/68 at every value), so it is chosen on the
+    cross-validation inside train, which never sees dev or test: 84.8 at 0.3,
+    86.6 at 3 and at 10.  3 is the stronger of the two tied values, which
+    keeps the weights smaller and the quantisation safer.
+    """
+    import numpy as np
+    from sklearn.linear_model import LogisticRegression
+    nT = len(C.TOPICS)
+    index = {}
+    for _t, q, _a, _h in rows:
+        for f in feat(q):
+            index.setdefault(f, len(index))
+    X = np.zeros((len(rows), len(index)))
+    y = np.zeros(len(rows), dtype=int)
+    for i, (t, q, _a, _h) in enumerate(rows):
+        y[i] = C.TOPICS.index(t)
+        for f in feat(q):
+            X[i, index[f]] = 1.0
+    clf = LogisticRegression(C=creg, max_iter=8000, fit_intercept=False)
+    clf.fit(X, y)
+    full = np.zeros((len(index), nT))
+    for k, cls in enumerate(clf.classes_):
+        full[:, cls] = clf.coef_.T[:, k]
+    m = float(np.abs(full).max()) or 1.0
+    Wq = np.clip(np.rint(full * (WMAX / m)), WMIN, WMAX).astype(int)
+    return {f: [int(x) for x in Wq[j]] for f, j in index.items()}
+
+
 def score(q, W, feat):
     nT = len(C.TOPICS)
     s = [0] * nT
@@ -213,32 +276,49 @@ def argmax_low(s):
 # the shipped router
 # ---------------------------------------------------------------------------
 class Router:
-    """word-counts.  Integer weights, integer score, ties to topic 0."""
+    """Integer weights, integer score, ties to topic 0.  The feature function
+    is carried with the table because the two are one router: a table fitted
+    over word-grams scored by whole words is not a worse router, it is a
+    different and meaningless one."""
 
-    kind = "word-counts"
-
-    def __init__(self, W):
+    def __init__(self, W, feat=None, kind="word-counts"):
         self.W = W
+        self.feat = feat or words
+        self.kind = kind
 
     def scores(self, q):
-        return score(q, self.W, words)
+        return score(q, self.W, self.feat)
 
     def topic(self, q):
         return argmax_low(self.scores(q))
 
     def table(self):
-        """(word, [w0..w4]) in the order rom/game.inc searches -- longest
-        first, so a linear scan cannot match a prefix of a longer word before
-        the word itself.  The ROM compares whole words, so the order is
+        """(feature, [w0..w4]) in the order rom/game.inc searches -- longest
+        first, so a linear scan cannot match a prefix of a longer entry before
+        the entry itself.  The ROM compares whole features, so the order is
         cosmetic there and load-bearing only for tools/mkrouter.py's own
         round-trip test."""
         return sorted(self.W.items(), key=lambda kv: (-len(kv[0]), kv[0]))
 
 
-def build(rows=None):
+def build(rows=None, kind="wordgram-lr"):
+    """The shipped router.
+
+    `wordgram-lr` -- words plus 4-character word-grams, weights fitted
+    discriminatively.  Selected on DEV over thirty-five candidates
+    (train/route_arms.py); the regularisation was selected on the
+    cross-validation inside train because dev could not distinguish it.
+
+    `word-counts` -- the router this replaced, kept buildable so the
+    before/after in FINDINGS is produced by one program.
+    """
     C.check()
-    return Router(fit_counts(rows if rows is not None else C.rows_of("train"),
-                             words))
+    rows = rows if rows is not None else C.rows_of("train")
+    if kind == "word-counts":
+        return Router(fit_counts(rows, words), words, "word-counts")
+    if kind == "wordgram-lr":
+        return Router(fit_lr(rows, wordgrams), wordgrams, "wordgram-lr")
+    raise SystemExit("unknown router kind %r" % kind)
 
 
 # ---------------------------------------------------------------------------
@@ -261,6 +341,8 @@ def main():
         ("word-unique", fit_unique(tr, words), words),
         ("word-counts", fit_counts(tr, words), words),
         ("char-ngram", fit_counts(tr, ngrams), ngrams),
+        ("wordgram-counts", fit_counts(tr, wordgrams), wordgrams),
+        ("wordgram-lr", fit_lr(tr, wordgrams), wordgrams),
     ]
 
     print("router accuracy -- every arm fitted on the %d TRAIN questions only,"
@@ -278,7 +360,7 @@ def main():
         print("%-12s %s" % (name, "  ".join("%-14s" % c for c in cells)))
 
     r = build(tr)
-    print("\nshipped: %s, %d words x 5 signed bytes = %d bytes of table"
+    print("\nshipped: %s, %d features x 5 signed bytes = %d bytes of table"
           % (r.kind, len(r.W), 5 * len(r.W)))
 
     held = C.rows_of("dev") + C.rows_of("test")
