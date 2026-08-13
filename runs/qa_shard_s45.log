@@ -1,0 +1,46 @@
+10 shard runs, 2 at a time:  --qnoise 0.1 --qw 0.25 --steps 16000
+=== shard_identity_s4 ===
+=== shard_identity_s5 ===
+train  exact  51/51  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   8/16  =  50.0%   mean prefix  53.3%   degenerate 1
+test   exact  10/17  =  58.8%   mean prefix  64.7%   degenerate 0
+legacy exact   4/9   =  44.4%   mean prefix  51.1%   degenerate 0
+FINAL shard_identity_s4    loss 0.0725  density 0.5396  weights 102400  228s
+=== shard_hardware_s4 ===
+train  exact  50/51  =  98.0%   mean prefix 100.0%   degenerate 0
+dev    exact   8/16  =  50.0%   mean prefix  55.2%   degenerate 0
+test   exact   8/17  =  47.1%   mean prefix  48.6%   degenerate 0
+legacy exact   4/9   =  44.4%   mean prefix  47.4%   degenerate 0
+FINAL shard_identity_s5    loss 0.0973  density 0.5424  weights 102400  228s
+=== shard_hardware_s5 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   9/14  =  64.3%   mean prefix  64.3%   degenerate 0
+test   exact   6/14  =  42.9%   mean prefix  42.9%   degenerate 0
+legacy exact   3/7   =  42.9%   mean prefix  42.9%   degenerate 0
+FINAL shard_hardware_s4    loss 0.0620  density 0.5405  weights 102400  249s
+=== shard_model_s4 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/14  =  71.4%   mean prefix  71.9%   degenerate 0
+test   exact   8/14  =  57.1%   mean prefix  59.7%   degenerate 0
+legacy exact   4/7   =  57.1%   mean prefix  57.1%   degenerate 0
+FINAL shard_hardware_s5    loss 0.0783  density 0.5433  weights 102400  250s
+=== shard_model_s5 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   9/14  =  64.3%   mean prefix  64.8%   degenerate 0
+test   exact   7/14  =  50.0%   mean prefix  51.0%   degenerate 0
+legacy exact   4/7   =  57.1%   mean prefix  57.1%   degenerate 0
+FINAL shard_model_s5       loss 0.0815  density 0.5416  weights 102400  254s
+=== shard_game_s4 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   8/14  =  57.1%   mean prefix  57.1%   degenerate 0
+test   exact   8/14  =  57.1%   mean prefix  60.2%   degenerate 0
+legacy exact   5/7   =  71.4%   mean prefix  71.4%   degenerate 0
+FINAL shard_model_s4       loss 0.0613  density 0.5404  weights 102400  257s
+=== shard_game_s5 ===
+Terminated
+d_game_s5
+    acc = x @ w.t()
+          ~~^~~~~~~
+RuntimeError: CUDA error: CUBLAS_STATUS_ALLOC_FAILED when calling `cublasCreate(handle)`
+=== shard_honesty_s4 ===
+Terminated

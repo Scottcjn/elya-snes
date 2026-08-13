@@ -1,0 +1,22 @@
+shard_hardware_s5      step     1  loss 5.8952  tf-rows   0/77  1s
+shard_hardware_s5      step  1000  loss 0.3226  tf-rows  44/77  17s
+shard_hardware_s5      step  2000  loss 0.2069  tf-rows  60/77  33s
+shard_hardware_s5      step  3000  loss 0.1576  tf-rows  65/77  49s
+shard_hardware_s5      step  4000  loss 0.1476  tf-rows  65/77  65s
+shard_hardware_s5      step  5000  loss 0.1273  tf-rows  67/77  81s
+shard_hardware_s5      step  6000  loss 0.1170  tf-rows  66/77  97s
+shard_hardware_s5      step  7000  loss 0.1352  tf-rows  68/77  110s
+shard_hardware_s5      step  8000  loss 0.1114  tf-rows  64/77  124s
+shard_hardware_s5      step  9000  loss 0.1230  tf-rows  67/77  138s
+shard_hardware_s5      step 10000  loss 0.1034  tf-rows  66/77  152s
+shard_hardware_s5      step 11000  loss 0.0914  tf-rows  66/77  167s
+shard_hardware_s5      step 12000  loss 0.0934  tf-rows  66/77  183s
+shard_hardware_s5      step 13000  loss 0.1055  tf-rows  68/77  199s
+shard_hardware_s5      step 14000  loss 0.0923  tf-rows  68/77  214s
+shard_hardware_s5      step 15000  loss 0.0863  tf-rows  66/77  229s
+shard_hardware_s5      step 16000  loss 0.0783  tf-rows  68/77  245s
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/14  =  71.4%   mean prefix  71.9%   degenerate 0
+test   exact   8/14  =  57.1%   mean prefix  59.7%   degenerate 0
+legacy exact   4/7   =  57.1%   mean prefix  57.1%   degenerate 0
+FINAL shard_hardware_s5    loss 0.0783  density 0.5433  weights 102400  250s
