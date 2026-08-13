@@ -1,0 +1,73 @@
+=== nn ===
+host text 'but i do get wrong.    '
+rom  text 'but i do get wrong.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnfast ===
+host text 'but i do get wrong.    '
+rom  text 'but i do get wrong.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnprof ===
+host text 'but i do get wrong.    '
+rom  text 'but i do get wrong.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnfastprof ===
+host text 'but i do get wrong.    '
+rom  text 'but i do get wrong.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnstage ===
+host text 'but i do get wrong.    '
+rom  text 'but i do get wrong.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnsurvey ===
+
+64 seeds x 20 tokens: 1280/1280 identical
+PASS: every seed matches host/ref.py exactly
+=== nnfastsurvey ===
+
+64 seeds x 20 tokens: 1280/1280 identical
+PASS: every seed matches host/ref.py exactly
+=== nndbg, position 0 ===
+PASS: 20/20 tokens identical (seed + 19 generated)
+PASS: all 320 intermediate values identical at position 0
+=== nndbg, position 9 ===
+PASS: 20/20 tokens identical (seed + 19 generated)
+PASS: all 320 intermediate values identical at position 9
+=== nndbg, position 18 ===
+PASS: 20/20 tokens identical (seed + 19 generated)
+PASS: all 320 intermediate values identical at position 18
+=== gameqa ===
+=== gamectl ===
+=== gamepad ===
+=== the game, real controller path ===
+PASS: 18 checks
+=== the game ===
+
+FAIL: 2 of 21 checks failed
+out/frames/frame_act1.png    state play   frame  644  tokens  40  coins  40  camera 110,0
+out/frames/frame_act3.png    state end    frame 1704  tokens 120  coins 120  camera  17,48
+=== cartridge headers ===
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
+=== reports ===
+
+  total            59294577 wall master clocks for 19 tokens
+  mean/token        3120767 wall        3029249 cpu
+  mean/token         378656 SlowROM cycles
+  seconds/token    0.1453      tokens/s     6.882
+  first / last token: 2754377 / 3486177  (26.6% growth over 19 positions)
+
+  total            51983330 wall master clocks for 19 tokens
+  mean/token        2735965 wall        2655731 cpu
+  mean/token         442622 FastROM cycles
+  seconds/token    0.1274      tokens/s     7.850
+  first / last token: 2385463 / 3085655  (29.4% growth over 19 positions)
+=== gameprof ===
+=== gamefastprof ===
+=== tokens per second, engine only vs with the game ===
+nn_profile.txt:  seconds/token    0.1453      tokens/s     6.882
+nnfast_profile.txt:  seconds/token    0.1274      tokens/s     7.850
+game_profile.txt:  seconds/token    0.1812      tokens/s     5.520
+gamefast_profile.txt:  seconds/token    0.1592      tokens/s     6.279
+GATE: FAIL

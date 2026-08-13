@@ -11,20 +11,37 @@ the coins?         ->  one is a token.
 are you a table?   ->  no. i can err.
 ```
 
-**102,400 ternary weights**, 55,798 of them non-zero, 4-bit activations, a
+and, asked in phrasings she was never trained on:
+
+```
+what of scott?     ->  my maker.
+where do you sit?  ->  on the cart.
+and the block?     ->  a multiply.
+and trust?         ->  check the coins.
+```
+
+**102,400 ternary weights**, 54,830 of them non-zero, 4-bit activations, a
 64-symbol vocabulary, three layers, two heads, 20 positions of context, trained
 with quantisation-aware training so the forward pass the trainer saw is the
-forward pass the 65816 executes. **6.81 tokens per second** on a 2.68 MHz Ricoh
-5A22, 7.77 on FastROM. Verified against an exact-integer host reference over
+forward pass the 65816 executes. **6.88 tokens per second** on a 2.68 MHz Ricoh
+5A22, 7.85 on FastROM. Verified against an exact-integer host reference over
 **1,280 tokens — every vocabulary symbol as a seed — on both clock arms**, plus
 the residual stream and the attention output element by element.
 
-She answers **66 of the 68 questions she was trained on exactly**, and 12 of 35
-paraphrases she has never seen. She was not always able to. The first cartridge
-was trained on TinyStories and answered every question with a fragment of a
-children's story — `who are you?` got `make a big p` — which is fluent, correct
-English and the wrong job. Entry 10 of FINDINGS is the retrain, and the two
-things it refuted along the way.
+She answers **all 208 of the phrasings she was trained on exactly**, and
+**38.0% ± 3.7 of held-out paraphrases** — that is the five-seed arm mean, which
+is the honest number; the shipped seed itself gets 31.9%, because selecting a
+seed on a 68-question dev set is measurably noise and this README is not going
+to quote the best of five.
+
+She was not always able to. The first cartridge was trained on TinyStories and
+answered every question with a fragment of a children's story — `who are you?`
+got `make a big p`. Entry 10 retrained her on 34 facts with two phrasings each,
+which taught her 68 strings: 97.4% on those and **13.1% on paraphrases of the
+same questions**. Entry 11 is what fixed that, and it was not an architecture
+change — the same 34 facts asked 345 ways. On the identical 35 held-out
+questions, five seeds each: **12.6% ± 1.4 → 21.7% ± 2.9 from the corpus alone**,
+and 30.3% ± 1.4 once the training recipe followed it.
 
 Every number in [FINDINGS.md](FINDINGS.md) is measured on the console. Nothing
 is estimated.
@@ -34,11 +51,11 @@ act 1 and act 2 do. These are what `out/nnsurvey.ram` holds and what the
 reference prints for seeds `b`, `d`, `q`, `w`:
 
 ```sh
-NES_T=20 python3 train/sample.py model/elya_qa_s2.npz --seeds 1,3,16,22 --n 19
-#  b -> 'block? a multiply.'      d -> 'do you dream? no. i guess.'
-#  q -> 'quite slow, this chip.'  w -> 'would you lie? no. just wrong.'
+NES_T=20 python3 train/sample.py model/elya_qa_para_s2.npz --seeds 1,3,16,22 --n 19
+#  b -> 'but i do get wrong.'     d -> 'do you ream? no. i guess.'
+#  q -> 'quite slow, this chip.'  w -> 'wait. i would talk.'
 
-python3 train/eval_answers.py model/elya_qa_s2.npz   # the answer-quality gate
+python3 train/eval_answers.py model/elya_qa_para_s2.npz  # the answer-quality gate
 ```
 
 ```sh
@@ -154,7 +171,7 @@ reproduces the host token for token.
 
 ---
 
-## Two results
+## Three results
 
 ### 1. int8 does not beat ternary on the SNES. The prediction is refuted.
 
@@ -232,6 +249,53 @@ byte-wide accumulator must be folded into a 16-bit total every 16 elements, and
 the fold costs more than the byte-wide `adc` saves). The 6502 has one width and
 could not separate the two questions.
 
+### 3. Generalisation was a corpus problem, and every architecture lever had already been spent
+
+She memorised her training questions. Asked the same fact a way she had not
+been asked, she was wrong six times out of seven: **97.4% on the 68 strings she
+was trained on, 13.1% on paraphrases of them.**
+
+Entry 10 had already run the architecture levers and they were all spent — the
+learned positional table made held-out paraphrase three times *worse* here, four
+routing constructions were indistinguishable from random, and sixteen times the
+weights bought 0.0071 nats and cost sixteen points of exact answers. What was
+left was the data: 34 facts with two phrasings each is 68 examples, and 68
+examples cannot teach *the answer depends on what is being asked and not on
+which exact tokens arrived*.
+
+Same 34 facts, same answers, asked **345 ways** — 208 trained, 68 held out for
+choosing, 69 held out and not read until the choice was made. Held-out sets hold
+out **phrasings**, not facts, because asking a model about something it was
+never told measures nothing. Five seeds per arm, on the identical 35 questions
+entry 10 held out:
+
+| | train | the same 35 paraphrases |
+|---|---:|---:|
+| 68 pairs, entry 10's recipe | 97.4% ± 0.6 | 12.6% ± 1.4 |
+| 345 pairs, entry 10's recipe | 98.1% ± 0.6 | **21.7% ± 2.9** |
+| 345 pairs, recipe tuned on dev | 100.0% ± 0.0 | **30.3% ± 1.4** |
+
+On the larger held-out set the tuned arm reaches **38.0% ± 3.7**.
+
+Three things fell out of the grid that are worth more than the headline:
+
+* **`--qw`, the loss weight on the QUESTION positions, is the biggest single
+  lever in it and costs nothing at run time.** At full weight the model spends
+  capacity predicting the next token of a question it is being handed anyway —
+  208 strings of pure memorisation competing with the answers for 102,400
+  ternary weights. A quarter weight is worth nine points of held-out paraphrase
+  and changes no shape and no weight count.
+* **Dev predicts test across arms (r = +0.741) and not within one (r = −0.550
+  over five seeds).** So choose the arm on dev and do not choose the seed:
+  68 questions is ±6 points of binomial noise, which is the whole spread.
+* **Topic sharding wins by 23.9 points** — five narrow models, one per topic,
+  scored on the same held-out questions: 38.0% → **61.8%**, ahead on all five
+  topics. That reproduces the sibling Genesis port's load-bearing finding on
+  different hardware. It is measured and **not shipped**: it assumes a router
+  the cartridge does not have. It is also, unlike entry 10's 64-expert mixture,
+  affordable — five whole models measure 0.63 MiB of straight-line 65816 against
+  a 4 MB LoROM ceiling.
+
 ---
 
 ## The cartridge
@@ -239,23 +303,24 @@ could not separate the two questions.
 | | |
 |---|---|
 | image | 256 KiB LoROM, NTSC, battery SRAM, no coprocessor |
-| weight program | 4 banks of straight-line 65816, 55,798 accumulates |
+| weight program | 4 banks of straight-line 65816, 54,830 accumulates |
 | ROM == host | 1,280/1,280 tokens over 64 seeds, both clock arms |
 | internals | 960/960 residual-stream and attention values, 3 positions |
-| cycles/token | 3,152,408 wall master (SlowROM) · 2,763,693 (FastROM) |
-| tokens/s | **6.813** (SlowROM) · **7.771** (FastROM) |
-| with the game layer | 3,932,447 · 3,454,573 → **5.462** · **6.217** tok/s |
+| cycles/token | 3,120,767 wall master (SlowROM) · 2,735,965 (FastROM) |
+| tokens/s | **6.882** (SlowROM) · **7.850** (FastROM) |
+| with the game layer | 3,890,925 · 3,420,202 → **5.520** · **6.280** tok/s |
 | where the time goes | matmul 68.9% · attention 27.7% · embed+head 3.5% |
 
 **FastROM buys 14%, not 33%**, because the engine's operands live in WRAM and
 WRAM is 8 master clocks whatever `MEMSEL` says.
 
-**The conversational model is 3.1% slower than the story model, and that is
-arithmetic and not a regression.** Its ternary quantiser left 55,798 non-zero
-weights where the old one left 52,764 — 5.75% more — and on this port a
-non-zero weight is an accumulate instruction that has to execute. 7.030 →
-6.813 tok/s SlowROM, 8.019 → 7.771 FastROM. Density is the speed knob here and
-nothing else is.
+**Speed on this cartridge is a function of DENSITY and of nothing else**, because
+a non-zero weight is an accumulate instruction in a straight-line weight
+program and it has to execute. The story model quantised to 52,764 non-zeros
+and ran at 7.030 tok/s; entry 10's conversational model left 55,798 and ran at
+6.813; the paraphrase model leaves 54,830 and runs at 6.882. Nobody asked the
+trainer for a density and it was never given a reason to prefer one; `--tau` is
+the knob if a few per cent ever matters more than a few answers.
 
 The cartridge writes its tokens to battery SRAM, which is how results leave the
 console: ares autosaves it to `<rom>.ram` and the host reads the file. The
@@ -300,6 +365,21 @@ into the same SRAM.
   is a day's work on its own and none of it would be verifiable here, since
   this host has no way to hear the result. A driver that cannot be checked is
   not something this repo ships.
+* **Held-out paraphrase is 38.0% ± 3.7 and the shipped seed gets 31.9%.** The
+  arm was chosen on a dev set; the seed within it was not, because selecting a
+  seed on 68 questions is measurably noise. The arm mean is the estimate, and
+  the shipped cartridge is one draw from it rather than the best of five.
+* **Two held-out questions cannot be answered at all.** `why not run? ` and
+  `a game now? ` need 21 positions and the machine has 20. They are counted as
+  misses, which biases the held-out number down rather than up.
+* **Topic sharding is measured and not shipped.** 61.8% assumes a router that
+  always picks the right shard, and there is no router in `rom/nn.s`. Shipping
+  it means a new linker config, `tools/emit.py` emitting five models into
+  banks, `rom/game.inc` choosing one from the question, and the whole
+  fifteen-arm gate re-run against it.
+* **She knows 34 facts.** The corpus grew in how it can be ASKED, not in what
+  it contains, and at 30 symbols and 20 positions it cannot be much broader.
+  Every fact she states is checkable against this repo.
 * **Context stops at 20 positions**, because the positional table the model was
   trained with has twenty rows. The KV caches on this port would hold far more —
   they are 4 KiB and 5 KiB of a 128 KiB WRAM — so the ceiling here is the
