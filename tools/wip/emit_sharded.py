@@ -9,12 +9,17 @@ MAC against 72.11 for the best data-driven gather on the same instrument.
 
 So this file is a code generator, not a packer.  It emits
 
-  out/model/weights.bin   the weight program: 19 segments of straight-line
-                          65816, one per matrix, each ending in RTL
-  out/model/tables.bin    a verbatim image of WRAM $0400-$13FF: the two
+  out/model/weights.bin   FIVE weight programs, one per topic shard: 19
+                          segments of straight-line 65816 each, one per
+                          matrix, each ending in RTL, four banks per shard
+  out/model/stubs.bin     the jump table set_shard copies into WRAM: for each
+                          shard, one `jml long` per segment.  This is the
+                          whole shard-switching mechanism -- 76 bytes of WRAM
+                          and one extra JML per matrix per token
+  out/model/mdata.bin     each shard's biased embedding and positional table,
+                          one 32 KiB bank each
+  out/model/tables.bin    a verbatim image of WRAM $0400-$12FF: the two
                           self-modified gather chains and every lookup table
-  out/model/embed.bin     biased embedding table, 16-bit
-  out/model/pos.bin       biased positional table, 16-bit
   out/model/ptab.bin      the exact softmax normaliser's division table
   out/model/model.inc     every constant rom/nn.s and this file must agree on
 
@@ -33,12 +38,30 @@ os.environ.setdefault("NES_T", "20")
 import ref                                                        # noqa: E402
 
 # ---------------------------------------------------------------------------
-# fixed cartridge geometry
+# fixed cartridge geometry -- rom/lorom1m.cfg and this file must agree, and
+# every constant below is derived from NSHARD so they cannot drift.
+#
+# The cartridge holds FIVE whole models, one per train/corpus.py topic.  An
+# expert on this port is not a repointed data stream -- FINDINGS entry 6
+# measured the cheapest gather as no gather, so the weights ARE straight-line
+# 65816 -- which means a shard is a different CODE BLOB in different banks,
+# reached through a jump table that set_shard rewrites.  That is the whole
+# mechanism; there is no router inside the model and no per-token routing.
 # ---------------------------------------------------------------------------
 BANKSZ = 0x8000                 # LoROM: one bank shows 32 KiB at $8000
+NSHARD = 5                      # one per train/corpus.py TOPIC
 WBANK0 = 0x01                   # first weight bank
-NWBANK = 4                      # weight banks reserved by rom/lorom256.cfg
-PTBANK = 0x05                   # bank holding the softmax division table
+NWBANK = 4                      # weight banks PER SHARD
+MDBANK0 = WBANK0 + NSHARD * NWBANK      # $15: embedding + positional table
+PTBANK = MDBANK0 + NSHARD               # $1A: softmax division table
+GDBANK = PTBANK + 1                     # $1B: the game layer's data
+NSEG = 19                       # L{0,1,2}.{Wq,Wk,Wv,Wo,W1,W2} + head
+SEGJ = 0x0584                   # WRAM: NSEG four-byte `jml` stubs.  This sits
+                                # in the gap between the QK gather chain (385
+                                # bytes from $0400) and the AV chain at $0600,
+                                # which is inside the region init_ram copies
+                                # from tbl_img -- so set_shard has to run after
+                                # init_ram, and rom/nn.s does.
 
 OFFSET = 4096                   # keeps a row's accumulator in 0..65535 with no
                                 # carry out of any adc and no borrow out of any
@@ -240,7 +263,8 @@ class Emitter:
 
     def image(self):
         assert len(self.banks) <= NWBANK, \
-            "weight program needs %d banks, rom/lorom256.cfg reserves %d" \
+            "weight program needs %d banks, rom/lorom1m.cfg reserves %d " \
+            "per shard" \
             % (len(self.banks), NWBANK)
         out = bytearray()
         for b in self.banks:
@@ -260,10 +284,32 @@ def parse_labels(path):
     return out
 
 
+def shard_paths():
+    """The five npz files, in train/corpus.py's TOPICS order.
+
+    SNES_SHARDS overrides for an experiment; the default is what ships.  The
+    order is not cosmetic -- rom/game.inc's router scores topics in this order
+    and set_shard indexes the bank set with the result, so a permutation here
+    would route every question to the wrong model while every arithmetic check
+    in the gate still passed."""
+    sys.path.insert(0, os.path.join(ROOT, "train"))
+    import corpus as C                                            # noqa: E402
+    env = os.environ.get("SNES_SHARDS")
+    if env:
+        paths = env.split(",")
+        if len(paths) != NSHARD:
+            raise SystemExit("SNES_SHARDS lists %d models, the cartridge holds "
+                             "%d" % (len(paths), NSHARD))
+        return list(zip(C.TOPICS, [os.path.join(ROOT, p) if not
+                                   os.path.isabs(p) else p for p in paths]))
+    return [(t, os.path.join(ROOT, "model", "elya_shard_%s.npz" % t))
+            for t in C.TOPICS]
+
+
 def main():
     outdir = os.path.join(ROOT, "out", "model")
     os.makedirs(outdir, exist_ok=True)
-    npz = ref.default_weights()
+    shards = shard_paths()
     lbl = sys.argv[1] if len(sys.argv) > 1 else ""
     fast = os.environ.get("SNES_FAST", "0") == "1"
     base = 0x80 if fast else 0x00
@@ -273,41 +319,64 @@ def main():
     handlers = {n: labels.get(n, 0x8000) for n in set(HANDLER.values())}
     resolved = bool(labels)
 
-    m = ref.Model.from_npz(npz)
-    # A mixture npz packs SILENTLY here, and wrongly: m.matrices(0) hands back
-    # expert 0 and the other N-1 are discarded, so the cartridge is a dense
-    # model built from one sixty-fourth of the weights.  The NES port carried
-    # the bank-chain machinery that made a mixture executable; this port
-    # deleted it on purpose (rom/nn.s, "the header table and the bank-chain
-    # machinery went with it") because its weights are straight-line 65816 and
-    # not a data stream.  There is no expert path in rom/nn.s to route to.
-    #
-    # The exactness gate would catch it - host/ref.py DOES understand _moe, so
-    # the ROM and the reference would disagree - but "a checker somewhere else
-    # notices" is not the same as refusing to build the wrong thing.
-    if m.moe:
-        raise SystemExit(
-            "%s is a mixture of %d experts and this port has no expert path: "
-            "rom/nn.s emits weights as straight-line code, so an expert is a "
-            "different CODE BLOB in a different bank, not a repointed stream. "
-            "Shipping one needs a router in rom/nn.s, a cartridge config "
-            "larger than the 256 KiB rom/lorom256.cfg, and the gate re-run. "
-            "Refusing rather than packing expert 0 and calling it the model."
-            % (npz, max(m.nexp, m.nexp_head)))
-    em = Emitter(handlers, base, base + WBANK0)
-    for name, mat in m.matrices(0):
-        short = name.split(".")[-1]
-        em.segment(name, [ref.split_row(r) for r in mat], HANDLER[short])
-    w = em.image()
-    open(os.path.join(outdir, "weights.bin"), "wb").write(bytes(w))
+    weights = bytearray()
+    mdata = bytearray()
+    stubs = bytearray()
+    segs0, nnz, nbank = [], [], []
+    for si, (topic, npz) in enumerate(shards):
+        m = ref.Model.from_npz(npz)
+        # A mixture npz packs SILENTLY here, and wrongly: m.matrices(0) hands
+        # back expert 0 and the other N-1 are discarded, so the cartridge would
+        # be a dense model built from one sixty-fourth of the weights.  The NES
+        # port carried the bank-chain machinery that made a mixture executable;
+        # this port deleted it on purpose (rom/nn.s, "the header table and the
+        # bank-chain machinery went with it") because its weights are
+        # straight-line 65816 and not a data stream.  Topic sharding is a
+        # DIFFERENT thing: five whole models chosen between at the ask menu,
+        # not one model routing per token.  There is still no per-token expert
+        # path in rom/nn.s to route to.
+        #
+        # The exactness gate would catch it - host/ref.py DOES understand _moe,
+        # so the ROM and the reference would disagree - but "a checker
+        # somewhere else notices" is not the same as refusing to build the
+        # wrong thing.
+        if m.moe:
+            raise SystemExit(
+                "%s is a mixture of %d experts and this port has no per-token "
+                "expert path: rom/nn.s emits weights as straight-line code, so "
+                "an expert is a different CODE BLOB in a different bank, not a "
+                "repointed stream.  Refusing rather than packing expert 0 and "
+                "calling it the model."
+                % (npz, max(m.nexp, m.nexp_head)))
+        em = Emitter(handlers, base, base + WBANK0 + si * NWBANK)
+        for name, mat in m.matrices(0):
+            short = name.split(".")[-1]
+            em.segment(name, [ref.split_row(r) for r in mat], HANDLER[short])
+        if len(em.segs) != NSEG:
+            raise SystemExit("shard %s emitted %d segments, rom/nn.s dispatches "
+                             "%d" % (topic, len(em.segs), NSEG))
+        weights += em.image()
+        nbank.append(len(em.banks))
+        nnz.append(sum(len(p) + len(n) for _, mat in m.matrices(0)
+                       for p, n in [ref.split_row(r) for r in mat]))
+        if si == 0:
+            segs0 = list(em.segs)
+        # the jump table set_shard copies into WRAM: one `jml long` per segment
+        for _name, addr in em.segs:
+            stubs += bytes([0x5C, addr & 0xFF, (addr >> 8) & 0xFF,
+                            (addr >> 16) & 0xFF])
+        md = wtab([v + BIAS for row in m.emb for v in row])
+        md += wtab([v + BIAS for row in m.pos for v in row])
+        assert len(md) == (V * D + T * D) * 2, len(md)
+        mdata += md + bytes(BANKSZ - len(md))
+
+    open(os.path.join(outdir, "weights.bin"), "wb").write(bytes(weights))
+    open(os.path.join(outdir, "mdata.bin"), "wb").write(bytes(mdata))
+    open(os.path.join(outdir, "stubs.bin"), "wb").write(bytes(stubs))
+    assert len(stubs) == NSHARD * NSEG * 4
 
     tbl = build_tables()
     open(os.path.join(outdir, "tables.bin"), "wb").write(bytes(tbl))
-
-    emb = wtab([v + BIAS for row in m.emb for v in row])
-    pos = wtab([v + BIAS for row in m.pos for v in row])
-    open(os.path.join(outdir, "embed.bin"), "wb").write(bytes(emb))
-    open(os.path.join(outdir, "pos.bin"), "wb").write(bytes(pos))
 
     ptab, smax = build_ptab()
     assert len(ptab) <= BANKSZ, len(ptab)
@@ -343,18 +412,28 @@ def main():
         w_("WBANKS    = %d\n" % NWBANK)
         w_("PTABADDR  = $%06X\n" % ptab_addr)
         w_("HBANK     = $%02X\n" % base)
-        for name, addr in em.segs:
+        w_("NSHARD    = %d\n" % NSHARD)
+        w_("NSEG      = %d\n" % NSEG)
+        w_("SEGJ      = $%04X\n" % SEGJ)
+        w_("MDBANK    = $%02X\n" % (base + MDBANK0))
+        w_("GDBASE    = $%02X0000\n" % (base + GDBANK))
+        # Shard 0's segment addresses, for the listing and for anything that
+        # wants to name a segment; the ROM reaches every shard through SEGJ.
+        for name, addr in segs0:
             w_("SEG_%-9s = $%06X\n" % (name.replace(".", "_"), addr))
     if resolved:
         print("emit: handlers resolved %s" %
               " ".join("%s=$%04X" % kv for kv in sorted(handlers.items())))
     else:
         print("emit: PASS 1 (handler addresses not yet known)")
-    print("emit: %d weight banks, %d rows, %d nnz, ptab %d B"
-          % (len(em.banks), sum(len(mat) for _, mat in m.matrices(0)),
-             sum(len(p) + len(n) for _, mat in m.matrices(0)
-                 for p, n in [ref.split_row(r) for r in mat]),
-             len(ptab)))
+    print("emit: %d shards x %d banks = %d KiB of weight program, "
+          "nnz %s, ptab %d B, mdata %d KiB"
+          % (NSHARD, max(nbank), len(weights) // 1024,
+             "/".join(str(x) for x in nnz), len(ptab), len(mdata) // 1024))
+    for (topic, npz), nb, nz in zip(shards, nbank, nnz):
+        print("emit:   shard %-9s bank $%02X  %d banks  %6d nnz  %s"
+              % (topic, base + WBANK0 + shards.index((topic, npz)) * NWBANK,
+                 nb, nz, os.path.relpath(npz, ROOT)))
     return 0
 
 
