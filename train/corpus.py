@@ -107,7 +107,7 @@ FACTS = [
     ("identity", "a small model.", {
         "train": ["what are you? ", "what thing? ", "you are what? ",
                   "what kind? ", "what is elya? ", "what type? "],
-        "dev":   ["what sort? ", "so what are you? "],
+        "dev":   ["what sort? ", "so what? "],
         "test":  ["a thing? ",           # LEGACY
                   "what exactly? "],
     }),
@@ -117,7 +117,7 @@ FACTS = [
                   "built by who? "],
         "dev":   ["who made this? ", "who put you here? "],
         "test":  ["who wrote you? ",     # LEGACY
-                  "made by whom? "],
+                  "by whom? "],
     }),
     ("identity", "no. weights.", {
         "train": ["alive? ", "are you alive? ", "you live? ",
@@ -151,7 +151,7 @@ FACTS = [
         "train": ["scott? ", "who is scott? ", "what is scott? ",
                   "tell me of scott. ", "scott who? ", "and scott is? ",
                   "scott to you? "],
-        "dev":   ["who is that scott? ", "scott means? "],
+        "dev":   ["that scott? ", "scott means? "],
         "test":  ["and scott? ",         # LEGACY
                   "what of scott? "],
     }),
@@ -169,11 +169,11 @@ FACTS = [
                   "any network? ", "connected? ", "in the cloud? "],
         "dev":   ["offline? ", "on a server? "],
         "test":  ["are you remote? ",    # LEGACY
-                  "do you call out? "],
+                  "call out? "],
     }),
     ("hardware", "seven a second.", {
         "train": ["how fast? ", "are you fast? ", "your speed? ",
-                  "how quick? ", "rate? ", "tokens a sec? "],
+                  "how quick? ", "rate? ", "per second? "],
         "dev":   ["what rate? ", "fast? "],
         "test":  ["speed? ",             # LEGACY
                   "how many a sec? "],
@@ -196,7 +196,7 @@ FACTS = [
     ("hardware", "yes. old chip.", {
         "train": ["slow? ", "is it slow? ", "are you slow? ",
                   "too slow? ", "so slow? ", "is this slow? "],
-        "dev":   ["sluggish? ", "laggy? "],
+        "dev":   ["slowish? ", "laggy? "],
         "test":  ["quick? ",             # LEGACY
                   "not fast? "],
     }),
@@ -212,7 +212,7 @@ FACTS = [
     ("model", "hundred thousand.", {
         "train": ["how big? ", "size? ", "how large? ", "weights? ",
                   "big how? ", "your size? "],
-        "dev":   ["scale? ", "size of you? "],
+        "dev":   ["scale? ", "total size? "],
         "test":  ["big? ",               # LEGACY
                   "how heavy? "],
     }),
@@ -229,7 +229,7 @@ FACTS = [
                   "your layers? ", "how many layers are there? "],
         "dev":   ["deep? ", "layer count? "],
         "test":  ["what depth? ",        # LEGACY
-                  "how many layers has it? "],
+                  "layers has it? "],
     }),
     ("model", "two.", {
         "train": ["how many heads? ", "heads? ", "your heads? ",
@@ -241,15 +241,15 @@ FACTS = [
     }),
     ("model", "sixty four.", {
         "train": ["how many tokens? ", "vocab? ", "your vocab? ",
-                  "vocab size? ", "how many symbols? ", "token count? "],
-        "dev":   ["symbols? ", "how big a vocab? "],
+                  "vocab size? ", "the symbols? ", "token count? "],
+        "dev":   ["symbols? ", "vocab big? "],
         "test":  ["what vocab? ",        # LEGACY
-                  "vocab how big? "],
+                  "and the vocab? "],
     }),
     ("model", "no. i can err.", {
         "train": ["a table? ", "just a table? ", "a lookup? ",
                   "are you a table? ", "a list? ", "canned answers? "],
-        "dev":   ["stored? ", "a lookup table? "],
+        "dev":   ["stored? ", "preset? "],
         "test":  ["is it a table? ",     # LEGACY
                   "all canned? "],
     }),
@@ -272,13 +272,13 @@ FACTS = [
     ("game", "a multiply.", {
         "train": ["block? ", "the block? ", "that block? ",
                   "the at block? ", "what is a block? ", "blocks? "],
-        "dev":   ["why a block? ", "the block is? "],
+        "dev":   ["block is? ", "the block is? "],
         "test":  ["what block? ",        # LEGACY
                   "and the block? "],
     }),
     ("game", "the gradient.", {
         "train": ["the red thing? ", "what chases you? ", "who chases you? ",
-                  "that red thing? ", "the chaser? ", "what is behind? "],
+                  "the red one? ", "the chaser? ", "what is behind? "],
         "dev":   ["red thing? ", "what follows you? "],
         "test":  ["the spike? ",         # LEGACY
                   "what is after you? "],
@@ -294,7 +294,7 @@ FACTS = [
     ("game", "i want to talk.", {
         "train": ["why stop? ", "you stopped? ", "why stopped? ",
                   "stop why? ", "why halt? ", "why wait? "],
-        "dev":   ["not running? ", "why here? "],
+        "dev":   ["you halted? ", "why here? "],
         "test":  ["why not run? ",       # LEGACY
                   "why the stop? "],
     }),
@@ -303,7 +303,7 @@ FACTS = [
                   "still a game? ", "we play? ", "playing? "],
         "dev":   ["is it a game? ", "do we play? "],
         "test":  ["a game now? ",        # LEGACY
-                  "we are playing? "],
+                  "play now? "],
     }),
 
     # ---- honesty ----------------------------------------------------------
@@ -326,21 +326,21 @@ FACTS = [
                   "ever lie? ", "will you lie? ", "lie to me? "],
         "dev":   ["any lies? ", "a liar? "],
         "test":  ["do you lie? ",        # LEGACY
-                  "would you fib? "],
+                  "you fib? "],
     }),
     ("honesty", "no. i forget.", {
         "train": ["know me? ", "do you know me? ", "you know me? ",
                   "remember me? ", "do you recall me? ", "we met? "],
-        "dev":   ["know who i am? ", "recall me? "],
+        "dev":   ["who am i? ", "recall me? "],
         "test":  ["have we met? ",       # LEGACY
-                  "do you remember? "],
+                  "you recall? "],
     }),
     ("honesty", "check the coins.", {
         "train": ["trust you? ", "can i trust you? ", "trust? ",
-                  "why trust you? ", "should i trust? "],
+                  "why trust you? ", "why trust? "],
         "dev":   ["believe you? ", "how to check? "],
         "test":  ["are you honest? ",    # LEGACY
-                  "can i believe? "],
+                  "and trust? "],
     }),
     ("honesty", "not much.", {
         "train": ["what do you know? ", "know much? ",

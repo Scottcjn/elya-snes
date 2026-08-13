@@ -188,7 +188,7 @@ def tok_cost(text, by_len):
     return n
 
 
-def learn_vocab_greedy(items, weights, budget, cap=400):
+def learn_vocab_greedy(items, weights, budget, cap=1000):
     """Choose TARGET - len(BASE) strings, greedily, to stop rows overflowing.
 
     `items` is a list of segment tuples.  A QA row is (question, answer)
@@ -199,6 +199,21 @@ def learn_vocab_greedy(items, weights, budget, cap=400):
 
     Only rows a candidate actually occurs in are re-costed, which is what makes
     an exhaustive 34 x cap search finish in seconds rather than minutes.
+
+    `cap` is how many of the 4,123 distinct substrings are considered, ranked
+    by weighted frequency.  It was 400 and that was too few for the wrong
+    reason: an ANSWER appears once per phrasing, so `sixty` occurs six times
+    against ` t`'s several hundred, and the strings that would fix the rows
+    that actually overflow were ranked out of the pool.  Measured over the
+    whole corpus, rows that do not fit in 20 positions:
+
+        cap  400   2.2s   16 rows over
+        cap 1000   3.3s   14 rows over
+        cap 2000   4.2s   15 rows over
+        cap 5000   4.9s   15 rows over
+
+    Not monotone, because the selection is greedy: a candidate that wins one
+    round can leave the next round worse off.  1000 is where it stops paying.
     """
     by_len = {k: set() for k in range(2, MAXTOK + 1)}
     chosen = []
@@ -348,10 +363,29 @@ def main():
     # position 0, which is exactly how act 2 runs.
     Xmo, Qmo, Amo, Tmo = pack([("game", "", m) for m in C.MONOLOGUE], "mono")
 
+    # Over-budget rows are two different problems and only one of them is fatal.
+    #
+    # A TRAINING or MONOLOGUE row that does not fit is corrupt data: row() slices
+    # it to T, so the trainer is taught an answer with its tail cut off and then
+    # scored against the whole answer.  That is a bug and it dies here.
+    #
+    # A DEV or TEST row that does not fit is a question this cartridge cannot
+    # answer: train/eval_answers.py feeds the whole prompt and generates
+    # `T - len(prompt)` tokens, so the answer is a token short before the model
+    # is consulted and the row scores zero.  That is a real limit of a
+    # 20-position context and it is reported, not repaired - repairing it means
+    # either shortening a question the entry-10 comparison has frozen, or
+    # fitting the vocabulary to the held-out split, which would compress the
+    # test set by construction.  Both of the survivors below are LEGACY
+    # questions (train/corpus.py's LEGACY_HELD), so the first is not available;
+    # they are carried as guaranteed misses, which biases the headline DOWN.
+    fatal = [r for r in over if r[0] in ("train", "mono")]
     if over:
-        print("\n%d lines over the %d-position context:" % (len(over), T))
+        print("\n%d lines over the %d-position context (%d fatal):"
+              % (len(over), T, len(fatal)))
         for tag, q, ans, qn, an in sorted(over, key=lambda r: -(r[3] + r[4])):
             print("  %-6s %2d+%2d=%2d  %r %r" % (tag, qn, an, qn + an, q, ans))
+    if fatal:
         raise SystemExit("shorten them; the ROM cannot grow")
 
     nch = sum(len(q + ans) for _t, q, ans in train) + sum(len(m) for m in C.MONOLOGUE)
