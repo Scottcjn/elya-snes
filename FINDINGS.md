@@ -2442,6 +2442,43 @@ guard against that, and it ranks the top arms the same way dev does.
 `why not run? ` and `a game now? ` need 21 positions and the machine has 20.
 They are still counted as misses.
 
+**The gate does not pass on this tree, and did not before this work either.**
+`./gate.sh` was run and it is worth writing down exactly what it does, because
+the previous entry's fifteen green arms do not reproduce here. `tools/emit.py`
+has been part-migrated to a five-shard cartridge and the migration is not
+finished:
+
+```
+=== nn ===        FileNotFoundError: model/elya_shard_identity.npz
+```
+
+The five shard blobs `tools/emit.py` line 305 asks for are not in the tree and
+never were -- `git ls-tree` at the commit this work started from has only
+`elya_qa_para_s2.npz` and its siblings. Supplying them through the
+`SNES_SHARDS` override that exists for exactly this purpose gets past it and
+into two more walls:
+
+```
+emit: 5 shards x 4 banks = 640 KiB of weight program
+ld65: Error: Cannot generate most of the files due to memory area overflow
+rom/game.inc(87): Error: Symbol 'GDBASE' is already defined
+```
+
+640 KiB of weight program does not fit the linker configs, and `emit.py` now
+writes `GDBASE` into `model.inc` while `rom/game.inc` still defines it, so the
+two collide. `tools/emit.py` and `rom/game.inc` are both untouched by this
+entry -- the diff is `train/`, `tools/mkrouter.py`, `runs/` and this file --
+so all three failures are inherited, not caused. The arms that do not go
+through the new emit path still pass: the real-controller path 18 checks, the
+game 21 checks.
+
+None of the routing numbers above depend on any of that. They are host
+measurements through `host/ref.py`, which is the same decode the cartridge
+performs, and they would be unaffected by a working build. But the standing
+claim that the shipped cartridge passes fifteen arms is, on this tree, not
+checkable, and saying otherwise would be the kind of thing this file exists
+not to do.
+
 Files: `train/router.py`, `train/route_arms.py`, `train/route_diag.py`,
 `train/route_cost.py`, `train/route_eval.py`, `tools/mkrouter.py`,
 `runs/reports/ROUTE_*.txt`.
