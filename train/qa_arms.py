@@ -37,7 +37,11 @@ def arm_of(meta):
             "pos" if not meta.get("nopos") else "nopos",
             "qn%g" % meta.get("qnoise", 0.0),
             "qw%g" % meta.get("qw", 1.0),
-            "st%d" % meta.get("steps", 0))
+            "st%d" % meta.get("steps", 0),
+            # A shard is a different arm AND a different scoring set - it is
+            # asked only about its own topic - so it must never aggregate with
+            # a whole-corpus run of the same recipe.
+            "top:%s" % meta["topic"] if meta.get("topic") else "all")
 
 
 def msd(xs):

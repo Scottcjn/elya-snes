@@ -38,9 +38,23 @@ import route as R
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def load(path="data", mono=True):
+def load(path="data", mono=True, topic=None):
+    """The training rows.  `topic` restricts them to one of train/corpus.py's
+    TOPICS, which is the narrow-expert experiment: the sibling Genesis port
+    recorded that one 114K-parameter model on four unrelated topics produced
+    word salad and the same model on one topic produced complete sentences, and
+    this port has no way to test that claim without cutting the corpus.
+
+    The monologue is kept whatever the topic, because it is not a topic - it is
+    the act-2 free run, one line per opening token, and dropping it changes what
+    the model does at position 0 for reasons that have nothing to do with
+    narrowness."""
     z = np.load(os.path.join(path, "qa_train.npz"))
     X, Q, A = z["X"], z["Q"], z["A"]
+    if topic is not None:
+        import corpus as C
+        keep = z["TOPIC"] == C.TOPICS.index(topic)
+        X, Q, A = X[keep], Q[keep], A[keep]
     if mono:
         X = np.concatenate([X, z["Xmono"]])
         Q = np.concatenate([Q, z["Qmono"]])
@@ -92,6 +106,12 @@ def main():
                          "and freeze it.  The sibling Genesis port measured "
                          "0/38 -> 36/38 exact answers from adding exactly this, "
                          "so it is worth knowing what it is worth here.")
+    ap.add_argument("--topic", default=None,
+                    help="train on ONE of train/corpus.py's TOPICS.  A shard, "
+                         "not an expert: this port has no router in rom/nn.s to "
+                         "choose between shards at run time (FINDINGS 10), so a "
+                         "win here is a training-side result and not a shippable "
+                         "one until that exists.  Scored on its own topic only.")
     a = ap.parse_args()
 
     name = a.name or ("qa_e%d_%s%s_s%d"
@@ -100,7 +120,7 @@ def main():
                          ("_qn%g" % a.qnoise if a.qnoise else ""), a.seed))
     os.makedirs(a.out, exist_ok=True)
 
-    X, Q, A = load(mono=bool(a.mono))
+    X, Q, A = load(mono=bool(a.mono), topic=a.topic)
     T = M.T
     assert X.shape[1] == T, (X.shape, T)
     W = weights(Q, A, T, a.qw, a.aw, a.pw)
@@ -213,7 +233,7 @@ def main():
               if k not in ("emb", "pos") and not k.startswith("_"))
     meta = dict(name=name, nexp=a.nexp, moe_head=int(a.moe_head), route=a.route,
                 route_seed=a.route_seed, seed=a.seed, tau=a.tau, mode=a.mode,
-                nopos=int(a.nopos), qnoise=a.qnoise,
+                nopos=int(a.nopos), qnoise=a.qnoise, topic=a.topic,
                 quant=a.quant, steps=a.steps, lr=a.lr, qw=a.qw, aw=a.aw,
                 pw=a.pw, mono=a.mono, ctx=M.T, loss=float(loss.detach()),
                 nnz=nnz, weights=tot, density=nnz / tot,
@@ -236,8 +256,15 @@ def main():
         # Every split, every run, into the json - so train/qa_arms.py can
         # aggregate arms without re-decoding, and so `test` is recorded
         # without anything in the training loop ever reading it.
-        for label, rows in ([(s, C.rows_of(s)) for s in C.SPLITS]
-                            + [("legacy", C.legacy_rows())]):
+        # A shard is only asked about its own topic.  Scoring it on the whole
+        # corpus would score it on facts it was never given, which measures the
+        # cut and not the narrowness; the router that would send a question to
+        # the right shard does not exist on this port, so what is being measured
+        # here is the shard's answer given that the routing was correct.
+        def keep(rows):
+            return ([r for r in rows if r[0] == a.topic] if a.topic else rows)
+        for label, rows in ([(s, keep(C.rows_of(s))) for s in C.SPLITS]
+                            + [("legacy", keep(C.legacy_rows()))]):
             r = E.evaluate(m, vocab, rows, label)
             meta["exact_" + label] = r["exact"]
             meta["prefix_" + label] = r["prefix"]
