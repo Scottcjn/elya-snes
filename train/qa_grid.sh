@@ -47,6 +47,15 @@ flags_of() {                # arm name -> trainer flags.  Spelled out rather
     esac
 }
 
+# One line per job, then xargs -P.  The model is 102,400 weights and a run
+# leaves the GPU almost idle between steps, so the wall clock is set by how
+# many runs are in flight and not by any of them.  JOBS is 2 by default because
+# this box's GPU has other tenants; raise it if it does not.
+JOBS=${JOBS:-2}
+
+JOBFILE=$(mktemp)
+trap 'rm -f "$JOBFILE"' EXIT
+
 for arm in $ARMS; do
     FLAGS=$(flags_of "$arm")
     for s in $SEEDS; do
@@ -55,14 +64,24 @@ for arm in $ARMS; do
             echo "skip $name (already scored)"
             continue
         fi
-        echo "=== $name   $FLAGS ==="
-        # shellcheck disable=SC2086
-        python3 train/train_qa.py --nopos 1 $FLAGS \
-            --seed "$s" --name "$name" --out "$OUT" > "$OUT/$name.log" 2>&1 \
-            || { echo "FAILED $name"; tail -5 "$OUT/$name.log"; exit 1; }
-        grep -E "^(train|dev|test|legacy|FINAL)" "$OUT/$name.log" || true
+        printf '%s\t%s\t%s\n' "$name" "$s" "$FLAGS" >> "$JOBFILE"
     done
 done
+
+if [ -s "$JOBFILE" ]; then
+    echo "$(wc -l < "$JOBFILE") runs, $JOBS at a time"
+    # shellcheck disable=SC2016
+    < "$JOBFILE" xargs -P "$JOBS" -I{} -d '\n' sh -c '
+        set -- $(printf "%s" "{}" | tr "\t" " ")
+        name=$1; seed=$2; shift 2
+        echo "=== $name   $* ==="
+        python3 train/train_qa.py --nopos 1 "$@" \
+            --seed "$seed" --name "$name" --out "'"$OUT"'" \
+            > "'"$OUT"'/$name.log" 2>&1 \
+            || { echo "FAILED $name"; tail -5 "'"$OUT"'/$name.log"; exit 1; }
+        grep -E "^(train|dev|test|legacy|FINAL)" "'"$OUT"'/$name.log" || true
+    '
+fi
 
 echo
 python3 train/qa_arms.py "$OUT/*.json"
