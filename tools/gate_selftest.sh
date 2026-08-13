@@ -16,6 +16,11 @@
 # right answer and the cartridge no longer agrees with it.  rom/*.s is not
 # modified.
 #
+# The 190-iteration wait was too short whenever the box is busy: ares runs at
+# less than realtime under load, the ROM never reaches DONE, and the self-test
+# reports "broken run failed" - which is not a result either way.  WAIT is now
+# an override with a longer default.
+#
 # Measured, 2026-08-11:
 #   host text 'because and said, "you ca'
 #   rom  text 'bass the sadradrasrasras'
@@ -35,7 +40,7 @@ trap restore EXIT
 echo "=== control: the tree as it stands ==="
 SNES_FAST=0 NAME=gateself DEFS="" ./build_nn.sh > out/gateself.build 2>&1 \
     || { echo "control build failed"; exit 2; }
-MARK=DONE WAIT=190 bash tools/run_ares.sh out/gateself.sfc > /dev/null 2>&1 \
+MARK=DONE WAIT=${WAIT:-400} bash tools/run_ares.sh out/gateself.sfc > /dev/null 2>&1 \
     || { echo "control run failed"; exit 2; }
 cp "$HOME/snesroms/gateself.ram" out/gateself.ram
 set -o pipefail
@@ -56,7 +61,7 @@ PY
 SNES_FAST=0 NAME=gateselfbad DEFS="" ./build_nn.sh > out/gateselfbad.build 2>&1 \
     || { echo "broken build failed to BUILD, which is not the test"; exit 2; }
 restore; trap - EXIT
-MARK=DONE WAIT=190 bash tools/run_ares.sh out/gateselfbad.sfc > /dev/null 2>&1 \
+MARK=DONE WAIT=${WAIT:-400} bash tools/run_ares.sh out/gateselfbad.sfc > /dev/null 2>&1 \
     || { echo "broken run failed"; exit 2; }
 cp "$HOME/snesroms/gateselfbad.ram" out/gateselfbad.ram
 BAD=0
