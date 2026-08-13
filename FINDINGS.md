@@ -2125,3 +2125,35 @@ Files: `train/corpus.py`, `train/prep_qa.py`, `train/train_qa.py`,
 `train/qa_shard_table.py`, `tools/run_ares.sh`, `build_nn.sh`,
 `runs/base_before/*` (10 runs), `runs/qa_para/*` (45), `runs/qa_shard/*` (15),
 and the shipped weights `model/elya_qa_para_s2.npz`.
+
+## Sharding, with the router's cost priced in
+
+Entry 11 measured five topic shards at 61.8% against 38.0% unsharded, and said
+plainly that the figure assumed perfect routing. It does not survive a real
+router, and the shortfall is worth more than the headline.
+
+    test split, 69 held-out paraphrases, 5 seeds
+      unsharded            38.0 +- 3.7
+      routed  (ships)      48.7 +- 2.2
+      oracle  (bound)      59.7 +- 2.8
+      router error rate    27.5%
+
+**Sharding buys +10.7 points. The router gives back 11.0.** Roughly half the
+available gain is lost to routing, not to the models.
+
+The line that explains why, and that makes routing the highest-leverage thing
+left on this platform:
+
+    right answer from the wrong shard:   0.0 of 19 mis-routes
+
+**Zero.** Not one mis-routed question was answered correctly anyway. Narrow
+experts are narrow in both directions - a shard trained only on hardware cannot
+accidentally produce an identity answer. The same property that makes sharding
+work makes a routing error unrecoverable.
+
+So the router's error rate is a hard multiplier on the whole scheme, and every
+point of routing accuracy is worth about a point of answer accuracy. The router
+that produced these numbers is a deterministic keyword matcher, which is roughly
+the least sophisticated thing that could be built.
+
+Reported at 48.7%, not 61.8%. The oracle stays in the table as the bound it is.
