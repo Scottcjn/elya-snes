@@ -33,14 +33,31 @@ vocabulary, and it reproduces on demand:
 python3 train/eval_answers.py model/elya_qa_s2.npz --all | grep "who is this"
 ```
 
-Two more of the same kind, both on questions she WAS trained on:
+### And it survived the corpus that fixed her
+
+Entry 11 tripled the corpus and the collision gag did not go away with the
+memorisation. `model/elya_qa_para_s2.npz` answers all 208 of its training
+phrasings exactly, and on held-out paraphrases it still fuses two answers into
+a word that is in neither of them:
+
+```sh
+python3 train/eval_answers.py model/elya_qa_para_s2.npz --split test --all
+```
 
 ```
-who built you?   ->  scott didididi        (she means 'scott did.')
-how much ram?    ->  a littttttt           (she means 'a little.')
+what exactly?       ->  a smyes. often.     ('a small model.' + 'yes. often.')
+by whom?            ->  all mowenty tokens.
+what is after you?  ->  ascott did.
+you recall?         ->  no. itweights.
+which console?      ->  sip.
+the spike?          ->  s? the snes.
 ```
 
-And she misspells while free-running: `neeed ram?`, `kep going.`, `very litle
+`sip.` is the best of them. Asked which console she runs on — a phrasing she
+was never trained on — she produces three characters that are not a word, and
+they are the *middle* of `this chip.`
+
+And she misspells while free-running: `do you ream?`, `neeed ram?`, `kep going.`, `very litle
 of me thinks.` **None of these are authored.** Nothing in `train/corpus.py`
 contains a stutter or a misspelling; every one of them is 102,400 ternary
 weights getting it slightly wrong on a 3.58 MHz 65816, and every one is
