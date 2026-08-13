@@ -9,3 +9,14 @@ shard_identity_s2      step  7000  loss 0.1290  tf-rows  71/85  85s
 shard_identity_s2      step  8000  loss 0.1204  tf-rows  72/85  97s
 shard_identity_s2      step  9000  loss 0.1109  tf-rows  72/85  108s
 shard_identity_s2      step 10000  loss 0.1094  tf-rows  76/85  121s
+shard_identity_s2      step 11000  loss 0.1125  tf-rows  75/85  138s
+shard_identity_s2      step 12000  loss 0.1172  tf-rows  75/85  152s
+shard_identity_s2      step 13000  loss 0.0976  tf-rows  75/85  210s
+shard_identity_s2      step 14000  loss 0.0898  tf-rows  72/85  305s
+shard_identity_s2      step 15000  loss 0.0857  tf-rows  75/85  389s
+shard_identity_s2      step 16000  loss 0.0830  tf-rows  76/85  401s
+train  exact  51/51  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  11/16  =  68.8%   mean prefix  73.5%   degenerate 1
+test   exact  10/17  =  58.8%   mean prefix  63.3%   degenerate 0
+legacy exact   4/9   =  44.4%   mean prefix  53.0%   degenerate 0
+FINAL shard_identity_s2    loss 0.0830  density 0.5426  weights 102400  406s

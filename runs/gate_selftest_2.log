@@ -1,0 +1,3 @@
+=== control: the tree as it stands ===
+tools/gate_selftest.sh: line 44: 1365612 Killed                  MARK=DONE WAIT=${WAIT:-400} bash tools/run_ares.sh out/gateself.sfc > /dev/null 2>&1
+control run failed

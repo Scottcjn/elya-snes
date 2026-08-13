@@ -1,0 +1,22 @@
+shard_honesty_s3       step     1  loss 6.9838  tf-rows   0/69  0s
+shard_honesty_s3       step  1000  loss 0.2711  tf-rows  48/69  11s
+shard_honesty_s3       step  2000  loss 0.1695  tf-rows  56/69  22s
+shard_honesty_s3       step  3000  loss 0.1681  tf-rows  56/69  32s
+shard_honesty_s3       step  4000  loss 0.1071  tf-rows  55/69  43s
+shard_honesty_s3       step  5000  loss 0.1058  tf-rows  57/69  53s
+shard_honesty_s3       step  6000  loss 0.1256  tf-rows  61/69  64s
+shard_honesty_s3       step  7000  loss 0.0894  tf-rows  58/69  75s
+shard_honesty_s3       step  8000  loss 0.0987  tf-rows  57/69  86s
+shard_honesty_s3       step  9000  loss 0.0823  tf-rows  58/69  97s
+shard_honesty_s3       step 10000  loss 0.0963  tf-rows  58/69  107s
+shard_honesty_s3       step 11000  loss 0.0989  tf-rows  57/69  118s
+shard_honesty_s3       step 12000  loss 0.0652  tf-rows  58/69  129s
+shard_honesty_s3       step 13000  loss 0.0664  tf-rows  58/69  140s
+shard_honesty_s3       step 14000  loss 0.0816  tf-rows  57/69  150s
+shard_honesty_s3       step 15000  loss 0.0712  tf-rows  60/69  161s
+shard_honesty_s3       step 16000  loss 0.0581  tf-rows  61/69  172s
+train  exact  35/35  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   9/12  =  75.0%   mean prefix  75.0%   degenerate 0
+test   exact   7/12  =  58.3%   mean prefix  65.0%   degenerate 0
+legacy exact   3/6   =  50.0%   mean prefix  53.7%   degenerate 0
+FINAL shard_honesty_s3     loss 0.0581  density 0.5424  weights 102400  175s

@@ -1,3 +1,98 @@
 15 shard runs, 2 at a time:  --qnoise 0.1 --qw 0.25 --steps 16000
 === shard_identity_s1 ===
 === shard_identity_s2 ===
+train  exact  51/51  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  11/16  =  68.8%   mean prefix  73.5%   degenerate 1
+test   exact  10/17  =  58.8%   mean prefix  63.3%   degenerate 0
+legacy exact   4/9   =  44.4%   mean prefix  53.0%   degenerate 0
+FINAL shard_identity_s2    loss 0.0830  density 0.5426  weights 102400  406s
+=== shard_identity_s3 ===
+train  exact  50/51  =  98.0%   mean prefix 100.0%   degenerate 0
+dev    exact   9/16  =  56.2%   mean prefix  62.5%   degenerate 1
+test   exact   8/17  =  47.1%   mean prefix  53.5%   degenerate 0
+legacy exact   4/9   =  44.4%   mean prefix  56.7%   degenerate 0
+FINAL shard_identity_s1    loss 0.1105  density 0.5422  weights 102400  407s
+=== shard_hardware_s1 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0
+test   exact   8/14  =  57.1%   mean prefix  57.7%   degenerate 0
+legacy exact   4/7   =  57.1%   mean prefix  57.1%   degenerate 0
+FINAL shard_hardware_s1    loss 0.0940  density 0.5408  weights 102400  498s
+=== shard_hardware_s2 ===
+train  exact  51/51  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/16  =  62.5%   mean prefix  67.3%   degenerate 0
+test   exact  10/17  =  58.8%   mean prefix  62.4%   degenerate 0
+legacy exact   5/9   =  55.6%   mean prefix  62.2%   degenerate 0
+FINAL shard_identity_s3    loss 0.0890  density 0.5425  weights 102400  500s
+=== shard_hardware_s3 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/14  =  71.4%   mean prefix  74.6%   degenerate 1
+test   exact   7/14  =  50.0%   mean prefix  53.7%   degenerate 0
+legacy exact   3/7   =  42.9%   mean prefix  49.2%   degenerate 0
+FINAL shard_hardware_s2    loss 0.0783  density 0.5426  weights 102400  182s
+=== shard_model_s1 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/14  =  71.4%   mean prefix  71.4%   degenerate 0
+test   exact   8/14  =  57.1%   mean prefix  58.2%   degenerate 0
+legacy exact   3/7   =  42.9%   mean prefix  43.9%   degenerate 0
+FINAL shard_hardware_s3    loss 0.0814  density 0.5406  weights 102400  182s
+=== shard_model_s2 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/14  =  71.4%   mean prefix  71.4%   degenerate 0
+test   exact   9/14  =  64.3%   mean prefix  64.3%   degenerate 0
+legacy exact   5/7   =  71.4%   mean prefix  71.4%   degenerate 0
+FINAL shard_model_s1       loss 0.1027  density 0.5427  weights 102400  187s
+=== shard_model_s3 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   9/14  =  64.3%   mean prefix  64.3%   degenerate 0
+test   exact   8/14  =  57.1%   mean prefix  57.1%   degenerate 0
+legacy exact   4/7   =  57.1%   mean prefix  57.1%   degenerate 0
+FINAL shard_model_s2       loss 0.0754  density 0.5435  weights 102400  189s
+=== shard_game_s1 ===
+train  exact  43/43  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/14  =  71.4%   mean prefix  71.4%   degenerate 0
+test   exact   9/14  =  64.3%   mean prefix  64.3%   degenerate 0
+legacy exact   4/7   =  57.1%   mean prefix  57.1%   degenerate 0
+FINAL shard_model_s3       loss 0.0692  density 0.5409  weights 102400  180s
+=== shard_game_s2 ===
+train  exact  36/36  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   9/12  =  75.0%   mean prefix  75.0%   degenerate 0
+test   exact  10/12  =  83.3%   mean prefix  86.9%   degenerate 0
+legacy exact   5/6   =  83.3%   mean prefix  90.5%   degenerate 0
+FINAL shard_game_s1        loss 0.0722  density 0.5430  weights 102400  179s
+=== shard_game_s3 ===
+train  exact  36/36  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/12  =  83.3%   mean prefix  83.3%   degenerate 0
+test   exact  10/12  =  83.3%   mean prefix  83.3%   degenerate 0
+legacy exact   5/6   =  83.3%   mean prefix  83.3%   degenerate 0
+FINAL shard_game_s2        loss 0.0710  density 0.5438  weights 102400  179s
+=== shard_honesty_s1 ===
+train  exact  36/36  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/12  =  83.3%   mean prefix  85.6%   degenerate 0
+test   exact   9/12  =  75.0%   mean prefix  78.3%   degenerate 0
+legacy exact   5/6   =  83.3%   mean prefix  90.0%   degenerate 0
+FINAL shard_game_s3        loss 0.0561  density 0.5425  weights 102400  178s
+=== shard_honesty_s2 ===
+train  exact  35/35  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   7/12  =  58.3%   mean prefix  60.7%   degenerate 0
+test   exact   7/12  =  58.3%   mean prefix  67.9%   degenerate 0
+legacy exact   2/6   =  33.3%   mean prefix  47.4%   degenerate 0
+FINAL shard_honesty_s2     loss 0.0762  density 0.5434  weights 102400  175s
+=== shard_honesty_s3 ===
+train  exact  35/35  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   7/12  =  58.3%   mean prefix  58.3%   degenerate 0
+test   exact   8/12  =  66.7%   mean prefix  68.5%   degenerate 0
+legacy exact   2/6   =  33.3%   mean prefix  37.0%   degenerate 0
+FINAL shard_honesty_s1     loss 0.0748  density 0.5440  weights 102400  176s
+train  exact  35/35  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact   9/12  =  75.0%   mean prefix  75.0%   degenerate 0
+test   exact   7/12  =  58.3%   mean prefix  65.0%   degenerate 0
+legacy exact   3/6   =  50.0%   mean prefix  53.7%   degenerate 0
+FINAL shard_honesty_s3     loss 0.0581  density 0.5424  weights 102400  175s
+
+arm                                 n          train            dev           test         legacy           held   seeds (dev)
+e1 nopos qn0.1 qw0.25 st16000 top:game  3  100.0 +-  0.0   80.6 +-  3.9   80.6 +-  3.9   83.3 +-  0.0          -       75 83 83
+e1 nopos qn0.1 qw0.25 st16000 top:hardware  3  100.0 +-  0.0   73.8 +-  3.4   54.8 +-  3.4   47.6 +-  6.7          -       79 71 71
+e1 nopos qn0.1 qw0.25 st16000 top:model  3  100.0 +-  0.0   69.0 +-  3.4   61.9 +-  3.4   61.9 +-  6.7          -       71 64 71
+e1 nopos qn0.1 qw0.25 st16000 top:honesty  3  100.0 +-  0.0   63.9 +-  7.9   61.1 +-  3.9   38.9 +-  7.9          -       58 58 75
+e1 nopos qn0.1 qw0.25 st16000 top:identity  3   99.3 +-  0.9   62.5 +-  5.1   54.9 +-  5.5   48.1 +-  5.2          -       56 69 62
