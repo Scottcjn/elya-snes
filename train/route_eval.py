@@ -63,13 +63,17 @@ def main():
     ap.add_argument("--vocab", default="data/vocab.json")
     ap.add_argument("--json", default=None)
     ap.add_argument("--per-topic", action="store_true")
+    ap.add_argument("--router", default="wordgram-lr",
+                    help="which router build() constructs; 'word-counts' is "
+                         "the one this replaced, kept so the before and the "
+                         "after come out of one program")
     ap.add_argument("--dump", action="store_true",
                     help="print every held-out question and what came back")
     a = ap.parse_args()
 
     C.check()
     vocab = E.load_vocab(a.vocab)
-    rt = R.build()
+    rt = R.build(kind=a.router)
     seeds = [int(s) for s in a.seeds.split(",")]
 
     # The router is a property of the corpus, not of the seed: one number.
