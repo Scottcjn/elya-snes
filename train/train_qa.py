@@ -224,7 +224,13 @@ def main():
         import eval_answers as E
         import corpus as C
         import ref
-        vocab = E.load_vocab("data/qa_vocab.json")
+        # data/vocab.json is what train/prep_qa.py writes and what
+        # tools/mkgame.py, tools/check_game.py and train/sample.py all read.
+        # This line said "data/qa_vocab.json", a name nothing has ever
+        # written, so --eval-answers died on FileNotFoundError and every run
+        # that scored itself did so only because the caller ran
+        # train/eval_answers.py separately afterwards.
+        vocab = E.load_vocab("data/vocab.json")
         m = ref.Model.from_npz(os.path.join(a.out, name + ".npz"))
         rows = C.qa_lines()
         rtr = E.evaluate(m, vocab, [r for r in rows if not r[3]], "train")
