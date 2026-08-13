@@ -1782,3 +1782,346 @@ with the game layer    5.462  (was 5.634)   6.217  (was 6.412)
 Density is the speed knob on this cartridge and nothing else is. Nobody asked
 the trainer for a sparser model and it was not given a reason to produce one;
 `--tau` is the knob if 3% ever matters more than three questions.
+
+---
+
+## 2026-08-13 — 11. She memorised sixty-eight strings. Three hundred and forty-five taught her to answer
+
+Entry 10 shipped a model that answered **97.4% of the questions it was trained
+on and 13.1% of paraphrases of those same questions**. It had 34 facts with two
+phrasings each, and it had learned the 68 strings.
+
+Entry 10 also ran the architecture levers and they are all spent: the learned
+positional table made held-out paraphrase three times *worse* here, routing
+construction was indistinguishable from random on both this machine and the
+NES, and sixteen times the weights bought 0.0071 nats and cost sixteen points
+of exact answers. The engine is unchanged in this entry — same `rom/nn.s`,
+same V=64, D=64, L=3, H=2, F=128, T=20, same `AV_SHIFT = 3`. **Everything below
+is corpus.**
+
+### What the corpus is now
+
+`train/corpus.py` holds the same **34 facts** — entry 10's answers, unedited,
+each still checkable against this repo — asked **345 ways**:
+
+```
+                  questions   phrasings per fact
+train                   208   5 to 7, mean 6.1
+dev                      68   2
+test                     69   2 to 3
+                        ---
+                        345   plus 34 monologue lines for act 2
+```
+
+Two things about that split matter more than its size.
+
+**The held-out sets hold out PHRASINGS, not facts.** Every fact is trained;
+what is withheld is a way of asking. So the held-out number is a paraphrase
+score and not a knowledge score — asking a model about something it was never
+told measures nothing.
+
+**There are two held-out sets, and only one of them was ever looked at.** Entry
+10 had to flag its own shipped figure as optimistic because the seed was chosen
+with the held-out column visible. `dev` is for choosing; `test` is not read
+until the choice is made. `train/corpus.py`'s `check()` asserts that no question
+appears twice, that no question has two answers, and that none of entry 10's 35
+held-out questions has drifted into the training split — because if one had,
+the before/after would silently be a train-set score.
+
+Those 35 are carried as the **`legacy`** column so the before and after can be
+the same 35 questions.
+
+### Before and after, five seeds each, on the identical 35 questions
+
+The "before" arms are entry 10's recipe on entry 10's corpus, re-run here
+rather than quoted, so the comparison is not against a number from a different
+tree:
+
+```
+                                     train exact        the same 35 questions
+before  68 pairs, qnoise 0        97.4% +- 0.6              12.6% +- 1.4
+after  208 pairs, qnoise 0        98.1% +- 0.6              21.7% +- 2.9
+before  68 pairs, qnoise 0.1      97.1% +- 0.9              20.0% +- 3.6
+after  208 pairs, qnoise 0.1      95.9% +- 1.7              25.1% +- 4.2
+```
+
+**Corpus alone, nothing else changed, and paraphrase accuracy goes up 72%.**
+The brief's guess was right and it is now measured: no architecture change
+fixes 68 examples.
+
+### The whole grid: nine arms, five seeds, forty-five runs
+
+Chosen on `dev`, reported on `test`, with the legacy 35 alongside:
+
+```
+arm                              train           dev            test          legacy
+qnoise .1  qw 0.25  16k steps  100.0 +- 0.0  41.8 +- 4.9   38.0 +- 3.7   30.3 +- 1.4
+qnoise .1  qw 0     8k steps    99.7 +- 0.2  38.2 +- 3.8   36.5 +- 3.0   28.0 +- 2.8
+qnoise .1  qw 0.25  8k steps    99.4 +- 0.6  35.0 +- 4.1   33.3 +- 3.7   29.1 +- 4.9
+qnoise .1  qw 1     16k steps   99.0 +- 0.3  34.1 +- 2.5   34.8 +- 3.5   29.1 +- 5.8
+qnoise .2  qw 1     8k steps    86.0 +- 2.1  28.5 +- 3.8   28.4 +- 3.3   23.4 +- 3.3
+qnoise .15 qw 1     8k steps    93.3 +- 1.1  27.4 +- 3.0   27.0 +- 3.5   22.9 +- 5.4
+qnoise .1  qw 1     8k steps    95.9 +- 1.7  26.2 +- 3.4   28.1 +- 2.7   25.1 +- 4.2
+qnoise .05 qw 1     8k steps    97.1 +- 1.1  23.8 +- 2.7   25.8 +- 1.9   22.9 +- 4.0
+qnoise 0   qw 1     8k steps    98.1 +- 0.6  22.4 +- 2.2   23.5 +- 3.6   21.7 +- 2.9
+```
+
+**`--qw` — the loss weight on the question positions — is the biggest single
+lever in the table, and it was free.** At `qw 1` the model spends capacity
+predicting the next token of a question it is *being handed*, which on a
+paraphrase corpus is 208 strings of pure memorisation competing with the
+answers for 102,400 ternary weights. Turning that down to a quarter is worth
+**nine points of dev** at the same step count, and it costs nothing at run time
+because it changes no shape and no weight count.
+
+**Question noise stopped being the lever it was.** Entry 10 measured `--qnoise
+0.1` buying 13.6 points of paraphrase; here it buys 3.8. That is the expected
+shape of the result rather than a contradiction of it: corrupting a question
+was a *stand-in* for paraphrase, and the corpus now contains the real thing.
+Past 0.1 it costs train accuracy for nothing, exactly as before.
+
+**16,000 steps beat 8,000**, which is the corpus tripling and the step count
+not: 8,000 steps over 242 rows is a third of the passes per row that entry 10's
+8,000 gave 102.
+
+### Choose the arm on dev. Do NOT choose the seed on dev
+
+Over all 45 runs, dev and test agree well:
+
+```
+correlation of dev with test, 45 runs, across arms:      r = +0.741
+correlation of dev with test, 5 seeds, within one arm:   r = -0.550
+```
+
+**Across arms dev predicts test. Within an arm it does not** — 68 and 69
+questions is ±6 points of binomial noise, which is the entire spread between
+seeds. So the arm was selected on dev and the *seed* selection is admitted to
+be arbitrary: `model/elya_qa_para_s2.npz` is the dev-best seed because that was
+the pre-registered rule, and its test score of **31.9% is BELOW its arm's mean
+of 38.0% ± 3.7**. The arm mean is the honest estimate of what this recipe
+generalises to. Entry 10 flagged its shipped figure as optimistic; this one is
+flagged as arbitrary, which is the same discipline pointed at a different
+number.
+
+### The vocabulary does not have to be a merge tree, and BPE is the wrong tool at 34 slots
+
+Nothing downstream reads `data/vocab.json`'s `merges` key. `tools/mkgame.py`,
+`tools/check_game.py`, `train/sample.py` and `prep_qa.py`'s own `encode()` all
+tokenise by longest match over the 64 **strings**. So the merge tree is a
+construction method and not a contract — and at this budget it is a bad one:
+byte-pair encoding grows tokens one character at a time and there are only 34
+slots above the 30 base symbols, so it never gets far enough to spend one on
+`eight` or `oken`.
+
+`learn_vocab_greedy()` chooses the 34 strings directly, scored on what the
+cartridge actually cannot do — emit a row that does not fit in 20 positions —
+with the exact longest-match tokeniser as the cost model rather than a proxy.
+Measured on the same corpus, rows that do not fit:
+
+```
+classic BPE, most-frequent pair             52 rows over budget
+BPE scored on rows that overflow            42
+greedy substrings scored on overflow        27
+```
+
+The candidate pool was the second half of it. It was the 400 commonest
+substrings, and that ranked out exactly the strings that would have helped: an
+answer occurs once per phrasing, so `sixty` appears six times against ` t`'s
+several hundred. At 1,000 candidates the overflow drops again (16 → 14 unique
+rows, +1.1 s); past that it does not.
+
+The remaining rows were shortened by hand — sixteen questions, no answer
+touched and no LEGACY question touched, over four passes, because the
+vocabulary is refitted after every edit and the rows near the boundary move.
+**Two survive, both LEGACY**: `why not run? ` and `a game now? `, one token
+over. They are reported rather than repaired, and they score zero, which biases
+the headline **down**. Repairing them means either editing a question the
+before/after comparison has frozen, or fitting the vocabulary to the held-out
+split, which would compress the test set by construction.
+
+### Topic sharding: the Genesis was right, by twenty-four points
+
+This repo has quoted the sibling Genesis port twice — *"One 114K-parameter model
+trying to memorise 122 QA pairs across four unrelated topics produced word
+salad. The same model on one topic produced complete sentences."* — and has
+labelled every fact with a topic since entry 10 without ever cutting on one.
+
+Five shards, one per topic, three seeds each, at the winning recipe. Each
+trains on its topic's questions plus the whole monologue (which is not a topic:
+it is act 2's free run) and is scored **on its own topic only**. The
+whole-corpus models are re-scored on the identical per-topic subsets, so the
+two columns are the same questions and the only difference is what the model
+was trained on:
+
+```
+test split      n   whole corpus     one shard      shard - whole
+identity       17   27.1 +-  7.1    54.9 +-  5.5        +27.8
+hardware       14   34.3 +-  8.3    54.8 +-  3.4        +20.5
+model          14   50.0 +-  6.4    61.9 +-  3.4        +11.9
+game           12   45.0 +- 12.5    80.6 +-  3.9        +35.6
+honesty        12   36.7 +-  8.5    61.1 +-  3.9        +24.4
+ALL            69   38.0            61.8               +23.9
+
+dev split      68   41.8            69.6               +27.8
+```
+
+**It wins on all five topics, on both held-out sets, and the seed spread falls
+on four of the five.** Same weights, same recipe, same questions; the only
+difference is that each model was asked to hold one topic instead of five.
+
+**The comparison is deliberately generous to the shards and the number is an
+upper bound.** Each is asked only about its own topic, which assumes a router
+that is always right, and there is no router in `rom/nn.s` to be right or
+wrong. What sharding would cost on a cartridge is now measured rather than
+derived — `tools/emit.py` run on a shard:
+
+```
+one shard          4 weight banks, 131,072 bytes of straight-line 65816
+five shards       20 banks, 655,360 bytes = 0.63 MiB
+LoROM ceiling     4 MB;  the Kaico cartridge is 6.91 MB
+```
+
+So unlike entry 10's 64-expert mixture — 4.14 MB of weight code, over the LoROM
+ceiling, and needing a router inside the model — **five whole models and a
+keyword router at the ask menu fits in a 1 MiB cartridge with room to spare.**
+That is the next engine project and it now has a number attached to it: 38.0%
+→ 61.8% on held-out paraphrase, if the routing is right.
+
+### The gate found a real regression, and then the self-test proved it can
+
+`gate.sh` was fixed in entry 10 after being incapable of failing for the whole
+life of the repo. This entry is the first time the fixed gate caught something
+that was not planted:
+
+```
+=== the game ===
+FAIL  answer 0: the ROM fed 7 prompt tokens, the host tokeniser makes 5
+FAIL  answer 1: the ROM fed 6 prompt tokens, the host tokeniser makes 4
+GATE: FAIL
+```
+
+`build_nn.sh` never built the game's tables — only the `Makefile` did. So a
+corpus change that refitted the vocabulary left `out/game/qtok.bin` holding the
+*old* tokenisation, and the cartridge fed prompts of the wrong length while
+every engine arm passed 20/20. `tools/mkgame.py` runs inside `build_nn.sh` now,
+so the ROM is a function of the tree rather than of whatever was last run by
+hand.
+
+The same corpus change knocked `can i trust you? ` off act 3's menu — not
+because its answer moved, it is still `check the coins.`, but because those
+fourteen characters now cost eleven tokens instead of ten, one over the prompt
+cap. `why trust you? ` is ten and gets the same answer. **Token cost is a
+property of the corpus**, so the menu has to be re-derived whenever the corpus
+does.
+
+And two bugs in the emulator runner, both of which produce a non-verdict that
+reads like a verdict. `tools/run_ares.sh` ended with a bare `pkill -x ares`,
+which killed every emulator on the box including sibling agents' runs; the fix
+for that was `pkill -f "ares.*$ROM"`, which matches **this script's own command
+line** — `bash tools/run_ares.sh out/gateself.sfc` contains `ares` followed by
+the ROM name — so the runner killed itself and the self-test printed `Killed`
+and `control run failed`. The emulator now starts under `setsid` and the runner
+kills exactly its own process group. A pid is not a pattern.
+
+With that fixed, `tools/gate_selftest.sh` was re-run on this tree:
+
+```
+control  host 'block? areultiply.    '   rom 'block? areultiply.    '
+         PASS: 20/20 tokens identical                            FAIL=0
+
+broken   host 'block? areultiply.    '
+         rom  'b you you you you you you you you you you you you you'
+         FAIL: 19 of 20 positions differ                         FAIL=1
+
+SELFTEST: pass - the gate accepts a good build and rejects a bad one
+```
+
+### The gate on the shipped cartridge
+
+Fifteen arms, `./gate.sh`, exit 0:
+
+```
+nn / nnfast / nnprof / nnfastprof / nnstage      PASS 20/20 tokens each
+nnsurvey                        64 seeds x 20 tokens: 1280/1280 identical
+nnfastsurvey                    64 seeds x 20 tokens: 1280/1280 identical
+nndbg positions 0, 9, 18        PASS 320/320 intermediate values each
+gamepad (shipping read_pad)     PASS 18 checks
+gameqa + gamectl                PASS 21 checks
+cartridge headers               PASS x4, LoROM NTSC 2 Mbit of 56, no chip
+GATE: pass
+```
+
+**1280/1280 over 64 seeds at both clock arms is unchanged**, which is the point:
+the exactness claim is a property of the engine and the corpus did not touch it.
+
+```
+act 1 free run  'but i do get wrong.'
+act 2 line      seed 'r' -> 'un if you like. i wait.'
+act 3 q1 'what are you? ' -> 'a small model.'    15/15 == host/ref.py
+act 3 q2 'the coins? '    -> 'one is a token.'   16/16 == host/ref.py
+
+                  SlowROM 2.68 MHz     FastROM 3.58 MHz
+engine only       6.882 t/s            7.850 t/s
+with the game     5.520 t/s            6.280 t/s
+```
+
+54,830 non-zero weights against the previous 55,798, so the cartridge is
+1.7% *faster* than entry 10's — density is still the only speed knob here and
+nothing asked for it.
+
+### What she actually says to questions she has never been asked
+
+Held out, never trained, and right:
+
+```
+what of scott?      my maker.
+where do you sit?   on the cart.
+layers has it?      three.
+and the vocab?      sixty four.
+and the block?      a multiply.
+why the stop?       i want to talk.
+do you know much?   not much.
+and trust?          check the coins.
+you are alive?      no. weights.
+```
+
+And the good kind of wrong, which is still the strongest evidence in the
+project that this is inference and not a table — a table hits or misses, it
+does not fuse two answers into a word that is in neither:
+
+```
+what exactly?       a smyes. often.     ('a small model.' + 'yes. often.')
+by whom?            all mowenty tokens.
+what is after you?  ascott did.
+which console?      sip.
+you recall?         no. itweights.
+the spike?          s? the snes.
+```
+
+### What is not done
+
+**The headline is 38.0% ± 3.7 held-out paraphrase and the shipped seed is
+31.9%.** Selecting a seed on dev is measurably noise (r = -0.55 within the
+arm), so the shipped model is one draw from the arm and not the best of five;
+saying otherwise would be the same selection artefact entry 10 confessed to.
+
+**Sharding is measured and not shipped.** 61.8% needs a router at the ask menu
+and five model blobs in five banks: a new linker config, `tools/emit.py`
+emitting into banks, `rom/game.inc` choosing a shard from the question, and the
+whole fifteen-arm gate re-run against it. Nothing in this entry is that.
+
+**Two held-out questions cannot be answered at all** — `why not run? ` and
+`a game now? ` need 21 positions and the machine has 20. They are counted as
+misses.
+
+**The corpus is still 34 facts.** It is broader in *how* it can be asked and
+not in *what* it knows, and at 30 symbols and 20 positions it cannot be much
+more. Every fact she states is still checkable against this repo.
+
+**No hardware run.** Everything here is ares, as in every previous entry.
+
+Files: `train/corpus.py`, `train/prep_qa.py`, `train/train_qa.py`,
+`train/qa_grid.sh`, `train/qa_arms.py`, `train/qa_shards.sh`,
+`train/qa_shard_table.py`, `tools/run_ares.sh`, `build_nn.sh`,
+`runs/base_before/*` (10 runs), `runs/qa_para/*` (45), `runs/qa_shard/*` (15),
+and the shipped weights `model/elya_qa_para_s2.npz`.
