@@ -232,14 +232,16 @@ def main():
         # train/eval_answers.py separately afterwards.
         vocab = E.load_vocab("data/vocab.json")
         m = ref.Model.from_npz(os.path.join(a.out, name + ".npz"))
-        rows = C.qa_lines()
-        rtr = E.evaluate(m, vocab, [r for r in rows if not r[3]], "train")
-        rho = E.evaluate(m, vocab, [r for r in rows if r[3]], "held")
-        meta["exact_train"] = rtr["exact"]
-        meta["exact_held"] = rho["exact"]
-        meta["prefix_train"] = rtr["prefix"]
-        meta["prefix_held"] = rho["prefix"]
-        meta["degen_train"] = rtr["degen"]
+        C.check()
+        # Every split, every run, into the json - so train/qa_arms.py can
+        # aggregate arms without re-decoding, and so `test` is recorded
+        # without anything in the training loop ever reading it.
+        for label, rows in ([(s, C.rows_of(s)) for s in C.SPLITS]
+                            + [("legacy", C.legacy_rows())]):
+            r = E.evaluate(m, vocab, rows, label)
+            meta["exact_" + label] = r["exact"]
+            meta["prefix_" + label] = r["prefix"]
+            meta["degen_" + label] = r["degen"]
 
     json.dump(meta, open(os.path.join(a.out, name + ".json"), "w"), indent=1)
     print("FINAL %-20s loss %.4f  density %.4f  weights %d  %.0fs"

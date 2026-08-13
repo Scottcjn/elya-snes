@@ -30,6 +30,16 @@ Metrics, all over the corpus's own answers:
            on exact, and that difference is the diagnosis
   degen    the 'aaa aaa' / 'the the the' collapse, which can score well on
            prefix and is not an answer
+
+and all of them over each of train/corpus.py's splits:
+
+  train    the phrasings the trainer saw.  Saturated by construction - entry
+           10 reached 97.4% here while getting 13.1% on paraphrase - so it is
+           a sanity check and never the headline.
+  dev      held-out paraphrases, for choosing the arm and the seed.
+  test     held-out paraphrases, not looked at until the arm is chosen.
+  legacy   the 35 questions entry 10 held out, still held out, so a model from
+           either era is scored on the identical set.
 """
 import argparse
 import json
@@ -125,24 +135,30 @@ def main():
     ap.add_argument("--verbose", type=int, default=0)
     ap.add_argument("--json", default=None)
     ap.add_argument("--all", action="store_true", help="print every question")
+    ap.add_argument("--split", default=None,
+                    choices=list(C.SPLITS) + ["legacy"],
+                    help="score one split only")
     a = ap.parse_args()
 
     vocab = load_vocab(a.vocab)
     m = ref.Model.from_npz(a.npz)
-    rows = C.qa_lines()
-    tr = [r for r in rows if not r[3]]
-    ho = [r for r in rows if r[3]]
+    C.check()
+    sets = [(s, C.rows_of(s)) for s in C.SPLITS] + [("legacy", C.legacy_rows())]
+    if a.split:
+        sets = [(n, r) for n, r in sets if n == a.split]
 
     print("%s" % a.npz)
-    rtr = evaluate(m, vocab, tr, "train", a.verbose)
-    rho = evaluate(m, vocab, ho, "held", a.verbose)
+    res = {}
+    for name, rows in sets:
+        res[name] = evaluate(m, vocab, rows, name, a.verbose)
     if a.all:
-        for r in rtr["rows"] + rho["rows"]:
-            print("  %-20r -> %r%s" % (r["q"], r["got"],
-                                       "" if r["exact"] else
-                                       "   (want %r)" % r["want"]))
+        for name, _rows in sets:
+            for r in res[name]["rows"]:
+                print("  %-6s %-22r -> %r%s"
+                      % (name, r["q"], r["got"],
+                         "" if r["exact"] else "   (want %r)" % r["want"]))
     if a.json:
-        json.dump(dict(npz=a.npz, train=rtr, held=rho), open(a.json, "w"), indent=1)
+        json.dump(dict(npz=a.npz, **res), open(a.json, "w"), indent=1)
     return 0
 
 

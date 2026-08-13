@@ -1,0 +1,12 @@
+before_qn0.1_s1        step     1  loss 7.3667  tf-rows   0/102  0s
+before_qn0.1_s1        step  1000  loss 0.9224  tf-rows  20/102  12s
+before_qn0.1_s1        step  2000  loss 0.5841  tf-rows  58/102  24s
+before_qn0.1_s1        step  3000  loss 0.3989  tf-rows  60/102  36s
+before_qn0.1_s1        step  4000  loss 0.4815  tf-rows  66/102  48s
+before_qn0.1_s1        step  5000  loss 0.4085  tf-rows  76/102  60s
+before_qn0.1_s1        step  6000  loss 0.3733  tf-rows  77/102  72s
+before_qn0.1_s1        step  7000  loss 0.3683  tf-rows  78/102  84s
+before_qn0.1_s1        step  8000  loss 0.2715  tf-rows  83/102  96s
+train  exact  67/68  =  98.5%   mean prefix  99.3%   degenerate 0
+held   exact   5/35  =  14.3%   mean prefix  23.8%   degenerate 0
+FINAL before_qn0.1_s1      loss 0.2715  density 0.5446  weights 102400  100s

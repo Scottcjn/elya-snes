@@ -78,28 +78,63 @@ def spell(tid, merges):
     return spell(a, merges) + spell(b, merges)
 
 
-def learn_merges(docs, weights):
-    """Greedy most-frequent-pair merges, weighted by how often a line is used.
+def learn_merges(docs, weights, budget=None, objective="count"):
+    """Greedy merges, weighted by how often a line is used.
 
     Weighting matters here in a way it did not on TinyStories: a question that
     appears three times as three paraphrases is three lines, and an answer that
     35 facts share a shape with is one.  The counts below are over the corpus
     as the model will see it, not over unique strings.
+
+    Two objectives, and the second one exists because the first optimises the
+    wrong thing for this ROM:
+
+    `count`     classic BPE - take the most frequent adjacent pair.  Since a
+                merge removes exactly one token per application, this is greedy
+                minimisation of TOTAL corpus tokens.
+
+    `overflow`  greedy minimisation of the tokens by which rows exceed the
+                context.  Total tokens is not the constraint here; 20 positions
+                per row is, and rom/game.inc simply never produces the tail of
+                a row that does not fit.  A merge that saves forty tokens
+                spread over rows already inside the budget buys nothing, and
+                one that saves three tokens on the three longest rows buys
+                three answers.  Candidates are scored by tokens removed FROM
+                ROWS CURRENTLY OVER BUDGET, with the plain total as the
+                tie-break so the objective degrades to `count` once everything
+                fits.
+
+    The merge set is fitted to the TRAINING split only, whichever objective is
+    used.  A vocabulary fitted to the held-out questions would compress the
+    test set by construction and flatter it; the held-out rows are shortened by
+    hand instead, which is a corpus edit and not a measurement.
     """
     docs = [list(d) for d in docs]
     merges = []
     while len(BASE) + len(merges) < TARGET:
-        cnt = collections.Counter()
-        for d, w in zip(docs, weights):
+        # pair -> {doc index: adjacent occurrences}.  Overlapping, as the
+        # original counter was; application below is non-overlapping, so this
+        # over-counts a run of three identical tokens by one.  Nothing in this
+        # corpus has such a run and the ranking is unaffected either way.
+        per = collections.defaultdict(collections.Counter)
+        for i, d in enumerate(docs):
             for a, b in zip(d, d[1:]):
-                cnt[(a, b)] += w
+                per[(a, b)][i] += 1
         # Longest-token cap: a merge whose spelling would exceed MAXTOK bytes
         # cannot be stored in the ROM's vocab table, so it is not a candidate.
-        best = None
-        for pair, n in cnt.most_common():
-            if len(spell(pair[0], merges)) + len(spell(pair[1], merges)) <= MAXTOK:
-                best = pair
-                break
+        best, best_key = None, None
+        for pair, hits in per.items():
+            if len(spell(pair[0], merges)) + len(spell(pair[1], merges)) > MAXTOK:
+                continue
+            total = sum(weights[i] * n for i, n in hits.items())
+            if objective == "overflow" and budget is not None:
+                over = sum(weights[i] * min(n, max(0, len(docs[i]) - budget))
+                           for i, n in hits.items())
+                key = (over, total)
+            else:
+                key = (total,)
+            if best_key is None or key > best_key:
+                best, best_key = pair, key
         if best is None:
             break
         new = len(BASE) + len(merges)
@@ -118,20 +153,104 @@ def learn_merges(docs, weights):
     return merges
 
 
-def apply_merges(ids, merges):
-    for k, (a, b) in enumerate(merges):
-        new = len(BASE) + k
-        out, j = [], 0
-        n = len(ids)
-        while j < n:
-            if j + 1 < n and ids[j] == a and ids[j + 1] == b:
-                out.append(new)
-                j += 2
-            else:
-                out.append(ids[j])
-                j += 1
-        ids = out
-    return ids
+# ---------------------------------------------------------------------------
+# The vocabulary does not have to be a merge tree
+#
+# Nothing downstream reads the merge list.  vocab.json carries a "merges" key
+# and no consumer opens it: tools/mkgame.py, tools/check_game.py,
+# train/sample.py and encode() below all use the 64 STRINGS with longest-match
+# tokenisation.  So the merge tree is a construction method, not a contract -
+# and it is a bad construction method at this budget.  Byte-pair encoding grows
+# tokens one character at a time and there are only 34 slots above the 30 base
+# symbols, so it never gets far enough to spend one on `usand` or `ttle`; it
+# spends all 34 on two-character fragments.
+#
+# These two functions choose the 34 strings directly instead: greedy, scored by
+# what the ROM actually cannot do, which is emit a row that does not fit in 20
+# positions.  The candidate is any substring of 2..MAXTOK characters that the
+# training corpus contains, the score is the weighted reduction in OVERFLOW
+# with total tokens as the tie-break, and the cost model is the exact
+# longest-match tokeniser the cartridge runs rather than a proxy for it.
+# ---------------------------------------------------------------------------
+def tok_cost(text, by_len):
+    """Token count under longest-match tokenisation - encode()'s loop, counting
+    instead of emitting.  by_len maps length -> set of vocabulary strings of
+    that length; single characters are always in BASE and are not stored."""
+    i, n, L = 0, 0, len(text)
+    while i < L:
+        for k in range(MAXTOK, 1, -1):
+            if k <= L - i and text[i:i + k] in by_len[k]:
+                i += k
+                break
+        else:
+            i += 1
+        n += 1
+    return n
+
+
+def learn_vocab_greedy(items, weights, budget, cap=400):
+    """Choose TARGET - len(BASE) strings, greedily, to stop rows overflowing.
+
+    `items` is a list of segment tuples.  A QA row is (question, answer)
+    because train/prep_qa.py tokenises the two separately and concatenates the
+    ids - which is what rom/game.inc does, feeding the prompt and then
+    generating - so a token that would straddle the boundary does not exist at
+    run time and must not exist in the cost model either.
+
+    Only rows a candidate actually occurs in are re-costed, which is what makes
+    an exhaustive 34 x cap search finish in seconds rather than minutes.
+    """
+    by_len = {k: set() for k in range(2, MAXTOK + 1)}
+    chosen = []
+
+    def cost(segs):
+        return sum(tok_cost(s, by_len) for s in segs)
+
+    cur = [cost(segs) for segs in items]
+
+    cnt = collections.Counter()
+    for segs, w in zip(items, weights):
+        for s in segs:
+            for k in range(2, MAXTOK + 1):
+                for i in range(len(s) - k + 1):
+                    cnt[s[i:i + k]] += w
+    pool = [c for c, _n in cnt.most_common(cap)]
+    where = {c: [i for i, segs in enumerate(items)
+                 if any(c in s for s in segs)] for c in pool}
+
+    while len(BASE) + len(chosen) < TARGET:
+        best, best_key = None, None
+        for c in pool:
+            if c in by_len[len(c)]:
+                continue
+            by_len[len(c)].add(c)
+            d_over = d_tot = 0.0
+            for i in where[c]:
+                new = cost(items[i])
+                w = weights[i]
+                d_tot += w * (cur[i] - new)
+                d_over += w * (max(0, cur[i] - budget) - max(0, new - budget))
+            by_len[len(c)].discard(c)
+            key = (d_over, d_tot, -len(c), c)
+            if best_key is None or key > best_key:
+                best, best_key = c, key
+        if best is None or best_key[1] <= 0:
+            # Nothing left that removes a token.  The table still has to be 64
+            # entries long - tools/mkgame.py asserts it and the ROM indexes it
+            # - so fill the rest with the commonest unused candidates.  They
+            # buy nothing and they cost nothing.
+            for c in pool:
+                if len(BASE) + len(chosen) >= TARGET:
+                    break
+                if c not in by_len[len(c)]:
+                    by_len[len(c)].add(c)
+                    chosen.append(c)
+            break
+        by_len[len(best)].add(best)
+        chosen.append(best)
+        for i in where[best]:
+            cur[i] = cost(items[i])
+    return chosen
 
 
 def encode(text, vocab):
@@ -154,30 +273,44 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data")
     ap.add_argument("--vocab-out", default="data/vocab.json")
+    ap.add_argument("--merges", default="greedy",
+                    choices=("count", "overflow", "greedy"),
+                    help="how the 34 non-base vocabulary slots are chosen. "
+                         "`count` is classic BPE, `overflow` is BPE scored on "
+                         "rows that do not fit, `greedy` drops the merge tree "
+                         "and picks substrings directly - see "
+                         "learn_vocab_greedy().")
     a = ap.parse_args()
 
-    rows = C.qa_lines()
-    set_base("".join(q + ans for _t, q, ans, _h in rows) + "".join(C.MONOLOGUE))
-    train = [(t, q, ans) for t, q, ans, held in rows if not held]
-    held = [(t, q, ans) for t, q, ans, held in rows if held]
+    C.check()
+    rows = C.qa_rows()
+    # The charset is measured over EVERY question, held-out ones included: a
+    # symbol the vocabulary lacks is a symbol that cannot be tokenised, and a
+    # held-out question that cannot be tokenised cannot be scored.  The MERGES
+    # below are a different matter and are fitted to the training split only.
+    set_base("".join(q + ans for _t, q, ans, _s in rows) + "".join(C.MONOLOGUE))
+    train = [(t, q, ans) for t, q, ans, s in rows if s == "train"]
+    dev = [(t, q, ans) for t, q, ans, s in rows if s == "dev"]
+    test = [(t, q, ans) for t, q, ans, s in rows if s == "test"]
+    held = dev + test
 
-    # Merge corpus: the training questions with their answers, plus the
+    # Fitting corpus: the training questions with their answers, plus the
     # monologue.  Held-out questions are NOT in it - a vocabulary fitted to the
-    # test set would flatter the test set.
-    docs, wts = [], []
-    for _t, q, ans in train:
-        docs.append(enc_char(q + ans))
-        wts.append(1.0)
-    for m in C.MONOLOGUE:
-        docs.append(enc_char(m))
-        wts.append(1.0)
+    # test set would compress the test set by construction and flatter it.
+    items = [(q, ans) for _t, q, ans in train] + [(m,) for m in C.MONOLOGUE]
+    wts = [1.0] * len(items)
 
-    merges = learn_merges(docs, wts)
-    vocab = [BASE[i] for i in range(len(BASE))] + \
-            [spell(len(BASE) + k, merges) for k in range(len(merges))]
+    if a.merges == "greedy":
+        merges = []
+        extra = learn_vocab_greedy(items, wts, budget=T)
+    else:
+        docs = [enc_char("".join(segs)) for segs in items]
+        merges = learn_merges(docs, wts, budget=T, objective=a.merges)
+        extra = [spell(len(BASE) + k, merges) for k in range(len(merges))]
+    vocab = list(BASE) + extra
     assert len(vocab) == len(set(vocab)) == TARGET, (len(vocab), len(set(vocab)))
-    print("learned %d merges -> vocab %d" % (len(merges), len(vocab)))
-    print("merge tokens: " + " ".join("%r" % v for v in vocab[len(BASE):]))
+    print("%s: %d chosen -> vocab %d" % (a.merges, len(extra), len(vocab)))
+    print("chosen tokens: " + " ".join("%r" % v for v in extra))
 
     space = BASE.index(" ")
 
@@ -208,6 +341,8 @@ def main():
                 np.array(AN, dtype=np.int16), np.array(TP, dtype=np.int16))
 
     Xtr, Qtr, Atr, Ttr = pack(train, "train")
+    pack(dev, "dev")
+    pack(test, "test")
     Xho, Qho, Aho, Tho = pack(held, "held")
     # Monologue rows have no question: the whole row is "answer" from
     # position 0, which is exactly how act 2 runs.
@@ -230,8 +365,13 @@ def main():
              X=Xtr, Q=Qtr, A=Atr, TOPIC=Ttr,
              Xmono=Xmo, Qmono=Qmo, Amono=Amo, TOPICmono=Tmo)
     np.savez(os.path.join(a.out, "qa_held.npz"), X=Xho, Q=Qho, A=Aho, TOPIC=Tho)
+    # "vocab" is the only key any consumer reads - tools/mkgame.py,
+    # tools/check_game.py, train/sample.py and encode() above all tokenise by
+    # longest match over these 64 strings.  "merges" is kept for the two BPE
+    # methods because it records how they got there, and is empty for `greedy`,
+    # which has no merge tree.
     json.dump({"base": BASE, "fold": {}, "merges": merges, "vocab": vocab,
-               "chars_per_token": nch / ntok,
+               "method": a.merges, "chars_per_token": nch / ntok,
                "source": "train/corpus.py"},
               open(a.vocab_out, "w"), indent=1)
     print("wrote %s, %s/qa_train.npz, %s/qa_held.npz"
