@@ -1,0 +1,7 @@
+=== control: the tree as it stands ===
+host text 'block? areultiply.    '
+rom  text 'block? areultiply.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+
+=== the deliberate break: the AV requantise table off by one shift ===
+broken run failed

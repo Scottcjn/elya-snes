@@ -39,7 +39,10 @@ for _ in $(seq ${WAIT:-90}); do
     done_ok && break
     sleep 2
 done
-pkill -x -KILL ares >/dev/null 2>&1
+# Kill only OUR ares, matched on the staged ROM path. A bare `pkill -x ares`
+# kills every emulator on the box, including sibling agents' runs - that is
+# exactly what happened here, three times, mid-measurement.
+pkill -KILL -f "ares.*$(basename "$ROM")" >/dev/null 2>&1
 if ! done_ok; then
     echo "run_ares: no DONE marker in $RAM" >&2
     exit 1

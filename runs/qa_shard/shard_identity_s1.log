@@ -1,0 +1,11 @@
+shard_identity_s1      step     1  loss 7.1588  tf-rows   0/85  0s
+shard_identity_s1      step  1000  loss 0.3586  tf-rows  60/85  12s
+shard_identity_s1      step  2000  loss 0.2199  tf-rows  67/85  24s
+shard_identity_s1      step  3000  loss 0.1604  tf-rows  71/85  36s
+shard_identity_s1      step  4000  loss 0.1445  tf-rows  73/85  48s
+shard_identity_s1      step  5000  loss 0.1562  tf-rows  70/85  62s
+shard_identity_s1      step  6000  loss 0.1775  tf-rows  72/85  73s
+shard_identity_s1      step  7000  loss 0.1235  tf-rows  73/85  85s
+shard_identity_s1      step  8000  loss 0.1162  tf-rows  71/85  97s
+shard_identity_s1      step  9000  loss 0.1315  tf-rows  74/85  109s
+shard_identity_s1      step 10000  loss 0.1021  tf-rows  76/85  121s

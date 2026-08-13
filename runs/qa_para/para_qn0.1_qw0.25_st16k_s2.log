@@ -1,0 +1,22 @@
+para_qn0.1_qw0.25_st16k_s2 step     1  loss 7.1863  tf-rows   0/242  1s
+para_qn0.1_qw0.25_st16k_s2 step  1000  loss 0.7806  tf-rows  80/242  24s
+para_qn0.1_qw0.25_st16k_s2 step  2000  loss 0.5764  tf-rows 168/242  52s
+para_qn0.1_qw0.25_st16k_s2 step  3000  loss 0.4917  tf-rows 179/242  84s
+para_qn0.1_qw0.25_st16k_s2 step  4000  loss 0.4347  tf-rows 195/242  116s
+para_qn0.1_qw0.25_st16k_s2 step  5000  loss 0.3841  tf-rows 207/242  148s
+para_qn0.1_qw0.25_st16k_s2 step  6000  loss 0.3825  tf-rows 203/242  180s
+para_qn0.1_qw0.25_st16k_s2 step  7000  loss 0.3568  tf-rows 210/242  212s
+para_qn0.1_qw0.25_st16k_s2 step  8000  loss 0.3492  tf-rows 204/242  243s
+para_qn0.1_qw0.25_st16k_s2 step  9000  loss 0.3459  tf-rows 206/242  277s
+para_qn0.1_qw0.25_st16k_s2 step 10000  loss 0.3130  tf-rows 208/242  312s
+para_qn0.1_qw0.25_st16k_s2 step 11000  loss 0.2986  tf-rows 210/242  346s
+para_qn0.1_qw0.25_st16k_s2 step 12000  loss 0.2950  tf-rows 216/242  380s
+para_qn0.1_qw0.25_st16k_s2 step 13000  loss 0.2852  tf-rows 214/242  410s
+para_qn0.1_qw0.25_st16k_s2 step 14000  loss 0.2991  tf-rows 220/242  445s
+para_qn0.1_qw0.25_st16k_s2 step 15000  loss 0.2678  tf-rows 216/242  479s
+para_qn0.1_qw0.25_st16k_s2 step 16000  loss 0.2182  tf-rows 229/242  513s
+train  exact 208/208 = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  33/68  =  48.5%   mean prefix  50.7%   degenerate 0
+test   exact  22/69  =  31.9%   mean prefix  36.7%   degenerate 0
+legacy exact  11/35  =  31.4%   mean prefix  36.2%   degenerate 0
+FINAL para_qn0.1_qw0.25_st16k_s2 loss 0.2182  density 0.5354  weights 102400  535s

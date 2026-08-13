@@ -1,0 +1,14 @@
+para_qn0.1_s1          step     1  loss 7.4404  tf-rows   0/242  2s
+para_qn0.1_s1          step  1000  loss 1.1723  tf-rows  51/242  22s
+para_qn0.1_s1          step  2000  loss 0.9378  tf-rows 110/242  43s
+para_qn0.1_s1          step  3000  loss 0.7159  tf-rows 137/242  64s
+para_qn0.1_s1          step  4000  loss 0.7261  tf-rows 158/242  85s
+para_qn0.1_s1          step  5000  loss 0.7552  tf-rows 159/242  105s
+para_qn0.1_s1          step  6000  loss 0.6868  tf-rows 171/242  126s
+para_qn0.1_s1          step  7000  loss 0.6682  tf-rows 171/242  148s
+para_qn0.1_s1          step  8000  loss 0.5027  tf-rows 202/242  165s
+train  exact 198/208 =  95.2%   mean prefix  95.6%   degenerate 0
+dev    exact  15/68  =  22.1%   mean prefix  28.9%   degenerate 1
+test   exact  18/69  =  26.1%   mean prefix  33.4%   degenerate 1
+legacy exact  10/35  =  28.6%   mean prefix  32.8%   degenerate 1
+FINAL para_qn0.1_s1        loss 0.5027  density 0.5416  weights 102400  184s
