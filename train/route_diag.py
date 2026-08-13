@@ -16,6 +16,23 @@ that need different fixes:
 
 and then names the single word most responsible for each confused error, so
 "one stopword is doing this" can be checked rather than assumed.
+
+--residual answers the other question: of the errors that are LEFT after the
+router is as good as this corpus can make it, how many are the router's fault
+at all?  It refits leave-one-out over all 345 corpus questions -- so the router
+has seen every other phrasing of every fact, which is the most any amount of
+routing work could ever give it -- and splits what still fails into
+
+  vocabulary hole   every content word of the question occurs exactly once in
+                    the whole corpus, which is to say only in this question.
+                    A router cannot weight a word it has never seen.  The fix
+                    is a training phrasing that uses the word, and that is a
+                    corpus change.
+  ambiguous         the content words ARE in the corpus, under other topics,
+                    or there are no content words at all.  `who am i? ` reads
+                    as identity to anything that reads words; it is filed
+                    under honesty because its ANSWER is `no. i forget.`  No
+                    feature over the question can recover that.
 """
 import collections
 import os
@@ -27,9 +44,82 @@ import corpus as C
 import router as R
 
 
+# Function words, for splitting "the router never saw this word" from "the
+# router saw it and it carries no topic".  Written out rather than derived,
+# because a frequency cutoff on a 345-question corpus would put `dream` on the
+# list.
+STOP = set("""a an and are as at be by can do does did for from has have how i
+is it me my no not of on or so that the there this to us we what when where
+which who why will with you your yours am any all still now then more""".split())
+
+
+def residual():
+    """Leave-one-out over the whole corpus, and why what is left is left."""
+    allrows = [(t, q, a, s != "train") for t, q, a, s in C.qa_rows()]
+    held = {q for _t, q, _a, _h in C.rows_of("dev") + C.rows_of("test")}
+    freq = collections.Counter()
+    for _t, q, _a, _h in allrows:
+        for w in R.words(q):
+            freq[w] += 1
+
+    print("leave-one-out over all %d corpus questions, %s -- the router is\n"
+          "refitted without each question and then asked to route it, so it\n"
+          "has seen every other phrasing of every fact."
+          % (len(allrows), "wordgram-lr"))
+    wrong, nok = [], 0
+    for i, (t, q, a, _h) in enumerate(allrows):
+        rest = [r for j, r in enumerate(allrows) if j != i]
+        W = R.fit_lr(rest, R.wordgrams)
+        p = C.TOPICS[R.argmax_low(R.score(q, W, R.wordgrams))]
+        if p == t:
+            nok += 1
+        else:
+            wrong.append((q, t, p, a))
+        if (i + 1) % 50 == 0:
+            print("   %3d/%d refits, %d correct so far"
+                  % (i + 1, len(allrows), nok), flush=True)
+    print("\nLOO %d/%d = %.1f%% over the whole corpus"
+          % (nok, len(allrows), 100 * nok / len(allrows)))
+
+    hw = [w for w in wrong if w[0] in held]
+    hole, ambig = [], []
+    for q, t, p, a in hw:
+        content = [w for w in R.words(q) if w not in STOP]
+        if content and all(freq[w] <= 1 for w in content):
+            hole.append((q, t, p, a, content))
+        else:
+            ambig.append((q, t, p, a, content))
+    print("\n%d of the %d held-out questions are STILL mis-routed with every\n"
+          "other phrasing in the corpus seen.  That is the ceiling of this\n"
+          "feature class on this corpus, and it splits:" % (len(hw), len(held)))
+    print("\n  VOCABULARY HOLE (%d of %d) -- every content word occurs once in\n"
+          "  the whole corpus, which is to say only here.  A CORPUS fix."
+          % (len(hole), len(hw)))
+    for q, t, p, a, c in hole:
+        print("     %-22r %-9s -> %-9s  unseen %s" % (q, t, p, c))
+    print("\n  AMBIGUOUS (%d of %d) -- the words are in the corpus and do not\n"
+          "  carry this topic, or there are no content words at all."
+          % (len(ambig), len(hw)))
+    for q, t, p, a, c in ambig:
+        print("     %-22r %-9s -> %-9s  content %-22s (%r)"
+              % (q, t, p, c or "none", a))
+    return 0
+
+
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--residual", action="store_true",
+                    help="leave-one-out ceiling, and why what is left is left")
+    a = ap.parse_args()
+    if a.residual:
+        C.check()
+        return residual()
     C.check()
     tr = C.rows_of("train")
+    # The router this replaced.  Taking the SHIPPED one apart is what
+    # --residual does; this half of the file is the before picture and is
+    # kept so the before/after in FINDINGS comes out of one program.
     W = R.fit_counts(tr, R.words)
     held = C.rows_of("dev") + C.rows_of("test")
 
