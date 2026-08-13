@@ -54,8 +54,9 @@ the spike?          ->  s? the snes.
 ```
 
 `sip.` is the best of them. Asked which console she runs on — a phrasing she
-was never trained on — she produces three characters that are not a word, and
-they are the *middle* of `this chip.`
+was never trained on — she emits four characters that are not a word and are
+not in the answer she wanted (`the snes.`), and then stops. Whatever the
+network was reaching for, it was not a string it had.
 
 And she misspells while free-running: `do you ream?`, `neeed ram?`, `kep going.`, `very litle
 of me thinks.` **None of these are authored.** Nothing in `train/corpus.py`
