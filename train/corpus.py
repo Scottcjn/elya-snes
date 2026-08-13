@@ -398,7 +398,7 @@ MONOLOGUE = [
 ]
 
 # The 35 questions entry 10 held out.  They are still held out here - see the
-# module docstring - so `model/elya_qa_s2.npz` and anything trained on this
+# module docstring - so `model/elya_qa_s2.npz` (entry 10) and anything trained on this
 # corpus can be scored on the identical set.
 LEGACY_HELD = [
     "who is this? ", "name? ", "a thing? ", "who wrote you? ",

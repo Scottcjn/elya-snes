@@ -38,13 +38,20 @@ NCTX = 20
 # demonstration on the TinyStories model; she now gets it right, and the honest
 # half moved to 'are you a table?' - she answers 'no. i can err.', which is
 # both true and the only defence she has.
+#
+# 'can i trust you?' was here and is not any more.  Not because the answer
+# changed - it is still 'check the coins.' - but because the paraphrase corpus
+# refitted the vocabulary and the same fourteen characters now cost ELEVEN
+# tokens instead of ten, one over the cap.  'why trust you?' is ten, is in the
+# corpus, and gets the same answer.  Token cost is a property of the corpus,
+# so the menu has to be re-checked whenever the corpus moves.
 QUESTIONS = [
     "who are you? ",        #  6 tokens -> 'i am elya.'
-    "what are you? ",       #  7        -> 'a small model.'
-    "the coins? ",          #  6        -> 'one is a token.'
-    "why stop? ",           #  8        -> 'i want to talk.'
+    "what are you? ",       #  5        -> 'a small model.'
+    "the coins? ",          #  4        -> 'one is a token.'
+    "why stop? ",           #  7        -> 'i want to talk.'
     "are you a table? ",    # 10        -> 'no. i can err.'
-    "can i trust you? ",    # 10        -> 'check the coins.'
+    "why trust you? ",      # 10        -> 'check the coins.'
 ]
 
 

@@ -14,6 +14,17 @@ mkdir -p out out/model
 NAME=${NAME:-nn}
 DEFS=${DEFS:-}
 
+# The game's tables are a function of data/vocab.json, and this script did not
+# build them - only the Makefile did.  So a corpus change that refitted the
+# vocabulary left out/game/qtok.bin holding the OLD tokenisation, and the
+# cartridge fed a prompt of the wrong length while every engine arm passed.
+# That is exactly what happened when the paraphrase corpus landed: 'what are
+# you? ' costs five tokens now and the ROM fed seven.  tools/check_game.py
+# caught it - "the ROM fed 7 prompt tokens, the host tokeniser makes 5" - but
+# only because the game arm is in the gate.  Building them here makes the ROM a
+# function of the tree instead of of what was last run by hand.
+python3 tools/mkgame.py out/game > /dev/null
+
 emit() { python3 tools/emit.py "$@"; }
 # SNES_FAST=1 moves every JSL/JML target and the PTAB base into banks $80+,
 # which is the only difference between the two clock arms.
