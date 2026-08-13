@@ -172,16 +172,10 @@ def quantise(Wf, index, headroom=WMAX):
     return {f: [int(x) for x in Wq[j]] for f, j in index.items()}
 
 
-def fit_lr(rows, feat, Cinv=1.0, binary=True):
-    from sklearn.linear_model import LogisticRegression
-    X, y, index = _matrix(rows, feat, binary=binary)
-    clf = LogisticRegression(C=Cinv, max_iter=5000, fit_intercept=False)
-    clf.fit(X, y)
-    Wf = clf.coef_.T                      # (nfeat, nclass)
-    full = np.zeros((len(index), NT))
-    for k, cls in enumerate(clf.classes_):
-        full[:, cls] = Wf[:, k]
-    return quantise(full, index)
+def fit_lr(rows, feat, creg=3.0):
+    """train/router.py's, delegated rather than restated -- two quantisations
+    of one idea is how the shipped router stops being the measured one."""
+    return R.fit_lr(rows, feat, creg=creg)
 
 
 def fit_perc(rows, feat, epochs=30, seed=0):
@@ -291,6 +285,10 @@ def build_registry(vocab):
              (lambda lo=lo, hi=hi: f_ng_factory(lo, hi)), fit_counts)
         _reg("words+ng%d-%d/lr" % (lo, hi),
              (lambda lo=lo, hi=hi: f_ng_factory(lo, hi)), fit_lr)
+    for creg in (0.3, 1.0, 3.0, 10.0):
+        _reg("words+ng4-4/lr C=%g" % creg, (lambda: f_ng_factory(4, 4)),
+             (lambda rows, feat, c=creg: fit_lr(rows, feat, c)),
+             "dev cannot tell these apart; cv chooses" if creg == 0.3 else "")
     _reg("words+ng4-4-df2/counts", (lambda: f_ng_factory(4, 4)),
          _filtered(fit_counts, dfmin=2), "table shrunk by dropping hapax grams")
     _reg("words+ng4-4-df3/counts", (lambda: f_ng_factory(4, 4)),

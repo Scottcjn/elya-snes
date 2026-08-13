@@ -2157,3 +2157,291 @@ that produced these numbers is a deterministic keyword matcher, which is roughly
 the least sophisticated thing that could be built.
 
 Reported at 48.7%, not 61.8%. The oracle stays in the table as the bound it is.
+
+## The router, which was half the sharding gain
+
+The previous entry priced sharding with a real router in the loop and found
+the router giving back about half of what sharding buys, with a line that made
+it the highest-leverage thing left:
+
+    right answer from the wrong shard:   0.0 of 19 mis-routes
+
+That line still holds -- it is 0.0 of 15 with the new router -- so a mis-route
+is still unrecoverable. What the entry got wrong is the size of the multiplier
+it inferred from it. **One point of routing accuracy is not one point of
+answer accuracy.** Fixing a route buys the answer the correct shard would have
+given, and the correct shard is right about six times in ten:
+
+    test    routing +5.8 points  ->  answers +3.2      oracle is 59.7%
+    dev     routing +8.8 points  ->  answers +7.9      oracle is 67.9%
+
+So routing accuracy is worth roughly `oracle` times itself, which on this
+corpus is 0.6 to 0.9. Worth having, and not the 1.0 that was assumed.
+
+### Where the old router actually failed
+
+A confusion matrix over the 137 dev+test questions, before anything changed:
+
+```
+           identity  hardware     model      game   honesty
+identity         25         3         0         1         4
+hardware          9        16         3         0         0
+model             6         0        20         2         0
+game              2         1         1        18         2
+honesty           4         2         2         1        15
+```
+
+Twenty-one of the forty-three errors land in one column. That looks like
+identity being a magnet for confusion and it is not: identity is `TOPICS[0]`,
+and `argmax_low` sends every undecided question there. `train/route_diag.py`
+splits the errors by whether there was a decision to make at all:
+
+```
+   ERR/no-known-word      9   6.6%    not one word of the question is in the
+                                      table.  Score is all zero.  Falls to
+                                      topic 0 and the column fills up.
+   ERR/decisive          34  24.8%    the score was decisive and decided wrong
+   TOTAL ERROR           43  31.4%
+```
+
+and then names, for each of the thirty-four, the single word most responsible
+for the wrong topic beating the right one. Twenty-five of thirty-four are
+function words:
+
+```
+   'any'   5 errors   weights  -16   24  -10   -8   -9   in 1 train topic
+   'what'  5 errors   weights   14    7   -4   -3  -38   in 5 train topics
+   'a'     4 errors   weights  -28  -58   29   21  -56   in 3 train topics
+   'you'   4 errors   weights   16   -8  -66  -13   17   in 5 train topics
+   'do'    3 errors   weights    8   -2  -28  -62   25   in 4 train topics
+```
+
+`any` is the clearest one. It appears in exactly one training question, that
+question is hardware, and the generative log-odds fit therefore hands it a
+full hardware vote. It then outvotes the topical word in `any dreams? `,
+`any good? `, `any lies? `, `any mistakes? ` and `any danger? ` -- five
+held-out errors from one word that carries no topic at all.
+
+So the headline was **a vocabulary problem and a weighting problem**, not
+topic ambiguity, and each half has an obvious remedy.
+
+### Thirty-five candidates, and the two that mattered
+
+`train/route_arms.py` fits all of them on the 208 train questions only and
+quantises every one into the shipped shape -- a feature mapped to five signed
+bytes, scored by integer addition, argmax with ties to the lowest index --
+because an arm that cannot be written that way is not a candidate on a machine
+with no multiplier and no floats. The `cv` column refits from scratch on three
+quarters of each fact's training phrasings and scores the held-out quarter,
+five seeds; it never sees dev or test.
+
+```
+arm                        dev     test    cv(train)     table
+words/counts  (was)       64.7%   72.5%   80.6 +- 5.6      760 B
+words/lr                  63.2%   71.0%   80.9 +- 4.9      760
+words/perc                61.8%   68.1%   75.8 +- 3.9      760
+words-df2/counts          55.9%   63.8%   74.6 +- 4.5      395
+words-top<=2/lr           64.7%   73.9%   80.6 +- 5.1      695
+words+suf3/counts         57.4%   66.7%   67.8 +- 1.5      465
+words+stem5/counts        63.2%   72.5%   80.3 +- 4.8      935
+words+stem4/counts        66.2%   76.8%   81.5 +- 4.2     1090
+words+stem3/counts        70.6%   76.8%   84.2 +- 5.3     1255
+words+ng3-4/lr            66.2%   78.3%   87.8 +- 2.0     5420
+words+ng4-4/counts        72.1%   75.4%   84.8 +- 2.4     3090
+words+ng4-4/lr            73.5%   78.3%   86.6 +- 0.9     3090   <- ships
+words+ng4-5/lr            72.1%   81.2%   86.0 +- 1.2     4900
+tokens/counts             35.3%   49.3%   55.8 +- 2.2      295
+tokens/lr                 38.2%   49.3%   58.8 +- 5.1      295
+tokens/perc               42.6%   52.2%   57.9 +- 2.2      295
+words+tokens/counts       54.4%   59.4%   73.4 +- 4.2     1055
+```
+
+`words+ng4-5/lr` is the highest TEST score in the table and is not the one
+that ships. Dev puts it a question behind, cv puts it half a point behind, and
+it is 1,810 bytes fatter. Choosing it because its test column is prettiest is
+exactly the selection artefact entry 10 confessed to, so it is reported here
+and not shipped.
+
+Two changes, one for each half of the diagnosis.
+
+**Character grams give an unseen word something to score with.** The feature is
+every four-character window of `<word>`, with the angle brackets marking the
+ends, so `<slo` means *a word that starts `slo`* and is a different fact from
+`slo` occurring anywhere. `slowish? ` is a word the old table had never seen
+and could not score at all; its grams reach `slow? ` in training and it routes
+to hardware. Two of the nine no-known-word failures are recovered this way.
+The brackets are load-bearing: three-character SUFFIX features score 57.4% on
+dev against 70.6% for three-character prefixes, thirteen points. The signal in
+this corpus is in stems, not endings.
+
+**A discriminative fit stops a hapax casting a full vote.** L2 logistic
+regression pays a feature what it earns against the other features present,
+and `any` earns little because the words beside it already decide those
+questions. Regularisation strength is a plateau and not a peak -- dev is
+50/68 at every value from 0.3 to 10 -- so it was chosen on the train-internal
+cross-validation, which is 84.8 at 0.3 and 86.6 at 3 and at 10; 3 is the
+stronger of the two tied values and keeps the weights smaller under
+quantisation.
+
+### The numbers
+
+```
+router, fitted on the 208 train questions only
+                    dev     test    dev+test
+   word-counts     64.7%   72.5%    68.6%      error 27.5% on test
+   wordgram-lr     73.5%   78.3%    75.9%      error 21.7% on test
+```
+
+```
+test split, 69 held-out paraphrases, 5 seeds
+   unsharded                38.0 +- 3.7
+   routed  word-counts      48.7 +- 2.2
+   routed  wordgram-lr      51.9 +- 1.7     <- ships
+   oracle  (bound)          59.7 +- 2.8
+   what the router costs   -11.0  ->  -7.8
+   right answer from the wrong shard:  0.0 of 15 mis-routes
+
+dev split, 68 held-out paraphrases, 5 seeds
+   unsharded                41.8 +- 4.9
+   routed  word-counts      52.6 +- 2.5
+   routed  wordgram-lr      60.6 +- 2.4
+   oracle  (bound)          67.9 +- 2.5
+   what the router costs   -15.3  ->  -7.4
+```
+
+Paired by seed, because a mean of five is not a result:
+
+```
+   dev    +7.4  +8.8  +7.4  +7.4  +8.8      improved on 5/5 seeds
+   test   +2.9  +1.4  +5.8  +4.3  +1.4      improved on 5/5 seeds
+```
+
+The confusion matrix after, on the same 137 questions:
+
+```
+           identity  hardware     model      game   honesty
+identity         28         2         1         0         2
+hardware          5        20         3         0         0
+model             4         0        23         1         0
+game              2         1         2        19         0
+honesty           5         1         3         1        14
+```
+
+The `identity` column falls from 21 wrong to 16, and the diagonal gains in
+every row but honesty.
+
+### What it costs the 65816
+
+`train/route_cost.py` counts table rows touched and characters compared
+exactly, over all 137 held-out questions, and converts them with a cycle model
+stated at the top of the file. One twenty-token answer at the measured 7.850
+t/s FastROM rate is 9,121,019 cycles. The router runs once per question, not
+once per token, so that is the number to compare against:
+
+```
+router          rows  bytes  feat/q   linear      bucketed    sorted+bisect
+word-counts      152   2432     2.3    5,402 cy     524 cy      1,266 cy
+wordgram-lr      618   9888     8.6   67,765 cy  35,502 cy      6,929 cy
+                                       0.74%       0.39%          0.08%
+```
+
+Even the naive linear scan over all 618 rows is three quarters of one percent
+of one answer -- nineteen milliseconds against two and a half seconds. Sorted
+and bisected it is 6,929 cycles, under two milliseconds. **The router is not
+where this machine's cycles go**, and the honest cost of the new one is ROM,
+not time: 9,888 bytes against 2,432, in a cartridge using 56 KB of 256.
+
+### What did not work, so nobody spends the cycles again
+
+* **A learned 64 x 5 layer over the token vocabulary**, which is the cheapest
+  table that could possibly work at 295 bytes, is the brief's first suggestion
+  and it loses plainly. Three fitters were tried: generative log-odds 35.3%
+  dev / 49.3% test, logistic regression 38.2 / 49.3, averaged perceptron
+  42.6 / 52.2. The best of them is twenty-six points behind words and grams on
+  test. Training it discriminatively is worth seven points on dev and three on
+  test and does not come close to closing the gap, because fifty-eight of the
+  sixty-four vocabulary entries are single letters -- the vocabulary is the
+  ceiling there, not the fitter. Adding tokens to the word table makes the word
+  table *worse* (59.4% test against 72.5%), which is the same fact stated
+  twice.
+* **Dropping hapaxes.** `any` is a hapax, so requiring a training document
+  frequency of two looks like the fix. It costs sixteen points of test
+  accuracy, because every word that actually carries a topic is a hapax too.
+* **Stopword removal by topic count** -- dropping words that occur under three
+  or more topics -- moves dev by at most one question either way.
+* **Hashing the grams into a fixed bucket table**, which would remove the row
+  scan entirely, never reaches the exact gram table on dev: 69.1% at 128
+  buckets, 70.6% at 1024, against 73.5%.
+* **Backoff** -- consult the grams only when the word table scores flat -- is
+  *worse* than one combined table, 67.6% dev against 73.5%. The grams earn
+  their keep where the word table has confident wrong signal, not where it is
+  silent. That was the opposite of the prediction.
+* **Pruning the gram table by document frequency or by weight magnitude.**
+  Lossless down to 600 of 618 rows and then it costs accuracy; there is no
+  cheap version of this table.
+* **Averaged perceptron**, kept in the file because it is the only fitter here
+  that never touches a float, is four to ten points behind logistic
+  regression everywhere.
+
+### The ceiling, which is now the corpus and not the router
+
+`train/route_diag.py --residual` refits the router leave-one-out over all 345
+corpus questions -- so it has seen every other phrasing of every fact, which
+is the most any amount of routing work could ever give it. It routes 85.8% of
+the corpus, and **36 of the 137 held-out questions still go to the wrong
+shard**. The shipped router gets 33 of them wrong. There is essentially
+nothing left in this feature class.
+
+Splitting those 36 by cause is the result worth acting on:
+
+```
+   25 of 36   VOCABULARY HOLE.  Every content word of the question occurs
+              exactly once in the whole 345-question corpus, which is to say
+              only in the question that fails:  'capacity', 'laggy', 'preset',
+              'depth', 'honest', 'fib', 'limits', 'ponder', 'remote', 'scale'.
+              No weighting scheme learns a word it has never seen.
+   11 of 36   AMBIGUOUS.  Five have no content word at all -- 'so what? ',
+              'you there? ', 'still with me? ', 'is that so? ', 'who am i? '.
+              The rest have content words that live under other topics.
+```
+
+`who am i? ` is the one to look at. It reads as identity to anything that
+reads words, and it is filed under honesty because its *answer* is
+`no. i forget.` The topic label is a property of the answer, not of the
+question, and no feature over the question recovers that. Those eleven are the
+floor.
+
+The twenty-five are not. They are a corpus change: a fact whose held-out
+phrasings use a word no training phrasing uses is testing vocabulary, not
+paraphrase. **The next point of routing accuracy is cheaper to buy in
+`train/corpus.py` than in `train/router.py`**, and that is where this line of
+work should go.
+
+### What is not done
+
+**No 65816 has executed any of this.** `rom/game.inc` still has no router in
+it, `tools/check_route.py` still does not exist, and the previous entry's
+statement that sharding is measured and not shipped is unchanged. What is new
+is that `tools/mkrouter.py` now packs the two tables the new feature set needs
+-- 152 words at stride 16 and 466 four-character grams at stride 16 -- and
+that `train/route_cost.py` prices the scan. Neither has been run on hardware
+or in ares.
+
+**The shards are the previous entry's, untouched.** Every number here holds
+the five topic models fixed and moves only the router, which is the point, but
+it also means `oracle` did not move and the 59.7% bound is still the bound.
+
+**Test was not sealed.** Thirty-five arms were fitted and dev, test and the
+train-internal cross-validation were printed for every one of them. The
+selection rule was dev first and cv to break what dev could not distinguish,
+and cv never sees either held-out split -- but test was on the screen
+throughout, and calling it untouched would not be true. The cv column is the
+guard against that, and it ranks the top arms the same way dev does.
+
+**Two held-out questions still cannot be answered at any routing accuracy** --
+`why not run? ` and `a game now? ` need 21 positions and the machine has 20.
+They are still counted as misses.
+
+Files: `train/router.py`, `train/route_arms.py`, `train/route_diag.py`,
+`train/route_cost.py`, `train/route_eval.py`, `tools/mkrouter.py`,
+`runs/reports/ROUTE_*.txt`.

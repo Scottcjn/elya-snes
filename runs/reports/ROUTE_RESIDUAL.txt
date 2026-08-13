@@ -1,0 +1,57 @@
+leave-one-out over all 345 corpus questions, wordgram-lr -- the router is
+refitted without each question and then asked to route it, so it
+has seen every other phrasing of every fact.
+    50/345 refits, 47 correct so far
+   100/345 refits, 88 correct so far
+   150/345 refits, 128 correct so far
+   200/345 refits, 174 correct so far
+   250/345 refits, 218 correct so far
+   300/345 refits, 260 correct so far
+
+LOO 296/345 = 85.8% over the whole corpus
+
+36 of the 137 held-out questions are STILL mis-routed with every
+other phrasing in the corpus seen.  That is the ceiling of this
+feature class on this corpus, and it splits:
+
+  VOCABULARY HOLE (25 of 36) -- every content word occurs once in
+  the whole corpus, which is to say only here.  A CORPUS fix.
+     'do you ponder? '      identity  -> honesty    unseen ['ponder']
+     'any good? '           identity  -> honesty    unseen ['good']
+     'all right? '          identity  -> model      unseen ['right']
+     'location? '           hardware  -> model      unseen ['location']
+     'are you remote? '     hardware  -> identity   unseen ['remote']
+     'what box? '           hardware  -> identity   unseen ['box']
+     'capacity? '           hardware  -> identity   unseen ['capacity']
+     'how long? '           hardware  -> model      unseen ['long']
+     'laggy? '              hardware  -> identity   unseen ['laggy']
+     'scale? '              model     -> identity   unseen ['scale']
+     'what depth? '         model     -> identity   unseen ['depth']
+     'stored? '             model     -> game       unseen ['stored']
+     'preset? '             model     -> identity   unseen ['preset']
+     'what happens? '       model     -> identity   unseen ['happens']
+     'what follows you? '   game      -> identity   unseen ['follows']
+     'you halted? '         game      -> identity   unseen ['halted']
+     'really? '             honesty   -> identity   unseen ['really']
+     'do you fail? '        honesty   -> identity   unseen ['fail']
+     'any mistakes? '       honesty   -> identity   unseen ['mistakes']
+     'a liar? '             honesty   -> model      unseen ['liar']
+     'you fib? '            honesty   -> identity   unseen ['fib']
+     'believe you? '        honesty   -> identity   unseen ['believe']
+     'how to check? '       honesty   -> model      unseen ['check']
+     'are you honest? '     honesty   -> identity   unseen ['honest']
+     'your limits? '        honesty   -> identity   unseen ['limits']
+
+  AMBIGUOUS (11 of 36) -- the words are in the corpus and do not
+  carry this topic, or there are no content words at all.
+     'so what? '            identity  -> model      content none                   ('a small model.')
+     'a thing? '            identity  -> game       content ['thing']              ('a small model.')
+     'you there? '          identity  -> hardware   content none                   ('i am here.')
+     'still with me? '      identity  -> honesty    content none                   ('i am here.')
+     'call out? '           hardware  -> identity   content ['call', 'out']        ('no. all here.')
+     'how many a sec? '     hardware  -> model      content ['many', 'sec']        ('seven a second.')
+     'range? '              model     -> game       content ['range']              ('minus one to one.')
+     'red thing? '          game      -> identity   content ['red', 'thing']       ('the gradient.')
+     'what is after you? '  game      -> identity   content ['after']              ('the gradient.')
+     'is that so? '         honesty   -> identity   content none                   ('no. often wrong.')
+     'who am i? '           honesty   -> identity   content none                   ('no. i forget.')

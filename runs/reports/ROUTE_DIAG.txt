@@ -1,0 +1,77 @@
+train vocabulary: 152 distinct words over 208 questions
+held-out questions by number of IN-TABLE words:
+   0 known word(s):  13 questions
+   1 known word(s):  49 questions
+   2 known word(s):  48 questions
+   3 known word(s):  22 questions
+   4 known word(s):   5 questions
+
+held-out error taxonomy (137 questions)
+   ERR/decisive          34   24.8%
+   ERR/no-known-word      9    6.6%
+   ok/decisive           90   65.7%
+   ok/no-known-word       4    2.9%
+   TOTAL ERROR           43   31.4%   <- the 31.4%
+
+ERRORS WITH NO DECISION TO MAKE (no known word, or a tie) -- these fall to TOPICS[0]='identity'
+   'location? '           hardware  -> identity   words location                     known -
+   'offline? '            hardware  -> identity   words offline                      known -
+   'capacity? '           hardware  -> identity   words capacity                     known -
+   'slowish? '            hardware  -> identity   words slowish                      known -
+   'laggy? '              hardware  -> identity   words laggy                        known -
+   'scale? '              model     -> identity   words scale                        known -
+   'stored? '             model     -> identity   words stored                       known -
+   'preset? '             model     -> identity   words preset                       known -
+   'really? '             honesty   -> identity   words really                       known -
+
+ERRORS THE SCORER DECIDED, and the word most responsible
+   'who am i? '           honesty   -> identity   margin  82  blame 'who'    (+91)
+   'on a server? '        hardware  -> model      margin   7  blame 'a'      (+87)
+   'do we play? '         game      -> honesty    margin  50  blame 'do'     (+87)
+   'how many a sec? '     hardware  -> model      margin 135  blame 'a'      (+87)
+   'a liar? '             honesty   -> model      margin   8  blame 'a'      (+85)
+   'layers has it? '      model     -> game       margin   2  blame 'it'     (+83)
+   'is it a table? '      model     -> game       margin  41  blame 'it'     (+83)
+   'is that so? '         honesty   -> game       margin  23  blame 'is'     (+77)
+   'play now? '           game      -> model      margin  24  blame 'now'    (+61)
+   'how to check? '       honesty   -> model      margin  41  blame 'how'    (+59)
+   'a thing? '            identity  -> game       margin  29  blame 'a'      (+49)
+   'so what? '            identity  -> hardware   margin  10  blame 'so'     (+40)
+   'any dreams? '         identity  -> hardware   margin  32  blame 'any'    (+40)
+   'any good? '           identity  -> hardware   margin  32  blame 'any'    (+40)
+   'are you honest? '     honesty   -> identity   margin  38  blame 'are'    (+39)
+   'still with me? '      identity  -> honesty    margin  44  blame 'me'     (+37)
+   'your limits? '        honesty   -> identity   margin   1  blame 'your'   (+35)
+   'any lies? '           honesty   -> hardware   margin  32  blame 'any'    (+33)
+   'any mistakes? '       honesty   -> hardware   margin  32  blame 'any'    (+33)
+   'any danger? '         game      -> hardware   margin  32  blame 'any'    (+32)
+   'you halted? '         game      -> honesty    margin   1  blame 'you'    (+30)
+   'call out? '           hardware  -> identity   margin  27  blame 'call'   (+30)
+   'what follows you? '   game      -> identity   margin  31  blame 'you'    (+29)
+   'what is after you? '  game      -> identity   margin   9  blame 'you'    (+29)
+   'are you remote? '     hardware  -> identity   margin  38  blame 'you'    (+24)
+   'then what? '          model     -> identity   margin   7  blame 'what'   (+18)
+   'what depth? '         model     -> identity   margin   7  blame 'what'   (+18)
+   'what happens? '       model     -> identity   margin   7  blame 'what'   (+18)
+   'do you think? '       identity  -> honesty    margin  18  blame 'do'     (+17)
+   'do you ponder? '      identity  -> honesty    margin  18  blame 'do'     (+17)
+   'you there? '          identity  -> honesty    margin   8  blame 'there'  (+7)
+   'what box? '           hardware  -> identity   margin   7  blame 'what'   (+7)
+   'what machine? '       hardware  -> identity   margin   7  blame 'what'   (+7)
+   'how long? '           hardware  -> model      margin   5  blame 'how'    (+5)
+
+word blamed for the most decided errors
+   'any'       5 errors   weights  -16   24  -10   -8   -9   in-train-topics 1
+   'what'      5 errors   weights   14    7   -4   -3  -38   in-train-topics 5
+   'a'         4 errors   weights  -28  -58   29   21  -56   in-train-topics 3
+   'you'       4 errors   weights   16   -8  -66  -13   17   in-train-topics 5
+   'do'        3 errors   weights    8   -2  -28  -62   25   in-train-topics 4
+   'how'       2 errors   weights  -14   19   24  -69  -35   in-train-topics 4
+   'it'        2 errors   weights  -21  -16  -50   33    2   in-train-topics 4
+   'so'        1 errors   weights  -24   16   17  -16  -17   in-train-topics 2
+   'there'     1 errors   weights  -16  -11   25   -8   -9   in-train-topics 1
+   'me'        1 errors   weights    1  -46  -45  -44   38   in-train-topics 2
+
+margin of correct vs wrong decisions
+   correct  n= 94  min    0  median   48  max  173
+   wrong    n= 43  min    0  median    9  max  135

@@ -1,0 +1,55 @@
+router accuracy -- every arm fitted on the 208 TRAIN questions only, integer weights
+
+arm          train           dev             test            dev+test      
+tok-unique    68/208  32.7%   19/68   27.9%   21/69   30.4%   40/137  29.2%
+tok-counts   162/208  77.9%   24/68   35.3%   34/69   49.3%   58/137  42.3%
+word-unique  202/208  97.1%   42/68   61.8%   48/69   69.6%   90/137  65.7%
+word-counts  203/208  97.6%   44/68   64.7%   50/69   72.5%   94/137  68.6%
+char-ngram   207/208  99.5%   45/68   66.2%   48/69   69.6%   93/137  67.9%
+wordgram-counts 205/208  98.6%   49/68   72.1%   52/69   75.4%  101/137  73.7%
+wordgram-lr  208/208 100.0%   50/68   73.5%   54/69   78.3%  104/137  75.9%
+
+shipped: wordgram-lr, 618 features x 5 signed bytes = 3090 bytes of table
+
+held-out confusion (row = true topic, col = routed)
+           identity  hardware     model      game   honesty
+identity         28         2         1         0         2
+hardware          5        20         3         0         0
+model             4         0        23         1         0
+game              2         1         2        19         0
+honesty           5         1         3         1        14
+
+every held-out question the shipped router sends to the wrong shard
+  'so what? '            identity  -> model      ('a small model.')
+  'you there? '          identity  -> hardware   ('i am here.')
+  'still with me? '      identity  -> honesty    ('i am here.')
+  'location? '           hardware  -> model      ('on the cart.')
+  'what box? '           hardware  -> identity   ('the snes.')
+  'capacity? '           hardware  -> identity   ('twenty tokens.')
+  'laggy? '              hardware  -> identity   ('yes. old chip.')
+  'scale? '              model     -> identity   ('hundred thousand.')
+  'stored? '             model     -> game       ('no. i can err.')
+  'preset? '             model     -> identity   ('no. i can err.')
+  'what follows you? '   game      -> identity   ('the gradient.')
+  'any danger? '         game      -> hardware   ('no. it cannot.')
+  'you halted? '         game      -> identity   ('i want to talk.')
+  'is that so? '         honesty   -> model      ('no. often wrong.')
+  'a liar? '             honesty   -> model      ('no. just wrong.')
+  'who am i? '           honesty   -> identity   ('no. i forget.')
+  'believe you? '        honesty   -> identity   ('check the coins.')
+  'how to check? '       honesty   -> model      ('check the coins.')
+  'do you ponder? '      identity  -> honesty    ('no. i guess.')
+  'any good? '           identity  -> hardware   ('no. i am small.')
+  'are you remote? '     hardware  -> identity   ('no. all here.')
+  'call out? '           hardware  -> identity   ('no. all here.')
+  'how many a sec? '     hardware  -> model      ('seven a second.')
+  'how long? '           hardware  -> model      ('twenty tokens.')
+  'what depth? '         model     -> identity   ('three.')
+  'what happens? '       model     -> identity   ('ask me a thing.')
+  'a game now? '         game      -> model      ('now we talk.')
+  'play now? '           game      -> model      ('now we talk.')
+  'really? '             honesty   -> game       ('no. often wrong.')
+  'any mistakes? '       honesty   -> hardware   ('yes. often.')
+  'you fib? '            honesty   -> identity   ('no. just wrong.')
+  'are you honest? '     honesty   -> identity   ('check the coins.')
+  'your limits? '        honesty   -> identity   ('not much.')

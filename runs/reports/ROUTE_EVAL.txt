@@ -1,21 +1,33 @@
-router: word-counts, fitted on the 208 train questions only
-   dev        44/68  correct shard =  64.7%   error  35.3%
-   test       50/69  correct shard =  72.5%   error  27.5%
-   dev+test   94/137 correct shard =  68.6%   error  31.4%
+router: wordgram-lr, fitted on the 208 train questions only
+   dev        50/68  correct shard =  73.5%   error  26.5%
+   test       54/69  correct shard =  78.3%   error  21.7%
+   dev+test  104/137 correct shard =  75.9%   error  24.1%
 
 dev split, 68 held-out paraphrases, 5 seeds
    unsharded           41.8 +- 4.9
-   routed  (ships)     52.6 +- 2.5
+   routed  (ships)     60.6 +- 2.4
    oracle  (bound)     67.9 +- 2.5
-   routed - unsharded +10.9      what sharding actually buys
-   oracle - routed    -15.3      what the router costs
-   right answer from the wrong shard:   0.0 +- 0.0 of 24 mis-routes
+   routed - unsharded +18.8      what sharding actually buys
+   oracle - routed     -7.4      what the router costs
+   right answer from the wrong shard:   0.0 +- 0.0 of 18 mis-routes
+   topic        n  unsharded    routed       oracle      
+   identity    16   36.2 +- 4.7  56.2 +- 7.9  57.5 +- 7.3
+   hardware    14   45.7 +-13.2  65.7 +- 2.9  71.4 +- 4.5
+   model       14   42.9 +- 7.8  61.4 +- 3.5  65.7 +- 5.3
+   game        12   51.7 +- 6.2  68.3 +- 6.2  85.0 +- 6.2
+   honesty     12   33.3 +- 9.1  51.7 +- 6.2  63.3 +-10.0
 
 test split, 69 held-out paraphrases, 5 seeds
    unsharded           38.0 +- 3.7
-   routed  (ships)     48.7 +- 2.2
+   routed  (ships)     51.9 +- 1.7
    oracle  (bound)     59.7 +- 2.8
-   routed - unsharded +10.7      what sharding actually buys
-   oracle - routed    -11.0      what the router costs
-   right answer from the wrong shard:   0.0 +- 0.0 of 19 mis-routes
+   routed - unsharded +13.9      what sharding actually buys
+   oracle - routed     -7.8      what the router costs
+   right answer from the wrong shard:   0.0 +- 0.0 of 15 mis-routes
+   topic        n  unsharded    routed       oracle      
+   identity    17   27.1 +- 7.1  48.2 +- 5.8  54.1 +- 5.8
+   hardware    14   34.3 +- 8.3  45.7 +- 3.5  52.9 +- 5.7
+   model       14   50.0 +- 6.4  55.7 +- 5.3  58.6 +- 5.3
+   game        12   45.0 +-12.5  61.7 +- 4.1  76.7 +- 6.2
+   honesty     12   36.7 +- 8.5  50.0 +- 7.5  60.0 +- 6.2
 

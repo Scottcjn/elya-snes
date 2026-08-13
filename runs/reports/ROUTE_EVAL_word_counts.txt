@@ -1,0 +1,33 @@
+router: word-counts, fitted on the 208 train questions only
+   dev        44/68  correct shard =  64.7%   error  35.3%
+   test       50/69  correct shard =  72.5%   error  27.5%
+   dev+test   94/137 correct shard =  68.6%   error  31.4%
+
+dev split, 68 held-out paraphrases, 5 seeds
+   unsharded           41.8 +- 4.9
+   routed  (ships)     52.6 +- 2.5
+   oracle  (bound)     67.9 +- 2.5
+   routed - unsharded +10.9      what sharding actually buys
+   oracle - routed    -15.3      what the router costs
+   right answer from the wrong shard:   0.0 +- 0.0 of 24 mis-routes
+   topic        n  unsharded    routed       oracle      
+   identity    16   36.2 +- 4.7  50.0 +- 7.9  57.5 +- 7.3
+   hardware    14   45.7 +-13.2  47.1 +- 3.5  71.4 +- 4.5
+   model       14   42.9 +- 7.8  61.4 +- 3.5  65.7 +- 5.3
+   game        12   51.7 +- 6.2  61.7 +- 4.1  85.0 +- 6.2
+   honesty     12   33.3 +- 9.1  43.3 +- 6.2  63.3 +-10.0
+
+test split, 69 held-out paraphrases, 5 seeds
+   unsharded           38.0 +- 3.7
+   routed  (ships)     48.7 +- 2.2
+   oracle  (bound)     59.7 +- 2.8
+   routed - unsharded +10.7      what sharding actually buys
+   oracle - routed    -11.0      what the router costs
+   right answer from the wrong shard:   0.0 +- 0.0 of 19 mis-routes
+   topic        n  unsharded    routed       oracle      
+   identity    17   27.1 +- 7.1  42.4 +- 4.4  54.1 +- 5.8
+   hardware    14   34.3 +- 8.3  41.4 +- 2.9  52.9 +- 5.7
+   model       14   50.0 +- 6.4  41.4 +- 5.3  58.6 +- 5.3
+   game        12   45.0 +-12.5  68.3 +- 6.2  76.7 +- 6.2
+   honesty     12   36.7 +- 8.5  55.0 +-10.0  60.0 +- 6.2
+

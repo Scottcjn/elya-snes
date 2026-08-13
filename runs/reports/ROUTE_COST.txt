@@ -1,0 +1,12 @@
+router cost per question, over the 137 held-out questions.
+Row and character counts are exact; the cycles per row are the stated model
+at the top of this file.  One answer at the measured FastROM rate is 9,121,019 cycles.
+
+router          rows  bytes  feat/q   linear scan            bucketed by 1st char   sorted + bisect       
+word-counts      152   2432     2.3       5,402 cy   0.06%         524 cy   0.01%       1,266 cy   0.01%  
+wordgram-lr      618   9888     8.6      67,765 cy   0.74%      35,502 cy   0.39%       6,929 cy   0.08%  
+
+The percentage is of ONE ANSWER, not of one token: the router runs once per
+question and the engine then runs twenty steps.  The table is 618 rows of
+RWSTRIDE=16, so the ROM cost is the 9888 bytes above plus, for the bucketed
+scan, 512 more for the first-character index.

@@ -2,6 +2,9 @@
 NRWORD      = 152
 RWSTRIDE    = 16
 RWMAXW      = 10
+NRGRAM      = 466
+RGSTRIDE    = 16
+RGRAM       = 4
 NTOPIC      = 5
 NRSQ        = 345
 RSQ_BYTES   = 2775
