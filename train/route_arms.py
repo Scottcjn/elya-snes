@@ -86,6 +86,16 @@ def f_stem_factory(k):
     return f
 
 
+def f_suffix_factory(k):
+    def f(q):
+        out = []
+        for w in R.words(q):
+            if len(w) > k:
+                out.append("$" + w[-k:])
+        return out
+    return f
+
+
 def f_ng_factory(lo, hi):
     def f(q):
         out = list(R.words(q))
@@ -226,89 +236,155 @@ def restrict(W, keep):
     return {f: w for f, w in W.items() if f in keep}
 
 
-def build_arms(vocab):
-    tr = C.rows_of("train")
+ARMS = []                # (name, feature-factory, fitter, note)
+
+
+def _reg(name, featf, fitf, note=""):
+    ARMS.append((name, featf, fitf, note))
+
+
+def _filtered(fitf, topmax=None, dfmin=None):
+    """Fit, then drop the features a filter rejects.  The filter is measured on
+    the same rows the fit saw, so a CV fold refits its own filter and nothing
+    leaks across the split."""
+    def f(rows, feat):
+        W = fitf(rows, feat)
+        keep = set(W)
+        if topmax is not None:
+            tp = topics_of(rows, feat)
+            keep &= {k for k, ts in tp.items() if len(ts) <= topmax}
+        if dfmin is not None:
+            d = df_of(rows, feat)
+            keep &= {k for k, c in d.items() if c >= dfmin}
+        return restrict(W, keep)
+    return f
+
+
+def build_registry(vocab):
+    """Populate ARMS.  A feature-factory takes no arguments and returns the
+    extractor, so a CV fold and the real fit use the identical function."""
+    del ARMS[:]
     f_tok = f_tokens_factory(vocab)
-    arms = []
-
-    def add(name, feat, W, note=""):
-        arms.append((name, feat, W, note))
-
-    # --- the shipped baseline and its two nearest neighbours ---------------
-    add("words/counts  (SHIPS)", f_words, fit_counts(tr, f_words))
-    add("words/lr", f_words, fit_lr(tr, f_words))
-    add("words/perc", f_words, fit_perc(tr, f_words))
-
-    # --- kill the hapaxes and the stopwords -------------------------------
-    d = df_of(tr, f_words)
-    tp = topics_of(tr, f_words)
-    for k in (2, 3):
-        keep = {f for f, c in d.items() if c >= k}
-        add("words-df%d/counts" % k, f_words,
-            restrict(fit_counts(tr, f_words), keep),
-            "%d of %d words kept" % (len(keep), len(d)))
-    for s in (2, 3, 4):
-        keep = {f for f, ts in tp.items() if len(ts) <= s}
-        add("words-top<=%d/counts" % s, f_words,
-            restrict(fit_counts(tr, f_words), keep),
-            "%d of %d words kept" % (len(keep), len(tp)))
-        add("words-top<=%d/lr" % s, f_words,
-            restrict(fit_lr(tr, f_words), keep))
-
-    # --- both filters at once ---------------------------------------------
-    for s in (2, 3, 4):
-        keep = {f for f, ts in tp.items() if len(ts) <= s and d[f] >= 2}
-        add("words-df2-top<=%d/counts" % s, f_words,
-            restrict(fit_counts(tr, f_words), keep),
-            "%d of %d words kept" % (len(keep), len(tp)))
-        add("words-df2-top<=%d/lr" % s, f_words,
-            restrict(fit_lr(tr, f_words), keep))
-
-    # --- give the OOV questions something ---------------------------------
+    W = lambda: f_words                                          # noqa: E731
+    _reg("words/counts  (SHIPS)", W, fit_counts)
+    _reg("words/lr", W, fit_lr)
+    _reg("words/perc", W, fit_perc)
+    _reg("words-top<=2/counts", W, _filtered(fit_counts, topmax=2))
+    _reg("words-top<=2/lr", W, _filtered(fit_lr, topmax=2))
+    _reg("words-df2/counts", W, _filtered(fit_counts, dfmin=2))
     for k in (3, 4, 5):
-        fs = f_stem_factory(k)
-        add("words+stem%d/counts" % k, fs, fit_counts(tr, fs))
-        add("words+stem%d/lr" % k, fs, fit_lr(tr, fs))
-    for lo, hi in ((3, 4), (3, 5), (4, 4)):
-        fn = f_ng_factory(lo, hi)
-        add("words+ng%d-%d/counts" % (lo, hi), fn, fit_counts(tr, fn))
-        add("words+ng%d-%d/lr" % (lo, hi), fn, fit_lr(tr, fn))
+        _reg("words+stem%d/counts" % k, (lambda k=k: f_stem_factory(k)),
+             fit_counts)
+        _reg("words+stem%d/lr" % k, (lambda k=k: f_stem_factory(k)), fit_lr)
+    _reg("words+stem34/counts", (lambda: f_union([f_stem_factory(3),
+                                                  f_stem_factory(4)])),
+         fit_counts)
+    _reg("words+stem34/lr", (lambda: f_union([f_stem_factory(3),
+                                              f_stem_factory(4)])), fit_lr)
+    _reg("words+stem3+suf3/counts", (lambda: f_union([f_stem_factory(3),
+                                                      f_suffix_factory(3)])),
+         fit_counts)
+    _reg("words+suf3/counts", (lambda: f_union([f_suffix_factory(3)])),
+         fit_counts)
+    for lo, hi in ((3, 4), (4, 4), (4, 5), (3, 5)):
+        _reg("words+ng%d-%d/counts" % (lo, hi),
+             (lambda lo=lo, hi=hi: f_ng_factory(lo, hi)), fit_counts)
+        _reg("words+ng%d-%d/lr" % (lo, hi),
+             (lambda lo=lo, hi=hi: f_ng_factory(lo, hi)), fit_lr)
+    _reg("words+ng4-4-df2/counts", (lambda: f_ng_factory(4, 4)),
+         _filtered(fit_counts, dfmin=2), "table shrunk by dropping hapax grams")
+    _reg("words+ng4-4-df3/counts", (lambda: f_ng_factory(4, 4)),
+         _filtered(fit_counts, dfmin=3))
+    _reg("words+stem3+ng4/counts",
+         (lambda: f_union([f_stem_factory(3), f_ng_factory(4, 4)])),
+         fit_counts)
+    _reg("words+stem3+ng4/lr",
+         (lambda: f_union([f_stem_factory(3), f_ng_factory(4, 4)])), fit_lr)
+    _reg("words+stem3-top<=2/counts", (lambda: f_stem_factory(3)),
+         _filtered(fit_counts, topmax=2))
+    _reg("tokens/counts", (lambda: f_tok), fit_counts)
+    _reg("tokens/lr", (lambda: f_tok), fit_lr)
+    _reg("tokens/perc", (lambda: f_tok), fit_perc)
+    _reg("words+tokens/counts", (lambda: f_union([f_words, f_tok])),
+         fit_counts)
+    return ARMS
 
-    # --- the 64 x 5 layer the brief asks for ------------------------------
-    add("tokens/counts", f_tok, fit_counts(tr, f_tok))
-    add("tokens/lr", f_tok, fit_lr(tr, f_tok))
-    add("tokens/perc", f_tok, fit_perc(tr, f_tok))
-    fu = f_union([f_words, f_tok])
-    add("words+tokens/counts", fu, fit_counts(tr, fu))
-    add("words+tokens/lr", fu, fit_lr(tr, fu))
-    return arms
+
+def cv_split(rows, seed, frac=0.25):
+    """Hold out a fraction of each FACT's training phrasings.  Splitting by
+    fact rather than at random is the only split that reproduces the real
+    task: an unseen phrasing of a fact whose other phrasings were seen.  A
+    plain random split does the same thing here only by luck."""
+    import random
+    rnd = random.Random(seed)
+    byfact = collections.defaultdict(list)
+    for r in rows:
+        byfact[(r[0], r[2])].append(r)
+    fit, held = [], []
+    for _k, rs in sorted(byfact.items()):
+        rs = list(rs)
+        rnd.shuffle(rs)
+        n = max(1, int(round(frac * len(rs))))
+        held += rs[:n]
+        fit += rs[n:]
+    return fit, held
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--vocab", default="data/vocab.json")
+    ap.add_argument("--cv", type=int, default=0,
+                    help="also run N-seed cross-validation inside TRAIN")
+    ap.add_argument("--only", default=None)
     a = ap.parse_args()
     C.check()
     vocab = R.load_vocab(a.vocab)
     tr, dv, te = C.rows_of("train"), C.rows_of("dev"), C.rows_of("test")
+    arms = build_registry(vocab)
+    if a.only:
+        want = set(a.only.split(","))
+        arms = [x for x in arms if any(w in x[0] for w in want)]
 
-    print("router arms -- every one fitted on the %d TRAIN questions only,\n"
-          "integer weights, argmax with ties to the lowest topic index.\n"
-          "DEV is the selection set.\n" % len(tr))
-    print("%-26s %-11s %-11s %-11s %6s  %s"
-          % ("arm", "train", "dev", "test", "table", "note"))
-    best = None
-    for name, feat, W, note in build_arms(vocab):
+    print("router arms -- fitted on the %d TRAIN questions only, integer\n"
+          "weights, argmax with ties to the lowest topic index.\n" % len(tr))
+    if a.cv:
+        print("cv = %d seeds, a quarter of each fact's TRAIN phrasings held\n"
+              "out and refitted from scratch.  It never sees dev or test, so\n"
+              "it is the one column an arm cannot be chosen into by luck.\n"
+              % a.cv)
+    hdr = "%-26s %-11s %-11s %-11s %6s" % ("arm", "train", "dev", "test",
+                                           "table")
+    if a.cv:
+        hdr += "  %-13s" % "cv(train)"
+    print(hdr + "  note")
+    rowsout = []
+    for name, featf, fitf, note in arms:
+        feat = featf()
+        W = fitf(tr, feat)
         cells = []
         for rows in (tr, dv, te):
             ok, n = acc(W, feat, rows)
             cells.append("%3d/%-3d %4.1f%%" % (ok, n, 100 * ok / n))
-        dev_ok = acc(W, feat, dv)[0]
-        if best is None or dev_ok > best[0]:
-            best = (dev_ok, name)
-        print("%-26s %-11s %-11s %-11s %6d  %s"
-              % (name, cells[0], cells[1], cells[2], 5 * len(W), note))
-    print("\nbest on dev: %s (%d/%d)" % (best[1], best[0], len(dv)))
+        line = "%-26s %-11s %-11s %-11s %6d" % (name, cells[0], cells[1],
+                                                cells[2], 5 * len(W))
+        cvm = None
+        if a.cv:
+            xs = []
+            for s in range(1, a.cv + 1):
+                fitr, held = cv_split(tr, s)
+                Wc = fitf(fitr, feat)
+                ok, n = acc(Wc, feat, held)
+                xs.append(ok / n)
+            m = sum(xs) / len(xs)
+            sd = (sum((x - m) ** 2 for x in xs) / len(xs)) ** 0.5
+            cvm = m
+            line += "  %5.1f +-%4.1f" % (100 * m, 100 * sd)
+        print(line + "  " + note)
+        rowsout.append((name, acc(W, feat, dv)[0], acc(W, feat, te)[0], cvm))
+
+    print("\nbest on dev : %s" % max(rowsout, key=lambda r: r[1])[0])
+    if a.cv:
+        print("best on cv  : %s" % max(rowsout, key=lambda r: r[3])[0])
     return 0
 
 
