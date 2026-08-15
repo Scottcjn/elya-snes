@@ -17,3 +17,5 @@ done shard32k_model_s5: dev    exact  20/30  =  66.7%   mean prefix  69.4%   deg
 done shard32k_game_s1: dev    exact  19/26  =  73.1%   mean prefix  74.2%   degenerate 1 test   exact  16/26  =  61.5%   mean prefix  63.3%   degenerate 0 
 done shard32k_game_s2: dev    exact  20/26  =  76.9%   mean prefix  78.0%   degenerate 1 test   exact  15/26  =  57.7%   mean prefix  61.2%   degenerate 0 
 done shard32k_game_s3: dev    exact  18/26  =  69.2%   mean prefix  70.3%   degenerate 1 test   exact  14/26  =  53.8%   mean prefix  53.8%   degenerate 1 
+done shard32k_game_s4: dev    exact  20/26  =  76.9%   mean prefix  78.7%   degenerate 1 test   exact  15/26  =  57.7%   mean prefix  60.7%   degenerate 0 
+done shard32k_game_s5: dev    exact  19/26  =  73.1%   mean prefix  74.2%   degenerate 1 test   exact  17/26  =  65.4%   mean prefix  65.4%   degenerate 0 
