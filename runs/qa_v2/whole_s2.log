@@ -11,3 +11,4 @@ whole_s2               step  9000  loss 0.5626  tf-rows 310/482  280s
 whole_s2               step 10000  loss 0.6014  tf-rows 309/482  310s
 whole_s2               step 11000  loss 0.5718  tf-rows 318/482  341s
 whole_s2               step 12000  loss 0.5550  tf-rows 317/482  372s
+whole_s2               step 13000  loss 0.5579  tf-rows 324/482  403s

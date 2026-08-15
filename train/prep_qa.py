@@ -305,6 +305,9 @@ def main():
                          "considers.  Measured at 1000 on the 34-fact corpus; "
                          "the pool ranking moves when the corpus doubles, so "
                          "it is a flag and not a constant.")
+    ap.add_argument("--vocab-in", default=None,
+                    help="use this vocabulary instead of fitting one.  For "
+                         "corpus ablations, which must not refit the merges.")
     ap.add_argument("--shadow", type=int, default=9,
                     help="answer-shadow rows: budget every distinct training "
                          "ANSWER at T - shadow tokens, so the vocabulary is "
@@ -350,7 +353,19 @@ def main():
             wts.append(a.shadow_w)
             buds.append(T - a.shadow)
 
-    if a.merges == "greedy":
+    if a.vocab_in:
+        # A FIXED vocabulary, read rather than fitted.  The corpus ablation
+        # (ELYA_FACTS=v1) has to hold the vocabulary still or it moves two
+        # things at once: fewer facts would refit the 34 merge slots and every
+        # row's token cost with them.  BASE is re-derived from this corpus and
+        # asserted to match, because a symbol the ablated corpus never uses is
+        # still a symbol the table has a row for.
+        vin = json.load(open(a.vocab_in))["vocab"]
+        assert len(vin) == TARGET, len(vin)
+        assert "".join(vin[:len(BASE)]) == BASE, "base symbols differ"
+        merges, extra = [], vin[len(BASE):]
+        print("vocabulary read from %s, not fitted" % a.vocab_in)
+    elif a.merges == "greedy":
         merges = []
         extra = learn_vocab_greedy(items, wts, budget=T, cap=a.cap,
                                    budgets=buds)
