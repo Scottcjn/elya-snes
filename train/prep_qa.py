@@ -288,6 +288,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data")
     ap.add_argument("--vocab-out", default="data/vocab.json")
+    ap.add_argument("--cap", type=int, default=1000,
+                    help="how many distinct substrings learn_vocab_greedy() "
+                         "considers.  Measured at 1000 on the 34-fact corpus; "
+                         "the pool ranking moves when the corpus doubles, so "
+                         "it is a flag and not a constant.")
     ap.add_argument("--merges", default="greedy",
                     choices=("count", "overflow", "greedy"),
                     help="how the 34 non-base vocabulary slots are chosen. "
@@ -317,7 +322,7 @@ def main():
 
     if a.merges == "greedy":
         merges = []
-        extra = learn_vocab_greedy(items, wts, budget=T)
+        extra = learn_vocab_greedy(items, wts, budget=T, cap=a.cap)
     else:
         docs = [enc_char("".join(segs)) for segs in items]
         merges = learn_merges(docs, wts, budget=T, objective=a.merges)

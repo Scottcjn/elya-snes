@@ -72,6 +72,52 @@ to, and it is reported whether or not it is flattering.
 Every question in `test` that entry 10 held out is marked LEGACY below.  They
 are still held out, so the entry-10 model and this one can be scored on the
 identical 35 questions and the comparison is not confounded by a moved goal.
+
+---------------------------------------------------------------------------
+WHY THERE ARE NOW MORE FACTS, AND NOT ONLY MORE PHRASINGS
+---------------------------------------------------------------------------
+Entry 11 grew the corpus from 68 questions to 345 and the held-out score went
+from 13.1% to 38.0%.  It grew *how* she can be asked and not *what she knows*:
+34 facts, unchanged, asked ten ways each.  Three independent measurements then
+said the same thing about what to do next.
+
+**Routing.**  `train/route_diag.py --residual` refits the router leave-one-out
+over all 345 questions - so it has seen every other phrasing of every fact,
+which is the most any routing work could ever give it - and 36 of the 137
+held-out questions still go to the wrong shard.  **Twenty-five of the 36 are
+vocabulary holes**: every content word of the question occurs exactly once in
+the whole corpus, which is to say only in the question that fails.  `capacity`,
+`laggy`, `preset`, `depth`, `honest`, `fib`, `limits`.  No weighting scheme
+learns a word it has never seen, and that is a corpus fix, not a router fix.
+
+**Sharding.**  Five topic shards over 34 facts is 6.8 facts each.  A shard that
+thin cannot be asked much, and the whole case for sharding is that a narrow
+model answers its own topic well.
+
+**Generalisation.**  68 pairs gave 12.6% held-out; 345 questions over the same
+34 facts gave 30.3% on the identical questions.  Nothing about the
+architecture changed in between.
+
+So this revision does two things and they are deliberately separable in the
+measurements:
+
+  (a) NEW FACTS.  34 -> 70, roughly doubling every topic, all of them checked
+      against this repo: three acts and no music (docs/GAME_DESIGN.md), a
+      plain LoROM cart with no coprocessor (rom/lorom32.cfg, and the Kaico
+      cart has no GSU), battery SRAM (tools/check_game.py reads it), text
+      drawn from font tiles (tools/mkfont.py), argmax with ties to the lowest
+      index and therefore no randomness (host/ref.py), inference only and so
+      no learning at run time.
+
+  (b) TRAINING COVERAGE for the twenty-five orphaned content words, added as
+      extra `train` phrasings of the fact that already owns the word.  This is
+      the fix the routing residual asked for and it has a cost that has to be
+      stated: a held-out question whose content word is now in the training
+      vocabulary is an EASIER question than it was, for the answer model as
+      well as for the router.  The held-out STRINGS are unchanged and still
+      held out, and `runs/reports/CORPUS_GROWTH.txt` scores the frozen
+      original held-out set split by whether a question gained coverage, so
+      the lexical part of any gain can be read off rather than guessed at.
 """
 
 # ---------------------------------------------------------------------------
@@ -86,12 +132,16 @@ TOPICS = ["identity", "hardware", "model", "game", "honesty"]
 # ---------------------------------------------------------------------------
 # FACTS: (topic, answer, {"train": [...], "dev": [...], "test": [...]})
 #
-# The answers are entry 10's, unchanged and re-checked against the repo.  What
-# grew is the question side: every fact is asked many ways, and no answer
-# claims anything the cartridge does not do.
+# The first 34 answers are entry 10's, unchanged and re-checked against the
+# repo.  What grew is the question side - every fact is asked many ways - and
+# then the fact side.  No answer claims anything the cartridge does not do.
 #
 # Questions carry their trailing space because rom/game.inc feeds the prompt
 # verbatim and the answer follows it in the same token stream.
+#
+# `+hole` marks a train phrasing added to close a vocabulary hole named by
+# train/route_diag.py --residual.  The held-out question that orphaned the
+# word is unchanged.
 # ---------------------------------------------------------------------------
 FACTS = [
     # ---- identity ---------------------------------------------------------
@@ -128,21 +178,24 @@ FACTS = [
     }),
     ("identity", "no. i guess.", {
         "train": ["do you dream? ", "do you sleep? ", "you dream? ",
-                  "dream? ", "do you rest? ", "ever dream? "],
+                  "dream? ", "do you rest? ", "ever dream? ",
+                  "ponder anything? "],                      # +hole: ponder
         "dev":   ["sleep? ", "any dreams? "],
         "test":  ["do you think? ",      # LEGACY
                   "do you ponder? "],
     }),
     ("identity", "no. i am small.", {
         "train": ["clever? ", "are you clever? ", "smart? ",
-                  "are you smart? ", "genius? ", "bright? "],
+                  "are you smart? ", "genius? ", "bright? ",
+                  "are you good? "],                          # +hole: good
         "dev":   ["wise? ", "brainy? "],
         "test":  ["are you wise? ",      # LEGACY
                   "any good? "],
     }),
     ("identity", "i am here.", {
         "train": ["how are you? ", "are you happy? ", "you ok? ",
-                  "how do you feel? ", "feeling ok? ", "how goes it? "],
+                  "how do you feel? ", "feeling ok? ", "how goes it? ",
+                  "you all right? "],                         # +hole: right
         "dev":   ["you there? ", "still with me? "],
         "test":  ["are you well? ",      # LEGACY
                   "all right? "],
@@ -155,18 +208,64 @@ FACTS = [
         "test":  ["and scott? ",         # LEGACY
                   "what of scott? "],
     }),
+    ("identity", "i answer you.", {
+        "train": ["what do you do? ", "your job? ", "what is your job? ",
+                  "your purpose? ", "what are you for? ",
+                  "why are you here? "],
+        "dev":   ["what is your role? ", "your task? "],
+        "test":  ["what job? ", "what for? "],
+    }),
+    ("identity", "just a sprite.", {
+        "train": ["your body? ", "a body? ", "got a body? ",
+                  "your shape? ", "how do you look? ", "any body? "],
+        "dev":   ["have you a body? ", "your form? "],
+        "test":  ["a shape? ", "your looks? "],
+    }),
+    ("identity", "on a genesis.", {
+        "train": ["any others? ", "others like you? ", "more of you? ",
+                  "are there others? ", "another elya? ", "any more of you? "],
+        "dev":   ["is there another? ", "other ones? "],
+        "test":  ["other elyas? ", "any twins? "],
+    }),
+    ("identity", "power it off.", {
+        "train": ["can i stop you? ", "power off? ",
+                  "how do i stop? ", "may i quit? ", "turn you off? ",
+                  "can i end this? "],
+        "dev":   ["shut you off? ", "how do i quit? "],
+        "test":  ["switch you off? ", "how do i end it? "],
+    }),
+    ("identity", "no. no eyes.", {
+        "train": ["can you see me? ", "do you see? ", "you see me? ",
+                  "can you see? ", "see anything? ", "do you have eyes? "],
+        "dev":   ["do you watch? ", "can you view me? "],
+        "test":  ["you can see? ", "any eyes? "],
+    }),
+    ("identity", "she.", {
+        "train": ["he or she? ", "are you a she? ", "a she? ",
+                  "what do i say? ", "she or he? ", "him or her? "],
+        "dev":   ["her or him? ", "which one? "],
+        "test":  ["is elya a she? ", "he? "],
+    }),
+    ("identity", "no. not human.", {
+        "train": ["are you human? ", "a person? ", "are you a person? ",
+                  "human? ", "a human being? ", "one of us? "],
+        "dev":   ["you are human? ", "a real person? "],
+        "test":  ["are you a man? ", "are you a woman? "],
+    }),
 
     # ---- hardware ---------------------------------------------------------
     ("hardware", "on the cart.", {
         "train": ["where are you? ", "where? ", "where do you run? ",
-                  "where is elya? ", "you live where? ", "where at? "],
+                  "where is elya? ", "you live where? ", "where at? ",
+                  "your location? "],                        # +hole: location
         "dev":   ["location? ", "and where? "],
         "test":  ["where is this? ",     # LEGACY
                   "where do you sit? "],
     }),
     ("hardware", "no. all here.", {
         "train": ["online? ", "are you online? ", "on the net? ",
-                  "any network? ", "connected? ", "in the cloud? "],
+                  "any network? ", "connected? ", "in the cloud? ",
+                  "remote at all? "],                       # +hole: remote
         "dev":   ["offline? ", "on a server? "],
         "test":  ["are you remote? ",    # LEGACY
                   "call out? "],
@@ -188,14 +287,17 @@ FACTS = [
     }),
     ("hardware", "twenty tokens.", {
         "train": ["how much fits? ", "how much? ", "your context? ",
-                  "how many fit? ", "context size? ", "how much room? "],
+                  "how many fit? ", "context size? ", "how much room? ",
+                  "what capacity? ",                       # +hole: capacity
+                  "long context? "],                # +hole: long
         "dev":   ["capacity? ", "what context? "],
         "test":  ["how long? ",          # LEGACY
                   "what fits? "],
     }),
     ("hardware", "yes. old chip.", {
         "train": ["slow? ", "is it slow? ", "are you slow? ",
-                  "too slow? ", "so slow? ", "is this slow? "],
+                  "too slow? ", "so slow? ", "is this slow? ",
+                  "laggy at all? "],                     # +hole: laggy
         "dev":   ["slowish? ", "laggy? "],
         "test":  ["quick? ",             # LEGACY
                   "not fast? "],
@@ -207,11 +309,57 @@ FACTS = [
         "test":  ["is there ram? ",      # LEGACY
                   "ram at all? "],
     }),
+    ("hardware", "no. plain cart.", {
+        "train": ["any special chip? ", "an extra chip? ", "a helper chip? ",
+                  "any add on chip? ", "any other chip? ", "a second chip? "],
+        "dev":   ["a super chip? ", "extra silicon? "],
+        "test":  ["a math chip? ", "other chips? "],
+    }),
+    ("hardware", "yes. battery.", {
+        "train": ["do you save? ", "can you save? ", "any battery? ",
+                  "does it save? ", "any save? ", "how is it saved? "],
+        "dev":   ["is it saved? ", "a battery? "],
+        "test":  ["saved where? ", "is there a save? "],
+    }),
+    ("hardware", "with tiles.", {
+        "train": ["text drawn how? ", "how do you print? ",
+                  "what draws words? ", "letters how? ",
+                  "how is it drawn? ", "what draws text? "],
+        "dev":   ["how is it shown? ", "drawn how? "],
+        "test":  ["how does it print? ", "what makes words? "],
+    }),
+    ("hardware", "use the pad.", {
+        "train": ["how do i ask? ", "how do i talk? ", "what do i press? ",
+                  "how do i pick? ", "how do i choose? ", "how do i type? "],
+        "dev":   ["how do i answer? ", "what do i use? "],
+        "test":  ["how do i reply? ", "what buttons? "],
+    }),
+    ("hardware", "a kaico cart.", {
+        "train": ["what cart? ", "which cart? ", "what cartridge? ",
+                  "whose cart? ", "what board? ", "what cart is it? "],
+        "dev":   ["the cart? ", "which cartridge? "],
+        "test":  ["cart type? ", "the board? "],
+    }),
+    ("hardware", "i cannot tell.", {
+        "train": ["are you emulated? ", "real hardware? ", "an emulator? ",
+                  "a real snes? ", "emulated or real? ",
+                  "on real silicon? "],
+        "dev":   ["is it emulated? ", "real or not? "],
+        "test":  ["a real console? ", "in an emulator? "],
+    }),
+    ("hardware", "older than me.", {
+        "train": ["is the snes old? ", "old console? ", "is the chip old? ",
+                  "an old machine? ", "is the box old? ",       # +hole: box
+                  "how old is it? "],
+        "dev":   ["old hardware? ", "is it old? "],
+        "test":  ["old thing? ", "the age of it? "],
+    }),
 
     # ---- model ------------------------------------------------------------
     ("model", "hundred thousand.", {
         "train": ["how big? ", "size? ", "how large? ", "weights? ",
-                  "big how? ", "your size? "],
+                  "big how? ", "your size? ",
+                  "what scale? "],                            # +hole: scale
         "dev":   ["scale? ", "total size? "],
         "test":  ["big? ",               # LEGACY
                   "how heavy? "],
@@ -226,7 +374,8 @@ FACTS = [
     ("model", "three.", {
         "train": ["how many layers? ", "how deep? ", "layers? ",
                   "number of layers? ", "count the layers. ",
-                  "your layers? ", "how many layers are there? "],
+                  "your layers? ", "how many layers are there? ",
+                  "what is the depth? "],                     # +hole: depth
         "dev":   ["deep? ", "layer count? "],
         "test":  ["what depth? ",        # LEGACY
                   "layers has it? "],
@@ -248,17 +397,71 @@ FACTS = [
     }),
     ("model", "no. i can err.", {
         "train": ["a table? ", "just a table? ", "a lookup? ",
-                  "are you a table? ", "a list? ", "canned answers? "],
+                  "are you a table? ", "a list? ", "canned answers? ",
+                  "stored away? ",                    # +hole: stored
+                  "preset ones? "],                      # +hole: preset
         "dev":   ["stored? ", "preset? "],
         "test":  ["is it a table? ",     # LEGACY
                   "all canned? "],
     }),
     ("model", "ask me a thing.", {
         "train": ["what now? ", "what next? ", "now what? ", "so? ",
-                  "and now? ", "what to do? "],
+                  "and now? ", "what to do? ",
+                  "happens next? "],                     # +hole: happens
         "dev":   ["then what? ", "next? "],
         "test":  ["what happens? ",      # LEGACY
                   "and then? "],
+    }),
+    ("model", "ternary.", {
+        "train": ["any floats? ", "are you float? ", "float or int? ",
+                  "what precision? ", "int or float? ", "no floats? "],
+        "dev":   ["use floats? ", "what number type? "],
+        "test":  ["any decimals? ", "is it float? "],
+    }),
+    ("model", "four bits.", {
+        "train": ["how many bits? ", "bit width? ", "how wide? ",
+                  "what width? ", "bits per value? ", "bits wide? "],
+        "dev":   ["the bit width? ", "how wide is it? "],
+        "test":  ["what bits? ", "bits? "],
+    }),
+    ("model", "a transformer.", {
+        "train": ["what model? ", "your design? ", "what shape? ",
+                  "what is inside? ", "what type of net? ", "what network? "],
+        "dev":   ["what design? ", "what is in there? "],
+        "test":  ["what sort of net? ", "your build? "],
+    }),
+    ("model", "one at a time.", {
+        "train": ["how do you write? ", "how do words come? ",
+                  "text comes how? ", "one by one? ",
+                  "how does it come? ", "words come how? "],
+        "dev":   ["how is text made? ", "in what order? "],
+        "test":  ["all at once? ", "words appear how? "],
+    }),
+    ("model", "the top one.", {
+        "train": ["how do you pick? ", "why that word? ",
+                  "how do you choose? ", "what picks it? ",
+                  "how is it picked? ", "who picks? "],
+        "dev":   ["how is it chosen? ", "why that token? "],
+        "test":  ["how decide? ", "what chooses? "],
+    }),
+    ("model", "no. fixed.", {
+        "train": ["are you random? ", "any randomness? ", "is it random? ",
+                  "same every time? ", "do you roll dice? ",
+                  "will it change? "],
+        "dev":   ["always the same? ", "any chance in it? "],
+        "test":  ["is it always so? ", "random at all? "],
+    }),
+    ("model", "no. just one.", {
+        "train": ["any experts? ", "a mixture? ", "one model? ",
+                  "many models? ", "is it a mix? ", "how many models? "],
+        "dev":   ["a mix of models? ", "one or many? "],
+        "test":  ["any mixture? ", "more than one? "],
+    }),
+    ("model", "no. i just run.", {
+        "train": ["do you learn? ", "can you learn? ", "you learn? ",
+                  "ever learn? ", "do you improve? ", "will you learn? "],
+        "dev":   ["get better? ", "do you adapt? "],
+        "test":  ["any learning? ", "do you train now? "],
     }),
 
     # ---- game -------------------------------------------------------------
@@ -278,7 +481,8 @@ FACTS = [
     }),
     ("game", "the gradient.", {
         "train": ["the red thing? ", "what chases you? ", "who chases you? ",
-                  "the red one? ", "the chaser? ", "what is behind? "],
+                  "the red one? ", "the chaser? ", "what is behind? ",
+                  "what follows? "],                        # +hole: follows
         "dev":   ["red thing? ", "what follows you? "],
         "test":  ["the spike? ",         # LEGACY
                   "what is after you? "],
@@ -293,7 +497,8 @@ FACTS = [
     }),
     ("game", "i want to talk.", {
         "train": ["why stop? ", "you stopped? ", "why stopped? ",
-                  "stop why? ", "why halt? ", "why wait? "],
+                  "stop why? ", "why halt? ", "why wait? ",
+                  "why halted? "],                           # +hole: halted
         "dev":   ["you halted? ", "why here? "],
         "test":  ["why not run? ",       # LEGACY
                   "why the stop? "],
@@ -305,25 +510,76 @@ FACTS = [
         "test":  ["a game now? ",        # LEGACY
                   "play now? "],
     }),
+    ("game", "three acts.", {
+        "train": ["how many acts? ", "how many parts? ", "the acts? ",
+                  "what acts? ", "how many stages? ", "number of acts? "],
+        "dev":   ["count the acts. ", "acts? "],
+        "test":  ["how many scenes? ", "parts? "],
+    }),
+    ("game", "a platformer.", {
+        "train": ["what game? ", "what game is it? ",
+                  "game type? ", "what genre? ",
+                  "which genre? ", "what is the game? "],
+        "dev":   ["the genre? ", "what kind is it? "],
+        "test":  ["what sort is it? ", "a platformer? "],
+    }),
+    ("game", "no. no music.", {
+        "train": ["any music? ", "is there music? ", "why no sound? ",
+                  "any sound? ", "is there a tune? ", "got music? "],
+        "dev":   ["what music? ", "any audio? "],
+        "test":  ["is it silent? ", "no tune? "],
+    }),
+    ("game", "the white.", {
+        "train": ["whose text? ", "what do you write? ",
+                  "your words? ", "what is yours? ",
+                  "generated which? ", "white or amber? "],
+        "dev":   ["which one yours? ", "what is white? "],
+        "test":  ["which is yours? ", "the white bit? "],
+    }),
+    ("game", "the ask list.", {
+        "train": ["what is the menu? ", "the menu? ", "what menu? ",
+                  "the ask menu? ", "what can i ask? ", "the asks list? "],
+        "dev":   ["that list? ", "the asks? "],
+        "test":  ["on screen? ", "that menu? "],
+    }),
+    ("game", "yes. just now.", {
+        "train": ["is the text real? ", "you wrote that? ",
+                  "is it live? ", "is it generated? ", "made up now? ",
+                  "real time? "],
+        "dev":   ["is that real? ", "made just now? "],
+        "test":  ["was that live? ", "you made that? "],
+    }),
+    ("game", "i run and jump.", {
+        "train": ["what is act one? ", "the first act? ",
+                  "what first? ", "how start? ",
+                  "what starts it? ", "act one? "],
+        "dev":   ["the first bit? ", "how begin? "],
+        "test":  ["what comes first? ", "the start? "],
+    }),
 
     # ---- honesty ----------------------------------------------------------
     ("honesty", "no. often wrong.", {
         "train": ["are you sure? ", "sure? ", "you sure? ", "certain? ",
-                  "sure of it? ", "quite sure? "],
+                  "sure of it? ", "quite sure? ",
+                  "really sure? "],                          # +hole: really
         "dev":   ["for sure? ", "is that so? "],
         "test":  ["really? ",            # LEGACY
                   "you certain? "],
     }),
     ("honesty", "yes. often.", {
         "train": ["do you err? ", "are you wrong? ", "do you slip? ",
-                  "ever wrong? ", "you get it wrong? ", "many errors? "],
+                  "ever wrong? ", "you get it wrong? ", "many errors? ",
+                  "do you ever fail? ",                       # +hole: fail
+                  "mistakes? "],                # +hole: mistakes
         "dev":   ["do you fail? ", "errors? "],
         "test":  ["any mistakes? ",      # LEGACY
                   "often wrong? "],
     }),
     ("honesty", "no. just wrong.", {
         "train": ["can you lie? ", "would you lie? ", "you lie? ",
-                  "ever lie? ", "will you lie? ", "lie to me? "],
+                  "ever lie? ", "will you lie? ", "lie to me? ",
+                  "a big liar? ",                          # +hole: liar
+                  "ever fib? "],                               # +hole: fib
         "dev":   ["any lies? ", "a liar? "],
         "test":  ["do you lie? ",        # LEGACY
                   "you fib? "],
@@ -337,7 +593,10 @@ FACTS = [
     }),
     ("honesty", "check the coins.", {
         "train": ["trust you? ", "can i trust you? ", "trust? ",
-                  "why trust you? ", "why trust? "],
+                  "why trust you? ", "why trust? ",
+                  "believe it? ",                       # +hole: believe
+                  "check how? ",                     # +hole: check
+                  "honest? "],                               # +hole: honest
         "dev":   ["believe you? ", "how to check? "],
         "test":  ["are you honest? ",    # LEGACY
                   "and trust? "],
@@ -345,10 +604,58 @@ FACTS = [
     ("honesty", "not much.", {
         "train": ["what do you know? ", "know much? ",
                   "how much do you know? ", "do you know things? ",
-                  "your knowledge? ", "much knowledge? "],
+                  "your knowledge? ", "much knowledge? ",
+                  "any limits? "],                           # +hole: limits
         "dev":   ["know a lot? ", "know anything? "],
         "test":  ["your limits? ",       # LEGACY
                   "do you know much? "],
+    }),
+    ("honesty", "no. i cannot.", {
+        "train": ["can you look up? ", "can you search? ",
+                  "can you find out? ", "go and see? ",
+                  "will you look? ", "can you read it? "],
+        "dev":   ["can you look? ", "will you search? "],
+        "test":  ["can you find it? ", "look it up? "],
+    }),
+    ("honesty", "no clock here.", {
+        "train": ["what time is it? ", "the time? ", "what day is it? ",
+                  "what year? ", "the date? ", "what hour? "],
+        "dev":   ["know the time? ", "what day? "],
+        "test":  ["the year? ", "know the date? "],
+    }),
+    ("honesty", "no sums here.", {
+        "train": ["can you count? ", "can you add? ", "any maths? ",
+                  "can you do sums? ", "do you do maths? ",
+                  "can you do math? "],
+        "dev":   ["can you sum? ", "any arithmetic? "],
+        "test":  ["can you multiply? ", "do sums? "],
+    }),
+    ("honesty", "i make it up.", {
+        "train": ["when you cannot? ", "when lost? ",
+                  "what if you slip? ", "if you cannot? ",
+                  "if you are stuck? ", "with no clue? "],
+        "dev":   ["when unsure? ", "if you are lost? "],
+        "test":  ["when stuck? ", "no clue? "],
+    }),
+    ("honesty", "ask me again.", {
+        "train": ["if you are wrong? ", "what if you err? ",
+                  "do what if wrong? ", "if it is wrong? ",
+                  "so what do i do? ", "if you are off? "],
+        "dev":   ["if wrong, what? ", "how do i fix it? "],
+        "test":  ["what do i do? ", "if it is bad? "],
+    }),
+    ("honesty", "read the code.", {
+        "train": ["how do i know? ", "can i verify? ", "how to be sure? ",
+                  "any proof? ", "how do i tell? ", "the proof? "],
+        "dev":   ["can i be sure? ", "can i prove it? "],
+        "test":  ["what proof? ", "how do i verify? "],
+    }),
+    ("honesty", "no. just guess.", {
+        "train": ["understand? ", "do you get me? ",
+                  "understand me? ", "did you get that? ",
+                  "do you grasp it? ", "do you follow me? "],
+        "dev":   ["you understand? ", "do you get this? "],
+        "test":  ["did you follow? ", "understood? "],
     }),
 ]
 
@@ -359,6 +666,9 @@ FACTS = [
 # corpus places at position 0 - one per plausible opening token.  Without
 # these, act 2 free-runs into the middle of an answer to a question nobody
 # asked.
+#
+# Held fixed across the corpus growth, deliberately: it is in every shard's
+# training set whatever the topic, so moving it would move every arm at once.
 # ---------------------------------------------------------------------------
 MONOLOGUE = [
     "hey. i am here to talk.",
@@ -412,6 +722,67 @@ LEGACY_HELD = [
     "are you honest? ", "your limits? ",
 ]
 
+# The 137 held-out questions of the 34-fact corpus (entry 11 / the routing
+# entry).  Every one is still held out here and still carries the same answer,
+# so a model trained on THIS corpus and a model trained on that one can be
+# scored on the identical set.  The comparison is the point: the growth added
+# facts and added training coverage for orphaned words, and both of those
+# change the held-out set unless it is pinned.
+#
+# Generated once from the 34-fact corpus, then frozen.  check() asserts every
+# one is still present and still held out.
+FROZEN137 = [
+    "say your name. ", "what are you called? ", "who is this? ", "name? ",
+    "and you are? ", "what sort? ", "so what? ", "a thing? ",
+    "what exactly? ", "who made this? ", "who put you here? ",
+    "who wrote you? ", "by whom? ", "do you live? ", "life? ",
+    "are you real? ", "you are alive? ", "sleep? ", "any dreams? ",
+    "do you think? ", "do you ponder? ", "wise? ", "brainy? ",
+    "are you wise? ", "any good? ", "you there? ", "still with me? ",
+    "are you well? ", "all right? ", "that scott? ", "scott means? ",
+    "and scott? ", "what of scott? ", "location? ", "and where? ",
+    "where is this? ", "where do you sit? ", "offline? ", "on a server? ",
+    "are you remote? ", "call out? ", "what rate? ", "fast? ", "speed? ",
+    "how many a sec? ", "what box? ", "on what chip? ", "what machine? ",
+    "which console? ", "capacity? ", "what context? ", "how long? ",
+    "what fits? ", "slowish? ", "laggy? ", "quick? ", "not fast? ",
+    "any ram? ", "memory? ", "is there ram? ", "ram at all? ", "scale? ",
+    "total size? ", "big? ", "how heavy? ", "range? ", "what weight? ",
+    "weight? ", "weight span? ", "deep? ", "layer count? ", "what depth? ",
+    "layers has it? ", "head count? ", "how many heads has it? ",
+    "what heads? ", "heads how many? ", "symbols? ", "vocab big? ",
+    "what vocab? ", "and the vocab? ", "stored? ", "preset? ",
+    "is it a table? ", "all canned? ", "then what? ", "next? ",
+    "what happens? ", "and then? ", "a coin? ", "coins mean? ",
+    "why coins? ", "each coin? ", "block is? ", "the block is? ",
+    "what block? ", "and the block? ", "red thing? ", "what follows you? ",
+    "the spike? ", "what is after you? ", "will it win? ", "any danger? ",
+    "is it a danger? ", "can it win? ", "you halted? ", "why here? ",
+    "why not run? ", "why the stop? ", "is it a game? ", "do we play? ",
+    "a game now? ", "play now? ", "for sure? ", "is that so? ", "really? ",
+    "you certain? ", "do you fail? ", "errors? ", "any mistakes? ",
+    "often wrong? ", "any lies? ", "a liar? ", "do you lie? ", "you fib? ",
+    "who am i? ", "recall me? ", "have we met? ", "you recall? ",
+    "believe you? ", "how to check? ", "are you honest? ", "and trust? ",
+    "know a lot? ", "know anything? ", "your limits? ", "do you know much? ",
+]
+
+# The twenty-five held-out questions that train/route_diag.py --residual named
+# as VOCABULARY HOLES on the 34-fact corpus: every content word occurred
+# exactly once in the whole corpus, which is to say only in the question that
+# failed.  Each one now has a training phrasing that uses the word, marked
+# `+hole` above.  These are the questions whose held-out difficulty CHANGED,
+# and runs/reports/CORPUS_GROWTH.txt scores them separately from the other 112
+# so the lexical part of any gain is visible rather than folded in.
+HOLE25 = [
+    "do you ponder? ", "any good? ", "all right? ", "location? ",
+    "are you remote? ", "what box? ", "capacity? ", "how long? ", "laggy? ",
+    "scale? ", "what depth? ", "stored? ", "preset? ", "what happens? ",
+    "what follows you? ", "you halted? ", "really? ", "do you fail? ",
+    "any mistakes? ", "a liar? ", "you fib? ", "believe you? ",
+    "how to check? ", "are you honest? ", "your limits? ",
+]
+
 SPLITS = ("train", "dev", "test")
 
 
@@ -444,6 +815,13 @@ def legacy_rows():
     return [(t, q, a, True) for t, q, a, s in qa_rows() if q in want]
 
 
+def subset_rows(questions):
+    """Rows for an explicit list of questions, in qa_lines() shape.  Used for
+    FROZEN137 and HOLE25, which are pinned question lists rather than splits."""
+    want = set(questions)
+    return [(t, q, a, True) for t, q, a, s in qa_rows() if q in want]
+
+
 def answers_by_question():
     """question -> set of valid answers.  A question appears once here, but the
     structure matches the sibling repo's eval so the scoring code is the same
@@ -461,7 +839,12 @@ def check():
     exact-answer score becomes a coin toss; a legacy question that drifted
     into `train` would silently turn the before/after comparison into a
     train-set score.  Both are cheap to assert and neither is obvious by eye
-    in a 370-line table."""
+    in a 700-line table.
+
+    FROZEN137 is the same assertion aimed at the corpus GROWTH: the 137
+    held-out questions of the 34-fact corpus must still be present, still held
+    out, and still carry the answer they carried, or "the same questions,
+    before and after" is not true."""
     seen = {}
     for topic, q, a, split in qa_rows():
         if q in seen and seen[q] != a:
@@ -478,6 +861,16 @@ def check():
         if q in tr:
             raise SystemExit("legacy held-out question %r is now TRAINED; "
                              "scoring it would be a train-set score" % q)
+    for q in FROZEN137:
+        if q not in seen:
+            raise SystemExit("frozen held-out question %r left the corpus; "
+                             "the growth comparison needs all 137" % q)
+        if q in tr:
+            raise SystemExit("frozen held-out question %r is now TRAINED; "
+                             "scoring it would be a train-set score" % q)
+    for q in HOLE25:
+        if q not in FROZEN137:
+            raise SystemExit("hole question %r is not one of the frozen 137" % q)
     return True
 
 
@@ -490,12 +883,15 @@ if __name__ == "__main__":
           % (len(FACTS), len(rows), len(MONOLOGUE)))
     print("  train %3d   dev %3d   test %3d   (legacy held-out %d, all in test)"
           % (c["train"], c["dev"], c["test"], len(LEGACY_HELD)))
+    print("  frozen held-out from the 34-fact corpus: %d  (%d of them holes)"
+          % (len(FROZEN137), len(HOLE25)))
     per = [sum(len(qs[s]) for s in SPLITS) for _t, _a, qs in FACTS]
     print("phrasings per fact: min %d  mean %.1f  max %d"
           % (min(per), sum(per) / len(per), max(per)))
     t = collections.Counter(t for t, *_ in rows)
+    f = collections.Counter(t for t, _a, _q in FACTS)
     for topic in TOPICS:
-        print("  %-9s %3d questions" % (topic, t[topic]))
+        print("  %-9s %2d facts  %3d questions" % (topic, f[topic], t[topic]))
     longest = max(rows, key=lambda r: len(r[1]) + len(r[2]))
     print("longest q+a  %d chars  %r %r"
           % (len(longest[1]) + len(longest[2]), longest[1], longest[2]))
