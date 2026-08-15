@@ -1,2 +1,22 @@
 whole_s3               step     1  loss 6.8336  tf-rows   0/482  0s
 whole_s3               step  1000  loss 1.1233  tf-rows  51/482  30s
+whole_s3               step  2000  loss 0.8732  tf-rows 150/482  61s
+whole_s3               step  3000  loss 0.7555  tf-rows 220/482  92s
+whole_s3               step  4000  loss 0.6879  tf-rows 239/482  123s
+whole_s3               step  5000  loss 0.6624  tf-rows 255/482  153s
+whole_s3               step  6000  loss 0.6233  tf-rows 286/482  184s
+whole_s3               step  7000  loss 0.6152  tf-rows 305/482  215s
+whole_s3               step  8000  loss 0.6197  tf-rows 295/482  245s
+whole_s3               step  9000  loss 0.5899  tf-rows 299/482  276s
+whole_s3               step 10000  loss 0.5778  tf-rows 315/482  307s
+whole_s3               step 11000  loss 0.5479  tf-rows 323/482  338s
+whole_s3               step 12000  loss 0.5470  tf-rows 346/482  368s
+whole_s3               step 13000  loss 0.5574  tf-rows 330/482  399s
+whole_s3               step 14000  loss 0.5534  tf-rows 343/482  430s
+whole_s3               step 15000  loss 0.5605  tf-rows 346/482  460s
+whole_s3               step 16000  loss 0.4248  tf-rows 427/482  491s
+train  exact 413/448 =  92.2%   mean prefix  95.2%   degenerate 0
+dev    exact  47/140 =  33.6%   mean prefix  39.9%   degenerate 1
+test   exact  46/141 =  32.6%   mean prefix  39.1%   degenerate 0
+legacy exact  11/35  =  31.4%   mean prefix  40.1%   degenerate 0
+FINAL whole_s3             loss 0.4248  density 0.5307  weights 102400  525s

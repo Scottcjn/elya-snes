@@ -1,3 +1,8 @@
 30 runs
 done whole_s1: dev    exact  43/140 =  30.7%   mean prefix  37.4%   degenerate 2 test   exact  33/141 =  23.4%   mean prefix  28.3%   degenerate 0 
 done whole_s2: dev    exact  44/140 =  31.4%   mean prefix  39.8%   degenerate 0 test   exact  43/141 =  30.5%   mean prefix  36.8%   degenerate 0 
+done whole_s3: dev    exact  47/140 =  33.6%   mean prefix  39.9%   degenerate 1 test   exact  46/141 =  32.6%   mean prefix  39.1%   degenerate 0 
+done whole_s4: dev    exact  38/140 =  27.1%   mean prefix  35.4%   degenerate 2 test   exact  37/141 =  26.2%   mean prefix  31.9%   degenerate 0 
+done shard_identity_s1: dev    exact  15/30  =  50.0%   mean prefix  59.0%   degenerate 0 test   exact  18/31  =  58.1%   mean prefix  64.1%   degenerate 0 
+done shard_identity_s2: dev    exact  16/30  =  53.3%   mean prefix  64.7%   degenerate 1 test   exact  20/31  =  64.5%   mean prefix  67.4%   degenerate 0 
+done whole_s5: dev    exact  48/140 =  34.3%   mean prefix  41.1%   degenerate 2 test   exact  50/141 =  35.5%   mean prefix  39.2%   degenerate 0 
