@@ -218,21 +218,21 @@ FACTS = [
     ("identity", "just a sprite.", {
         "train": ["your body? ", "a body? ", "got a body? ",
                   "your shape? ", "how do you look? ", "any body? "],
-        "dev":   ["have you a body? ", "your form? "],
+        "dev":   ["a body at all? ", "your form? "],
         "test":  ["a shape? ", "your looks? "],
     }),
     ("identity", "on a genesis.", {
-        "train": ["any others? ", "others like you? ", "more of you? ",
+        "train": ["any others? ", "others? ", "more of you? ",
                   "are there others? ", "another elya? ", "any more of you? "],
         "dev":   ["is there another? ", "other ones? "],
         "test":  ["other elyas? ", "any twins? "],
     }),
-    ("identity", "power it off.", {
+    ("identity", "power off.", {
         "train": ["can i stop you? ", "power off? ",
                   "how do i stop? ", "may i quit? ", "turn you off? ",
-                  "can i end this? "],
-        "dev":   ["shut you off? ", "how do i quit? "],
-        "test":  ["switch you off? ", "how do i end it? "],
+                  "end this? "],
+        "dev":   ["shut off? ", "how do i quit? "],
+        "test":  ["switch off? ", "how end it? "],
     }),
     ("identity", "no. no eyes.", {
         "train": ["can you see me? ", "do you see? ", "you see me? ",
@@ -309,10 +309,10 @@ FACTS = [
         "test":  ["is there ram? ",      # LEGACY
                   "ram at all? "],
     }),
-    ("hardware", "no. plain cart.", {
-        "train": ["any special chip? ", "an extra chip? ", "a helper chip? ",
-                  "any add on chip? ", "any other chip? ", "a second chip? "],
-        "dev":   ["a super chip? ", "extra silicon? "],
+    ("hardware", "plain cart.", {
+        "train": ["special chip? ", "an extra chip? ", "a helper chip? ",
+                  "add on chip? ", "any other chip? ", "a second chip? "],
+        "dev":   ["a super chip? ", "more silicon? "],
         "test":  ["a math chip? ", "other chips? "],
     }),
     ("hardware", "yes. battery.", {
@@ -321,12 +321,12 @@ FACTS = [
         "dev":   ["is it saved? ", "a battery? "],
         "test":  ["saved where? ", "is there a save? "],
     }),
-    ("hardware", "with tiles.", {
-        "train": ["text drawn how? ", "how do you print? ",
-                  "what draws words? ", "letters how? ",
+    ("hardware", "tiles.", {
+        "train": ["how drawn? ", "how do you print? ",
+                  "what draws? ", "letters how? ",
                   "how is it drawn? ", "what draws text? "],
         "dev":   ["how is it shown? ", "drawn how? "],
-        "test":  ["how does it print? ", "what makes words? "],
+        "test":  ["it prints how? ", "makes words? "],
     }),
     ("hardware", "use the pad.", {
         "train": ["how do i ask? ", "how do i talk? ", "what do i press? ",
@@ -337,12 +337,12 @@ FACTS = [
     ("hardware", "a kaico cart.", {
         "train": ["what cart? ", "which cart? ", "what cartridge? ",
                   "whose cart? ", "what board? ", "what cart is it? "],
-        "dev":   ["the cart? ", "which cartridge? "],
+        "dev":   ["the cart? ", "the cartridge? "],
         "test":  ["cart type? ", "the board? "],
     }),
     ("hardware", "i cannot tell.", {
         "train": ["are you emulated? ", "real hardware? ", "an emulator? ",
-                  "a real snes? ", "emulated or real? ",
+                  "a real snes? ", "or emulated? ",
                   "on real silicon? "],
         "dev":   ["is it emulated? ", "real or not? "],
         "test":  ["a real console? ", "in an emulator? "],
@@ -351,14 +351,14 @@ FACTS = [
         "train": ["is the snes old? ", "old console? ", "is the chip old? ",
                   "an old machine? ", "is the box old? ",       # +hole: box
                   "how old is it? "],
-        "dev":   ["old hardware? ", "is it old? "],
+        "dev":   ["old kit? ", "is it old? "],
         "test":  ["old thing? ", "the age of it? "],
     }),
 
     # ---- model ------------------------------------------------------------
     ("model", "hundred thousand.", {
-        "train": ["how big? ", "size? ", "how large? ", "weights? ",
-                  "big how? ", "your size? ",
+        "train": ["how big? ", "size? ", "how large? ", "the size? ",
+                  "size how? ", "your size? ",
                   "what scale? "],                            # +hole: scale
         "dev":   ["scale? ", "total size? "],
         "test":  ["big? ",               # LEGACY
@@ -366,7 +366,7 @@ FACTS = [
     }),
     ("model", "minus one to one.", {
         "train": ["a weight? ", "one weight? ", "the weights? ",
-                  "a weight is? ", "weight range? ", "one weight is? "],
+                  "a weight is? ", "weight range? ", "weight is? "],
         "dev":   ["range? ", "what weight? "],
         "test":  ["weight? ",            # LEGACY
                   "weight span? "],
@@ -383,7 +383,7 @@ FACTS = [
     ("model", "two.", {
         "train": ["how many heads? ", "heads? ", "your heads? ",
                   "number of heads? ", "count the heads. ",
-                  "how many attention heads? "],
+                  "attention heads? "],
         "dev":   ["head count? ", "how many heads has it? "],
         "test":  ["what heads? ",        # LEGACY
                   "heads how many? "],
@@ -407,7 +407,7 @@ FACTS = [
     ("model", "ask me a thing.", {
         "train": ["what now? ", "what next? ", "now what? ", "so? ",
                   "and now? ", "what to do? ",
-                  "happens next? "],                     # +hole: happens
+                  "happens? "],                     # +hole: happens
         "dev":   ["then what? ", "next? "],
         "test":  ["what happens? ",      # LEGACY
                   "and then? "],
@@ -420,22 +420,22 @@ FACTS = [
     }),
     ("model", "four bits.", {
         "train": ["how many bits? ", "bit width? ", "how wide? ",
-                  "what width? ", "bits per value? ", "bits wide? "],
+                  "what width? ", "per value? ", "bits wide? "],
         "dev":   ["the bit width? ", "how wide is it? "],
         "test":  ["what bits? ", "bits? "],
     }),
     ("model", "a transformer.", {
-        "train": ["what model? ", "your design? ", "what shape? ",
-                  "what is inside? ", "what type of net? ", "what network? "],
+        "train": ["what model? ", "design? ", "what shape? ",
+                  "what is inside? ", "net type? ", "what network? "],
         "dev":   ["what design? ", "what is in there? "],
-        "test":  ["what sort of net? ", "your build? "],
+        "test":  ["net sort? ", "your build? "],
     }),
-    ("model", "one at a time.", {
-        "train": ["how do you write? ", "how do words come? ",
-                  "text comes how? ", "one by one? ",
+    ("model", "one by one.", {
+        "train": ["how do you write? ", "how come words? ",
+                  "text how? ", "one at a time? ",
                   "how does it come? ", "words come how? "],
         "dev":   ["how is text made? ", "in what order? "],
-        "test":  ["all at once? ", "words appear how? "],
+        "test":  ["all at once? ", "words come? "],
     }),
     ("model", "the top one.", {
         "train": ["how do you pick? ", "why that word? ",
@@ -461,7 +461,7 @@ FACTS = [
         "train": ["do you learn? ", "can you learn? ", "you learn? ",
                   "ever learn? ", "do you improve? ", "will you learn? "],
         "dev":   ["get better? ", "do you adapt? "],
-        "test":  ["any learning? ", "do you train now? "],
+        "test":  ["any learning? ", "train now? "],
     }),
 
     # ---- game -------------------------------------------------------------
@@ -496,9 +496,9 @@ FACTS = [
                   "can it win? "],
     }),
     ("game", "i want to talk.", {
-        "train": ["why stop? ", "you stopped? ", "why stopped? ",
+        "train": ["why stop? ", "you stopped? ", "stopped? ",
                   "stop why? ", "why halt? ", "why wait? ",
-                  "why halted? "],                           # +hole: halted
+                  "halted why? "],                           # +hole: halted
         "dev":   ["you halted? ", "why here? "],
         "test":  ["why not run? ",       # LEGACY
                   "why the stop? "],
@@ -512,16 +512,16 @@ FACTS = [
     }),
     ("game", "three acts.", {
         "train": ["how many acts? ", "how many parts? ", "the acts? ",
-                  "what acts? ", "how many stages? ", "number of acts? "],
+                  "what acts? ", "how many stages? ", "act count? "],
         "dev":   ["count the acts. ", "acts? "],
         "test":  ["how many scenes? ", "parts? "],
     }),
     ("game", "a platformer.", {
         "train": ["what game? ", "what game is it? ",
                   "game type? ", "what genre? ",
-                  "which genre? ", "what is the game? "],
+                  "genre? ", "what is the game? "],
         "dev":   ["the genre? ", "what kind is it? "],
-        "test":  ["what sort is it? ", "a platformer? "],
+        "test":  ["what sort is it? ", "a jumper? "],
     }),
     ("game", "no. no music.", {
         "train": ["any music? ", "is there music? ", "why no sound? ",
@@ -549,12 +549,12 @@ FACTS = [
         "dev":   ["is that real? ", "made just now? "],
         "test":  ["was that live? ", "you made that? "],
     }),
-    ("game", "i run and jump.", {
-        "train": ["what is act one? ", "the first act? ",
+    ("game", "run and jump.", {
+        "train": ["what is act one? ", "act one is? ",
                   "what first? ", "how start? ",
-                  "what starts it? ", "act one? "],
-        "dev":   ["the first bit? ", "how begin? "],
-        "test":  ["what comes first? ", "the start? "],
+                  "what starts? ", "act one? "],
+        "dev":   ["act one part? ", "how begin? "],
+        "test":  ["first? ", "the start? "],
     }),
 
     # ---- honesty ----------------------------------------------------------
@@ -595,7 +595,7 @@ FACTS = [
         "train": ["trust you? ", "can i trust you? ", "trust? ",
                   "why trust you? ", "why trust? ",
                   "believe it? ",                       # +hole: believe
-                  "check how? ",                     # +hole: check
+                  "how check? ",                     # +hole: check
                   "honest? "],                               # +hole: honest
         "dev":   ["believe you? ", "how to check? "],
         "test":  ["are you honest? ",    # LEGACY
@@ -623,39 +623,39 @@ FACTS = [
         "dev":   ["know the time? ", "what day? "],
         "test":  ["the year? ", "know the date? "],
     }),
-    ("honesty", "no sums here.", {
+    ("honesty", "no sums.", {
         "train": ["can you count? ", "can you add? ", "any maths? ",
-                  "can you do sums? ", "do you do maths? ",
+                  "do sums here? ", "do you do maths? ",
                   "can you do math? "],
-        "dev":   ["can you sum? ", "any arithmetic? "],
-        "test":  ["can you multiply? ", "do sums? "],
+        "dev":   ["can you sum? ", "arithmetic? "],
+        "test":  ["multiply? ", "do sums? "],
     }),
     ("honesty", "i make it up.", {
         "train": ["when you cannot? ", "when lost? ",
                   "what if you slip? ", "if you cannot? ",
-                  "if you are stuck? ", "with no clue? "],
-        "dev":   ["when unsure? ", "if you are lost? "],
+                  "if stuck? ", "with no clue? "],
+        "dev":   ["when unsure? ", "if lost? "],
         "test":  ["when stuck? ", "no clue? "],
     }),
     ("honesty", "ask me again.", {
         "train": ["if you are wrong? ", "what if you err? ",
-                  "do what if wrong? ", "if it is wrong? ",
+                  "and if wrong? ", "if it is wrong? ",
                   "so what do i do? ", "if you are off? "],
-        "dev":   ["if wrong, what? ", "how do i fix it? "],
+        "dev":   ["you are wrong. ", "how do i fix it? "],
         "test":  ["what do i do? ", "if it is bad? "],
     }),
     ("honesty", "read the code.", {
         "train": ["how do i know? ", "can i verify? ", "how to be sure? ",
                   "any proof? ", "how do i tell? ", "the proof? "],
-        "dev":   ["can i be sure? ", "can i prove it? "],
+        "dev":   ["can i be sure? ", "prove it? "],
         "test":  ["what proof? ", "how do i verify? "],
     }),
-    ("honesty", "no. just guess.", {
+    ("honesty", "just a guess.", {
         "train": ["understand? ", "do you get me? ",
-                  "understand me? ", "did you get that? ",
-                  "do you grasp it? ", "do you follow me? "],
+                  "understand me? ", "get that? ",
+                  "grasp it? ", "you follow me? "],
         "dev":   ["you understand? ", "do you get this? "],
-        "test":  ["did you follow? ", "understood? "],
+        "test":  ["you follow? ", "understood? "],
     }),
 ]
 

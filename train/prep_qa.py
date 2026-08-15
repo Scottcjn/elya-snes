@@ -188,7 +188,7 @@ def tok_cost(text, by_len):
     return n
 
 
-def learn_vocab_greedy(items, weights, budget, cap=1000):
+def learn_vocab_greedy(items, weights, budget, cap=1000, budgets=None):
     """Choose TARGET - len(BASE) strings, greedily, to stop rows overflowing.
 
     `items` is a list of segment tuples.  A QA row is (question, answer)
@@ -215,6 +215,17 @@ def learn_vocab_greedy(items, weights, budget, cap=1000):
     Not monotone, because the selection is greedy: a candidate that wins one
     round can leave the next round worse off.  1000 is where it stops paying.
     """
+    # Per-item budget.  A real training row has 20 positions for question and
+    # answer together.  The ANSWER-SHADOW rows main() adds have a tighter one,
+    # because what the held-out split shares with the training split is the
+    # ANSWER and not the question: an answer that costs thirteen tokens leaves
+    # seven for a question the fitter has never seen, and every held-out
+    # phrasing longer than that scores zero however well the model answers.
+    # Pressure on the answer generalises; pressure on a training question does
+    # not.  It is still fitted on training data only - the answers ARE
+    # training data - so nothing here has seen dev or test.
+    if budgets is None:
+        budgets = [budget] * len(items)
     by_len = {k: set() for k in range(2, MAXTOK + 1)}
     chosen = []
 
@@ -243,8 +254,9 @@ def learn_vocab_greedy(items, weights, budget, cap=1000):
             for i in where[c]:
                 new = cost(items[i])
                 w = weights[i]
+                b = budgets[i]
                 d_tot += w * (cur[i] - new)
-                d_over += w * (max(0, cur[i] - budget) - max(0, new - budget))
+                d_over += w * (max(0, cur[i] - b) - max(0, new - b))
             by_len[len(c)].discard(c)
             key = (d_over, d_tot, -len(c), c)
             if best_key is None or key > best_key:
@@ -293,6 +305,13 @@ def main():
                          "considers.  Measured at 1000 on the 34-fact corpus; "
                          "the pool ranking moves when the corpus doubles, so "
                          "it is a flag and not a constant.")
+    ap.add_argument("--shadow", type=int, default=9,
+                    help="answer-shadow rows: budget every distinct training "
+                         "ANSWER at T - shadow tokens, so the vocabulary is "
+                         "pushed to leave that many positions for a question "
+                         "it has never seen.  0 disables.")
+    ap.add_argument("--shadow-w", type=float, default=0.25,
+                    help="weight of an answer-shadow row against a real one")
     ap.add_argument("--merges", default="greedy",
                     choices=("count", "overflow", "greedy"),
                     help="how the 34 non-base vocabulary slots are chosen. "
@@ -319,10 +338,22 @@ def main():
     # test set would compress the test set by construction and flatter it.
     items = [(q, ans) for _t, q, ans in train] + [(m,) for m in C.MONOLOGUE]
     wts = [1.0] * len(items)
+    buds = [T] * len(items)
+
+    # Answer-shadow rows.  One per DISTINCT training answer, budgeted at
+    # T - a.shadow, so the fitter is pushed to make every answer fit beside a
+    # question of that length.  Held-out questions are not here and cannot be:
+    # what the two splits share is the answer.
+    if a.shadow:
+        for ans in sorted({ans for _t, _q, ans in train}):
+            items.append((ans,))
+            wts.append(a.shadow_w)
+            buds.append(T - a.shadow)
 
     if a.merges == "greedy":
         merges = []
-        extra = learn_vocab_greedy(items, wts, budget=T, cap=a.cap)
+        extra = learn_vocab_greedy(items, wts, budget=T, cap=a.cap,
+                                   budgets=buds)
     else:
         docs = [enc_char("".join(segs)) for segs in items]
         merges = learn_merges(docs, wts, budget=T, objective=a.merges)
