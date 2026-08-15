@@ -39,12 +39,19 @@ def main():
                     default="runs/reports/growth_v1abl_oldrouter.json")
     ap.add_argument("--abl-new", default="runs/reports/growth_v1abl.json")
     ap.add_argument("--after", default="runs/reports/growth_after.json")
+    ap.add_argument("--after32k",
+                    default="runs/reports/growth_after32k.json",
+                    help="the same 70-fact corpus at the step budget dev "
+                         "chooses.  16,000 steps over 448 rows is not what "
+                         "16,000 was over 208, and the frozen recipe is the "
+                         "like-for-like column, not the best one.")
     a = ap.parse_args()
 
     arms = [("before        34f, old router", a.before),
             ("ablation/old  34f+cover, old router", a.abl_old),
             ("ablation/new  34f+cover, new router", a.abl_new),
-            ("after         70f+cover, new router", a.after)]
+            ("after  16k   70f+cover, new router", a.after),
+            ("after  32k   70f+cover, new router", a.after32k)]
     d = {}
     for name, path in arms:
         if not os.path.exists(path):
@@ -68,15 +75,19 @@ def main():
             return msd(d[name]["sets"][s]["routed"])[0]
         def o(name):
             return msd(d[name]["sets"][s]["oracle"])[0]
-        b, ao, an, af = [x[0] for x in arms]
+        b, ao, an, af, af32 = [x[0] for x in arms]
         print("   coverage, answer model only  routed %+5.1f   oracle %+5.1f"
               % (r(ao) - r(b), o(ao) - o(b)))
         print("   coverage, through the router routed %+5.1f"
               % (r(an) - r(ao)))
         print("   doubling the facts           routed %+5.1f   oracle %+5.1f"
               % (r(af) - r(an), o(af) - o(an)))
-        print("   net                          routed %+5.1f   oracle %+5.1f"
+        print("   net at the frozen recipe     routed %+5.1f   oracle %+5.1f"
               % (r(af) - r(b), o(af) - o(b)))
+        print("   the fair step budget         routed %+5.1f   oracle %+5.1f"
+              % (r(af32) - r(af), o(af32) - o(af)))
+        print("   net at the fair budget       routed %+5.1f   oracle %+5.1f"
+              % (r(af32) - r(b), o(af32) - o(b)))
     return 0
 
 

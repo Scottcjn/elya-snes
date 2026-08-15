@@ -4,41 +4,53 @@ frozen137, 137 held-out questions, five seeds
    before        34f, old router         39.9 +- 2.1   56.2 +- 1.7   63.8 +- 2.5 
    ablation/old  34f+cover, old router   50.2 +- 3.8   56.8 +- 1.1   72.1 +- 1.9 
    ablation/new  34f+cover, new router   50.2 +- 3.8   65.7 +- 1.2   72.1 +- 1.9 
-   after         70f+cover, new router   32.6 +- 5.3   57.1 +- 2.4   61.2 +- 2.3 
+   after  16k   70f+cover, new router    32.6 +- 5.3   57.1 +- 2.4   61.2 +- 2.3 
+   after  32k   70f+cover, new router    36.5 +- 1.9   60.0 +- 3.1   65.5 +- 2.8 
    coverage, answer model only  routed  +0.6   oracle  +8.3
    coverage, through the router routed  +8.9
    doubling the facts           routed  -8.6   oracle -10.9
-   net                          routed  +0.9   oracle  -2.6
+   net at the frozen recipe     routed  +0.9   oracle  -2.6
+   the fair step budget         routed  +2.9   oracle  +4.4
+   net at the fair budget       routed  +3.8   oracle  +1.8
 
 hole25, 25 held-out questions, five seeds
    arm                                  unsharded     routed        oracle       
    before        34f, old router          4.8 +- 3.9    3.2 +- 1.6   29.6 +- 4.1 
    ablation/old  34f+cover, old router   53.6 +- 8.6    8.0 +- 0.0   76.8 +- 4.7 
    ablation/new  34f+cover, new router   53.6 +- 8.6   72.8 +- 1.6   76.8 +- 4.7 
-   after         70f+cover, new router   32.0 +- 6.7   64.8 +- 4.7   68.0 +- 6.7 
+   after  16k   70f+cover, new router    32.0 +- 6.7   64.8 +- 4.7   68.0 +- 6.7 
+   after  32k   70f+cover, new router    39.2 +- 5.9   68.0 +- 3.6   72.0 +- 4.4 
    coverage, answer model only  routed  +4.8   oracle +47.2
    coverage, through the router routed +64.8
    doubling the facts           routed  -8.0   oracle  -8.8
-   net                          routed +61.6   oracle +38.4
+   net at the frozen recipe     routed +61.6   oracle +38.4
+   the fair step budget         routed  +3.2   oracle  +4.0
+   net at the fair budget       routed +64.8   oracle +42.4
 
 frozen112, 112 held-out questions, five seeds
    arm                                  unsharded     routed        oracle       
    before        34f, old router         47.7 +- 2.7   68.0 +- 1.8   71.4 +- 2.8 
    ablation/old  34f+cover, old router   49.5 +- 2.9   67.7 +- 1.3   71.1 +- 2.2 
    ablation/new  34f+cover, new router   49.5 +- 2.9   64.1 +- 1.3   71.1 +- 2.2 
-   after         70f+cover, new router   32.7 +- 7.0   55.4 +- 2.3   59.6 +- 1.8 
+   after  16k   70f+cover, new router    32.7 +- 7.0   55.4 +- 2.3   59.6 +- 1.8 
+   after  32k   70f+cover, new router    35.9 +- 3.0   58.2 +- 3.2   64.1 +- 3.0 
    coverage, answer model only  routed  -0.4   oracle  -0.4
    coverage, through the router routed  -3.6
    doubling the facts           routed  -8.8   oracle -11.4
-   net                          routed -12.7   oracle -11.8
+   net at the frozen recipe     routed -12.7   oracle -11.8
+   the fair step budget         routed  +2.9   oracle  +4.5
+   net at the fair budget       routed  -9.8   oracle  -7.3
 
 legacy35, 35 held-out questions, five seeds
    arm                                  unsharded     routed        oracle       
    before        34f, old router         30.3 +- 1.4   49.1 +- 2.8   54.3 +- 2.6 
    ablation/old  34f+cover, old router   49.1 +- 2.8   52.6 +- 2.9   66.9 +- 3.4 
    ablation/new  34f+cover, new router   49.1 +- 2.8   55.4 +- 2.9   66.9 +- 3.4 
-   after         70f+cover, new router   29.1 +- 7.8   44.6 +- 5.3   53.1 +- 5.9 
+   after  16k   70f+cover, new router    29.1 +- 7.8   44.6 +- 5.3   53.1 +- 5.9 
+   after  32k   70f+cover, new router    35.4 +- 2.9   48.0 +- 7.1   59.4 +- 6.6 
    coverage, answer model only  routed  +3.4   oracle +12.6
    coverage, through the router routed  +2.9
    doubling the facts           routed -10.9   oracle -13.7
-   net                          routed  -4.6   oracle  -1.1
+   net at the frozen recipe     routed  -4.6   oracle  -1.1
+   the fair step budget         routed  +3.4   oracle  +6.3
+   net at the fair budget       routed  -1.1   oracle  +5.1
