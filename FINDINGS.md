@@ -2536,23 +2536,31 @@ before/after number below is on those 137.
 question whose content word is now in the training vocabulary is an easier
 question than it was and folding that into one average would hide it.
 
-### Four arms, one decomposition
+### Five arms, one decomposition
 
 `train/growth_table.py` over `runs/reports/growth_*.json`, five seeds each,
-all four scored on the identical 137 questions:
+all five scored on the identical 137 questions:
 
 ```
 frozen137, 137 held-out questions            unsharded     routed        oracle
 before        34f, old router                 39.9 +- 2.1   56.2 +- 1.7   63.8 +- 2.5
 ablation/old  34f + coverage, old router      50.2 +- 3.8   56.8 +- 1.1   72.1 +- 1.9
 ablation/new  34f + coverage, new router      50.2 +- 3.8   65.7 +- 1.2   72.1 +- 1.9
-after         70f + coverage, new router      32.6 +- 5.3   57.1 +- 2.4   61.2 +- 2.3
+after  16k    70f + coverage, new router      32.6 +- 5.3   57.1 +- 2.4   61.2 +- 2.3
+after  32k    70f + coverage, new router      36.5 +- 1.9   60.0 +- 3.1   65.5 +- 2.8
 
    coverage, answer model only   routed  +0.6   oracle  +8.3
    coverage, through the router  routed  +8.9
    doubling the facts            routed  -8.6   oracle -10.9
-   net                           routed  +0.9   oracle  -2.6
+   net at the frozen recipe      routed  +0.9   oracle  -2.6
+   the fair step budget          routed  +2.9   oracle  +4.4
+   net at the fair budget        routed  +3.8   oracle  +1.8
 ```
+
+The 16,000-step row is the like-for-like one: entry 11's recipe unchanged, so
+only the corpus moved. The 32,000-step row is the same corpus at the budget
+`dev` chooses, and it is there because 16,000 steps over 448 training rows is
+not what 16,000 was over 208 - see the step-budget section below.
 
 Three things fall out of that table and none of them was obvious in advance.
 
@@ -2576,15 +2584,26 @@ lunch in both directions. Coverage is nearly free. Facts are bought out of
 capacity, at roughly ten points a doubling on the questions that were already
 there.
 
-**The two effects nearly cancel on the frozen 137 and do not cancel at all in
-what she can answer.** Net +0.9 routed on those 137 — but the after arm is
-answering 141 held-out test questions over 70 facts at 50.8% where the before
-arm answered 69 over 34 facts at 51.9%. **The same rate, twice the questions:
-71.6 held-out paraphrases answered exactly against 35.8.**
+**The two effects nearly cancel at the frozen recipe, and the fair step budget
+tips it.** +0.9 routed at 16,000 steps, **+3.8 at 32,000**, on the identical
+137 questions. And that understates it, because the after arm is answering a
+held-out set twice the size:
+
+```
+test split, held out by phrasing        n     unsharded     routed        oracle
+before   34 facts, 16k steps            69   38.0 +- 3.7   51.9 +- 1.7   59.7 +- 2.8
+after    70 facts, 16k steps           141   29.6 +- 4.3   50.8 +- 2.8   58.2 +- 3.0
+after    70 facts, 32k steps           141   33.6 +- 2.8   52.9 +- 2.4   61.4 +- 2.4
+```
+
+**A higher rate on twice the questions: 74.6 held-out paraphrases answered
+exactly, against 35.8.** Router error is 21.3% against 21.7% over twice the
+corpus.
 
 The bill lands on `frozen112`, the questions the coverage did not target:
-68.0% routed before, 55.4% after. She knows twice as much and is measurably
-worse at the half she already knew.
+68.0% routed before, 58.2% after at the fair budget. **She knows twice as much
+and is measurably worse at the half she already knew** - that is the honest
+half of this entry and no step budget removes it.
 
 ### The router, on the same 137 questions
 
@@ -2664,15 +2683,21 @@ At 448 training rows, 16,000 steps is not what 16,000 steps was at 208.
 Chosen on dev, five seeds:
 
 ```
-                    train exact      dev            test
+whole corpus        train exact      dev            test
 16,000 steps        90.4%            31.4 +- 2.7    29.6 +- 4.3
 32,000 steps        94.3%            35.7 +- 1.6    33.6 +- 2.7
+
+routed, five shards              dev            test
+16,000 steps                     54.3 +- 1.2    50.8 +- 2.8
+32,000 steps                     57.9 +- 1.9    52.9 +- 2.4
 ```
 
-**+4.3 points of dev for nothing but time**, and the same shape entry 11 found
-when 8,000 became 16,000. The frozen-recipe numbers above are the honest
-like-for-like comparison; the shipping arm is chosen on dev and dev says
-32,000.
+**+4.3 points of dev unsharded and +3.6 routed, for nothing but time**, and the
+same shape entry 11 found when 8,000 became 16,000. The frozen-recipe numbers
+above are the honest like-for-like comparison; the shipping arm is chosen on
+dev and dev says 32,000. `model/elya_qa_v2_s5.npz` is that arm's dev-best
+seed, by the rule entry 11 pre-registered and with the same admission attached:
+the seed is arbitrary and the arm mean is the estimate.
 
 ### The gate passes, and the reason it did not is worth more than the fix
 

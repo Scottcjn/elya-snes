@@ -15,3 +15,7 @@ host text 'but i do get it wrong.    '
 rom  text 'but i do get it wrong.    '
 PASS: 20/20 tokens identical (seed + 19 generated)
 === nnstage ===
+host text 'but i do get it wrong.    '
+rom  text 'but i do get it wrong.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+=== nnsurvey ===
