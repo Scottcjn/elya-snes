@@ -1,0 +1,33 @@
+router: wordgram-lr, fitted on the 448 train questions only
+   dev       107/140 correct shard =  76.4%   error  23.6%
+   test      111/141 correct shard =  78.7%   error  21.3%
+   dev+test  218/281 correct shard =  77.6%   error  22.4%
+
+dev split, 140 held-out paraphrases, 5 seeds
+   unsharded           35.7 +- 1.6
+   routed  (ships)     57.9 +- 1.9
+   oracle  (bound)     65.6 +- 1.9
+   routed - unsharded +22.1      what sharding actually buys
+   oracle - routed     -7.7      what the router costs
+   right answer from the wrong shard:   0.0 +- 0.0 of 33 mis-routes
+   topic        n  unsharded    routed       oracle      
+   identity    30   25.3 +- 6.2  44.0 +- 3.3  54.0 +- 5.7
+   hardware    28   37.1 +- 4.3  63.6 +- 6.1  70.7 +- 6.1
+   model       30   40.7 +- 7.4  56.7 +- 2.1  65.3 +- 2.7
+   game        26   41.5 +- 4.5  66.2 +- 2.9  73.8 +- 2.9
+   honesty     26   34.6 +- 5.4  60.8 +- 1.5  65.4 +- 5.4
+
+test split, 141 held-out paraphrases, 5 seeds
+   unsharded           33.6 +- 2.8
+   routed  (ships)     52.9 +- 2.4
+   oracle  (bound)     61.4 +- 2.4
+   routed - unsharded +19.3      what sharding actually buys
+   oracle - routed     -8.5      what the router costs
+   right answer from the wrong shard:   0.0 +- 0.0 of 30 mis-routes
+   topic        n  unsharded    routed       oracle      
+   identity    31   32.9 +- 2.4  54.8 +- 6.5  63.9 +- 7.5
+   hardware    28   29.3 +- 2.7  48.6 +- 5.8  58.6 +- 6.2
+   model       30   34.7 +- 5.0  56.0 +- 3.3  59.3 +- 3.3
+   game        26   28.5 +- 6.2  43.1 +- 4.5  59.2 +- 3.9
+   honesty     26   43.1 +- 4.5  61.5 +- 6.4  66.2 +- 6.6
+
