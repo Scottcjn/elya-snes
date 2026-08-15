@@ -1,0 +1,44 @@
+router wordgram-lr, one construction, two training corpora
+   before   34 facts  208 train questions
+   after    70 facts  448 train questions
+
+set           n   before           after            delta
+frozen137   137   104/137 =  75.9%  119/137 =  86.9%  +10.9
+hole25       25     2/25  =   8.0%   22/25  =  88.0%  +80.0
+frozen112   112   102/112 =  91.1%   97/112 =  86.6%   -4.5
+legacy35     35    26/35  =  74.3%   29/35  =  82.9%   +8.6
+
+the twenty-five vocabulary holes, one line each
+   'do you ponder? '      identity   before honesty   WRONG   after identity  ok
+   'any good? '           identity   before hardware  WRONG   after identity  ok
+   'all right? '          identity   before identity  ok    after identity  ok
+   'location? '           hardware   before model     WRONG   after hardware  ok
+   'are you remote? '     hardware   before identity  WRONG   after identity  WRONG
+   'what box? '           hardware   before identity  WRONG   after hardware  ok
+   'capacity? '           hardware   before identity  WRONG   after hardware  ok
+   'how long? '           hardware   before model     WRONG   after model     WRONG
+   'laggy? '              hardware   before identity  WRONG   after hardware  ok
+   'scale? '              model      before identity  WRONG   after model     ok
+   'what depth? '         model      before identity  WRONG   after model     ok
+   'stored? '             model      before game      WRONG   after model     ok
+   'preset? '             model      before identity  WRONG   after model     ok
+   'what happens? '       model      before identity  WRONG   after model     ok
+   'what follows you? '   game       before identity  WRONG   after game      ok
+   'you halted? '         game       before identity  WRONG   after game      ok
+   'really? '             honesty    before game      WRONG   after game      WRONG
+   'do you fail? '        honesty    before honesty   ok    after honesty   ok
+   'any mistakes? '       honesty    before hardware  WRONG   after honesty   ok
+   'a liar? '             honesty    before model     WRONG   after honesty   ok
+   'you fib? '            honesty    before identity  WRONG   after honesty   ok
+   'believe you? '        honesty    before identity  WRONG   after honesty   ok
+   'how to check? '       honesty    before model     WRONG   after honesty   ok
+   'are you honest? '     honesty    before identity  WRONG   after honesty   ok
+   'your limits? '        honesty    before identity  WRONG   after honesty   ok
+
+confusion on the frozen 137, after
+              identity hardware    model     game  honesty
+   identity         28        0        3        1        1
+   hardware          2       24        2        0        0
+   model             0        0       25        1        2
+   game              0        1        1       21        1
+   honesty           1        0        1        1       21

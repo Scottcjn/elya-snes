@@ -1,0 +1,7 @@
+leave-one-out over all 729 corpus questions, wordgram-lr -- the router is
+refitted without each question and then asked to route it, so it
+has seen every other phrasing of every fact.
+    50/729 refits, 44 correct so far
+   100/729 refits, 90 correct so far
+   150/729 refits, 130 correct so far
+   200/729 refits, 171 correct so far
