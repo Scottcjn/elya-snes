@@ -8,3 +8,31 @@ shard32k_model_s3      step  6000  loss 0.2156  tf-rows 117/130  68s
 shard32k_model_s3      step  7000  loss 0.1965  tf-rows 116/130  79s
 shard32k_model_s3      step  8000  loss 0.2180  tf-rows 118/130  91s
 shard32k_model_s3      step  9000  loss 0.1919  tf-rows 116/130  102s
+shard32k_model_s3      step 10000  loss 0.1910  tf-rows 120/130  113s
+shard32k_model_s3      step 11000  loss 0.1885  tf-rows 116/130  124s
+shard32k_model_s3      step 12000  loss 0.1810  tf-rows 118/130  136s
+shard32k_model_s3      step 13000  loss 0.1823  tf-rows 119/130  147s
+shard32k_model_s3      step 14000  loss 0.1914  tf-rows 116/130  159s
+shard32k_model_s3      step 15000  loss 0.1672  tf-rows 121/130  170s
+shard32k_model_s3      step 16000  loss 0.1668  tf-rows 114/130  181s
+shard32k_model_s3      step 17000  loss 0.1652  tf-rows 120/130  192s
+shard32k_model_s3      step 18000  loss 0.1619  tf-rows 120/130  204s
+shard32k_model_s3      step 19000  loss 0.1366  tf-rows 119/130  215s
+shard32k_model_s3      step 20000  loss 0.1828  tf-rows 115/130  226s
+shard32k_model_s3      step 21000  loss 0.1477  tf-rows 115/130  238s
+shard32k_model_s3      step 22000  loss 0.1619  tf-rows 116/130  249s
+shard32k_model_s3      step 23000  loss 0.1710  tf-rows 122/130  260s
+shard32k_model_s3      step 24000  loss 0.1427  tf-rows 118/130  272s
+shard32k_model_s3      step 25000  loss 0.1428  tf-rows 118/130  283s
+shard32k_model_s3      step 26000  loss 0.1520  tf-rows 121/130  295s
+shard32k_model_s3      step 27000  loss 0.1692  tf-rows 115/130  306s
+shard32k_model_s3      step 28000  loss 0.1479  tf-rows 118/130  317s
+shard32k_model_s3      step 29000  loss 0.1448  tf-rows 121/130  329s
+shard32k_model_s3      step 30000  loss 0.1470  tf-rows 121/130  340s
+shard32k_model_s3      step 31000  loss 0.1306  tf-rows 119/130  351s
+shard32k_model_s3      step 32000  loss 0.1319  tf-rows 124/130  362s
+train  exact  96/96  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  20/30  =  66.7%   mean prefix  69.0%   degenerate 0
+test   exact  18/30  =  60.0%   mean prefix  63.3%   degenerate 0
+legacy exact   7/7   = 100.0%   mean prefix 100.0%   degenerate 0
+FINAL shard32k_model_s3    loss 0.1319  density 0.5312  weights 102400  370s
