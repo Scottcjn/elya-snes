@@ -1,3 +1,9 @@
 whole_s2               step     1  loss 7.2441  tf-rows   0/482  1s
 whole_s2               step  1000  loss 1.1156  tf-rows  46/482  32s
 whole_s2               step  2000  loss 0.8868  tf-rows 135/482  64s
+whole_s2               step  3000  loss 0.7664  tf-rows 197/482  94s
+whole_s2               step  4000  loss 0.7145  tf-rows 225/482  125s
+whole_s2               step  5000  loss 0.6549  tf-rows 268/482  156s
+whole_s2               step  6000  loss 0.6480  tf-rows 270/482  187s
+whole_s2               step  7000  loss 0.5997  tf-rows 280/482  218s
+whole_s2               step  8000  loss 0.6434  tf-rows 268/482  249s

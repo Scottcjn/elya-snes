@@ -72,6 +72,11 @@ def main():
     ap.add_argument("--seeds", default="1,2,3,4,5")
     ap.add_argument("--vocab", default="data/vocab.json")
     ap.add_argument("--router", default="wordgram-lr")
+    ap.add_argument("--router-v1", default=None,
+                    help="fit the router on the 34-fact corpus in this "
+                         "directory instead of on this one.  The BEFORE arm "
+                         "has to be routed by the router that existed then, "
+                         "or the comparison moves two things at once.")
     ap.add_argument("--json", default=None)
     ap.add_argument("--label", default="")
     ap.add_argument("--dump", default=None,
@@ -86,7 +91,26 @@ def main():
     rt = None
     if a.shards:
         import router as R
-        rt = R.build(kind=a.router)
+        if a.router_v1:
+            import importlib.util
+            sp = importlib.util.spec_from_file_location(
+                "corpus_v1", os.path.join(a.router_v1, "corpus.py"))
+            C1 = importlib.util.module_from_spec(sp)
+            sp.loader.exec_module(C1)
+            tr = [(t, q, ans, False)
+                  for t, q, ans, s in C1.qa_rows() if s == "train"]
+            W = R.fit_lr(tr, R.wordgrams)
+
+            class _RT:
+                kind = "wordgram-lr/v1"
+
+                def topic(self, q):
+                    return R.argmax_low(R.score(q, W, R.wordgrams))
+            rt = _RT()
+            print("router fitted on the 34-fact corpus (%d train questions)"
+                  % len(tr))
+        else:
+            rt = R.build(kind=a.router)
 
     print("corpus: %d facts  %d questions  (%d train)"
           % (len(C.FACTS), len(C.qa_rows()), len(C.rows_of("train"))))

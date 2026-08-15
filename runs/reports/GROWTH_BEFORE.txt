@@ -1,0 +1,6 @@
+router fitted on the 34-fact corpus (208 train questions)
+corpus: 70 facts  729 questions  (448 train)
+arm: BEFORE: 34 facts, 345 questions
+set           n  unsharded     routed        oracle      
+frozen137   137   39.9 +- 2.1   56.2 +- 1.7   63.8 +- 2.5
+hole25       25    4.8 +- 3.9    3.2 +- 1.6   29.6 +- 4.1

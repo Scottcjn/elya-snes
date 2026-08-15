@@ -5,3 +5,79 @@ has seen every other phrasing of every fact.
    100/729 refits, 90 correct so far
    150/729 refits, 130 correct so far
    200/729 refits, 171 correct so far
+   250/729 refits, 217 correct so far
+   300/729 refits, 255 correct so far
+   350/729 refits, 302 correct so far
+   400/729 refits, 344 correct so far
+   450/729 refits, 374 correct so far
+   500/729 refits, 418 correct so far
+   550/729 refits, 462 correct so far
+   600/729 refits, 499 correct so far
+   650/729 refits, 546 correct so far
+   700/729 refits, 587 correct so far
+
+LOO 607/729 = 83.3% over the whole corpus
+
+54 of the 281 held-out questions are STILL mis-routed with every
+other phrasing in the corpus seen.  That is the ceiling of this
+feature class on this corpus, and it splits:
+
+  VOCABULARY HOLE (19 of 54) -- every content word occurs once in
+  the whole corpus, which is to say only here.  A CORPUS fix.
+     'brainy? '             identity  -> model      unseen ['brainy']
+     'any twins? '          identity  -> game       unseen ['twins']
+     'can you view me? '    identity  -> honesty    unseen ['view']
+     'how is it shown? '    hardware  -> model      unseen ['shown']
+     'what buttons? '       hardware  -> identity   unseen ['buttons']
+     'the age of it? '      hardware  -> game       unseen ['age']
+     'any decimals? '       model     -> identity   unseen ['decimals']
+     'your build? '         model     -> identity   unseen ['build']
+     'all at once? '        model     -> hardware   unseen ['once']
+     'how is it chosen? '   model     -> hardware   unseen ['chosen']
+     'do you adapt? '       model     -> identity   unseen ['adapt']
+     'a jumper? '           game      -> model      unseen ['jumper']
+     'any audio? '          game      -> identity   unseen ['audio']
+     'on screen? '          game      -> hardware   unseen ['screen']
+     'how begin? '          game      -> hardware   unseen ['begin']
+     'arithmetic? '         honesty   -> identity   unseen ['arithmetic']
+     'multiply? '           honesty   -> hardware   unseen ['multiply']
+     'how do i fix it? '    honesty   -> hardware   unseen ['fix']
+     'prove it? '           honesty   -> model      unseen ['prove']
+
+  AMBIGUOUS (35 of 54) -- the words are in the corpus and do not
+  carry this topic, or there are no content words at all.
+     'what sort? '          identity  -> game       content ['sort']               ('a small model.')
+     'so what? '            identity  -> model      content none                   ('a small model.')
+     'still with me? '      identity  -> honesty    content none                   ('i am here.')
+     'a shape? '            identity  -> model      content ['shape']              ('just a sprite.')
+     'how do i quit? '      identity  -> hardware   content ['quit']               ('power off.')
+     'how end it? '         identity  -> model      content ['end']                ('power off.')
+     'which one? '          identity  -> game       content ['one']                ('she.')
+     'are you remote? '     hardware  -> identity   content ['remote']             ('no. all here.')
+     'call out? '           hardware  -> identity   content ['call', 'out']        ('no. all here.')
+     'how many a sec? '     hardware  -> model      content ['many', 'sec']        ('seven a second.')
+     'what box? '           hardware  -> identity   content ['box']                ('the snes.')
+     'what fits? '          hardware  -> model      content ['fits']               ('twenty tokens.')
+     'other chips? '        hardware  -> identity   content ['other', 'chips']     ('plain cart.')
+     'makes words? '        hardware  -> game       content ['makes', 'words']     ('tiles.')
+     'what do i use? '      hardware  -> honesty    content ['use']                ('use the pad.')
+     'real or not? '        hardware  -> game       content ['real']               ('i cannot tell.')
+     'old thing? '          hardware  -> identity   content ['old', 'thing']       ('older than me.')
+     'what number type? '   model     -> identity   content ['number', 'type']     ('ternary.')
+     'what is in there? '   model     -> identity   content ['in']                 ('a transformer.')
+     'how is text made? '   model     -> game       content ['text', 'made']       ('one by one.')
+     'why that token? '     model     -> game       content ['token']              ('the top one.')
+     'one or many? '        model     -> game       content ['one', 'many']        ('no. just one.')
+     'more than one? '      model     -> identity   content ['than', 'one']        ('no. just one.')
+     'get better? '         model     -> honesty    content ['get', 'better']      ('no. i just run.')
+     'why not run? '        game      -> hardware   content ['run']                ('i want to talk.')
+     'how many scenes? '    game      -> model      content ['many', 'scenes']     ('three acts.')
+     'what sort is it? '    game      -> identity   content ['sort']               ('a platformer.')
+     'that list? '          game      -> model      content ['list']               ('the ask list.')
+     'made just now? '      game      -> model      content ['made', 'just']       ('yes. just now.')
+     'is that so? '         honesty   -> model      content none                   ('no. often wrong.')
+     'really? '             honesty   -> game       content ['really']             ('no. often wrong.')
+     'who am i? '           honesty   -> identity   content none                   ('no. i forget.')
+     'what do i do? '       honesty   -> hardware   content none                   ('ask me again.')
+     'how do i verify? '    honesty   -> hardware   content ['verify']             ('read the code.')
+     'do you get this? '    honesty   -> identity   content ['get']                ('just a guess.')
