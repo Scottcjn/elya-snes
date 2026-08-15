@@ -23,3 +23,16 @@ shard32k_identity_s2   step 21000  loss 0.1506  tf-rows 112/130  244s
 shard32k_identity_s2   step 22000  loss 0.1548  tf-rows 119/130  255s
 shard32k_identity_s2   step 23000  loss 0.1553  tf-rows 116/130  267s
 shard32k_identity_s2   step 24000  loss 0.1603  tf-rows 116/130  281s
+shard32k_identity_s2   step 25000  loss 0.1285  tf-rows 111/130  300s
+shard32k_identity_s2   step 26000  loss 0.1369  tf-rows 115/130  319s
+shard32k_identity_s2   step 27000  loss 0.1500  tf-rows 118/130  330s
+shard32k_identity_s2   step 28000  loss 0.1489  tf-rows 115/130  342s
+shard32k_identity_s2   step 29000  loss 0.1544  tf-rows 116/130  353s
+shard32k_identity_s2   step 30000  loss 0.1499  tf-rows 113/130  365s
+shard32k_identity_s2   step 31000  loss 0.1282  tf-rows 119/130  376s
+shard32k_identity_s2   step 32000  loss 0.1087  tf-rows 123/130  388s
+train  exact  96/96  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  17/30  =  56.7%   mean prefix  64.8%   degenerate 0
+test   exact  16/31  =  51.6%   mean prefix  55.2%   degenerate 0
+legacy exact   2/9   =  22.2%   mean prefix  34.4%   degenerate 0
+FINAL shard32k_identity_s2 loss 0.1087  density 0.5301  weights 102400  395s
