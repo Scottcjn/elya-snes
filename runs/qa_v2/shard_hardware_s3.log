@@ -1,0 +1,11 @@
+shard_hardware_s3      step     1  loss 6.8495  tf-rows   0/124  0s
+shard_hardware_s3      step  1000  loss 0.4976  tf-rows  62/124  12s
+shard_hardware_s3      step  2000  loss 0.3380  tf-rows  90/124  23s
+shard_hardware_s3      step  3000  loss 0.3082  tf-rows  90/124  34s
+shard_hardware_s3      step  4000  loss 0.2493  tf-rows  93/124  46s
+shard_hardware_s3      step  5000  loss 0.2379  tf-rows 100/124  57s
+shard_hardware_s3      step  6000  loss 0.2127  tf-rows  99/124  68s
+shard_hardware_s3      step  7000  loss 0.2252  tf-rows  95/124  80s
+shard_hardware_s3      step  8000  loss 0.2410  tf-rows 100/124  91s
+shard_hardware_s3      step  9000  loss 0.2084  tf-rows 104/124  102s
+shard_hardware_s3      step 10000  loss 0.1797  tf-rows  99/124  114s
