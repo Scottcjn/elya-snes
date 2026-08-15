@@ -10,3 +10,29 @@ shard32k_hardware_s2   step  8000  loss 0.2478  tf-rows 102/124  92s
 shard32k_hardware_s2   step  9000  loss 0.1960  tf-rows 105/124  104s
 shard32k_hardware_s2   step 10000  loss 0.2014  tf-rows 104/124  115s
 shard32k_hardware_s2   step 11000  loss 0.2097  tf-rows 105/124  127s
+shard32k_hardware_s2   step 12000  loss 0.2345  tf-rows 102/124  138s
+shard32k_hardware_s2   step 13000  loss 0.1697  tf-rows 103/124  149s
+shard32k_hardware_s2   step 14000  loss 0.1693  tf-rows 102/124  160s
+shard32k_hardware_s2   step 15000  loss 0.1758  tf-rows 102/124  172s
+shard32k_hardware_s2   step 16000  loss 0.1596  tf-rows 102/124  183s
+shard32k_hardware_s2   step 17000  loss 0.1878  tf-rows 103/124  194s
+shard32k_hardware_s2   step 18000  loss 0.1607  tf-rows 107/124  206s
+shard32k_hardware_s2   step 19000  loss 0.1563  tf-rows 103/124  217s
+shard32k_hardware_s2   step 20000  loss 0.1877  tf-rows 101/124  228s
+shard32k_hardware_s2   step 21000  loss 0.1594  tf-rows 102/124  239s
+shard32k_hardware_s2   step 22000  loss 0.1787  tf-rows  99/124  251s
+shard32k_hardware_s2   step 23000  loss 0.1583  tf-rows 104/124  262s
+shard32k_hardware_s2   step 24000  loss 0.1599  tf-rows 103/124  273s
+shard32k_hardware_s2   step 25000  loss 0.1338  tf-rows 105/124  284s
+shard32k_hardware_s2   step 26000  loss 0.1532  tf-rows 105/124  296s
+shard32k_hardware_s2   step 27000  loss 0.1702  tf-rows 102/124  307s
+shard32k_hardware_s2   step 28000  loss 0.1692  tf-rows 106/124  318s
+shard32k_hardware_s2   step 29000  loss 0.2035  tf-rows 105/124  329s
+shard32k_hardware_s2   step 30000  loss 0.1553  tf-rows 105/124  340s
+shard32k_hardware_s2   step 31000  loss 0.1487  tf-rows 105/124  352s
+shard32k_hardware_s2   step 32000  loss 0.1074  tf-rows 108/124  363s
+train  exact  81/90  =  90.0%   mean prefix  96.5%   degenerate 0
+dev    exact  20/28  =  71.4%   mean prefix  74.0%   degenerate 0
+test   exact  14/28  =  50.0%   mean prefix  50.0%   degenerate 1
+legacy exact   3/7   =  42.9%   mean prefix  42.9%   degenerate 0
+FINAL shard32k_hardware_s2 loss 0.1074  density 0.5304  weights 102400  370s
