@@ -1,0 +1,2 @@
+whole_s3               step     1  loss 6.8336  tf-rows   0/482  0s
+whole_s3               step  1000  loss 1.1233  tf-rows  51/482  30s
