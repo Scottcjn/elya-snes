@@ -29,3 +29,10 @@ shard32k_model_s5      step 27000  loss 0.1651  tf-rows 117/130  308s
 shard32k_model_s5      step 28000  loss 0.1592  tf-rows 120/130  320s
 shard32k_model_s5      step 29000  loss 0.1605  tf-rows 120/130  331s
 shard32k_model_s5      step 30000  loss 0.1516  tf-rows 119/130  342s
+shard32k_model_s5      step 31000  loss 0.1360  tf-rows 122/130  353s
+shard32k_model_s5      step 32000  loss 0.1120  tf-rows 122/130  365s
+train  exact  96/96  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  20/30  =  66.7%   mean prefix  69.4%   degenerate 0
+test   exact  19/30  =  63.3%   mean prefix  67.1%   degenerate 0
+legacy exact   7/7   = 100.0%   mean prefix 100.0%   degenerate 0
+FINAL shard32k_model_s5    loss 0.1120  density 0.5310  weights 102400  372s

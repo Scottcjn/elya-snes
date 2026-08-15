@@ -1,0 +1,38 @@
+shard32k_game_s3       step     1  loss 6.7121  tf-rows   0/114  0s
+shard32k_game_s3       step  1000  loss 0.4607  tf-rows  73/114  12s
+shard32k_game_s3       step  2000  loss 0.2935  tf-rows  93/114  23s
+shard32k_game_s3       step  3000  loss 0.2308  tf-rows  98/114  34s
+shard32k_game_s3       step  4000  loss 0.1961  tf-rows  95/114  45s
+shard32k_game_s3       step  5000  loss 0.1812  tf-rows 100/114  57s
+shard32k_game_s3       step  6000  loss 0.1873  tf-rows 101/114  68s
+shard32k_game_s3       step  7000  loss 0.1728  tf-rows 100/114  79s
+shard32k_game_s3       step  8000  loss 0.2057  tf-rows 103/114  90s
+shard32k_game_s3       step  9000  loss 0.1504  tf-rows 101/114  102s
+shard32k_game_s3       step 10000  loss 0.1582  tf-rows 102/114  113s
+shard32k_game_s3       step 11000  loss 0.1630  tf-rows 101/114  124s
+shard32k_game_s3       step 12000  loss 0.1446  tf-rows 103/114  136s
+shard32k_game_s3       step 13000  loss 0.1485  tf-rows 101/114  147s
+shard32k_game_s3       step 14000  loss 0.1496  tf-rows 102/114  158s
+shard32k_game_s3       step 15000  loss 0.1504  tf-rows 103/114  169s
+shard32k_game_s3       step 16000  loss 0.1350  tf-rows 103/114  180s
+shard32k_game_s3       step 17000  loss 0.1394  tf-rows 103/114  192s
+shard32k_game_s3       step 18000  loss 0.1269  tf-rows 105/114  203s
+shard32k_game_s3       step 19000  loss 0.1185  tf-rows 103/114  214s
+shard32k_game_s3       step 20000  loss 0.1555  tf-rows 102/114  225s
+shard32k_game_s3       step 21000  loss 0.1073  tf-rows 103/114  237s
+shard32k_game_s3       step 22000  loss 0.1169  tf-rows 102/114  248s
+shard32k_game_s3       step 23000  loss 0.1176  tf-rows 104/114  259s
+shard32k_game_s3       step 24000  loss 0.1159  tf-rows 104/114  271s
+shard32k_game_s3       step 25000  loss 0.1136  tf-rows 104/114  282s
+shard32k_game_s3       step 26000  loss 0.1155  tf-rows 105/114  294s
+shard32k_game_s3       step 27000  loss 0.1443  tf-rows 103/114  305s
+shard32k_game_s3       step 28000  loss 0.1235  tf-rows 106/114  316s
+shard32k_game_s3       step 29000  loss 0.1080  tf-rows 105/114  328s
+shard32k_game_s3       step 30000  loss 0.1105  tf-rows 105/114  339s
+shard32k_game_s3       step 31000  loss 0.0901  tf-rows 104/114  350s
+shard32k_game_s3       step 32000  loss 0.1086  tf-rows 107/114  362s
+train  exact  80/80  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  18/26  =  69.2%   mean prefix  70.3%   degenerate 1
+test   exact  14/26  =  53.8%   mean prefix  53.8%   degenerate 1
+legacy exact   3/6   =  50.0%   mean prefix  50.0%   degenerate 0
+FINAL shard32k_game_s3     loss 0.1086  density 0.5306  weights 102400  368s
