@@ -25,3 +25,8 @@ whole32k_s5            step 23000  loss 0.5515  tf-rows 351/482  329s
 whole32k_s5            step 24000  loss 0.5236  tf-rows 351/482  343s
 whole32k_s5            step 25000  loss 0.5329  tf-rows 366/482  357s
 whole32k_s5            step 26000  loss 0.5245  tf-rows 354/482  372s
+whole32k_s5            step 27000  loss 0.5344  tf-rows 349/482  386s
+whole32k_s5            step 28000  loss 0.4843  tf-rows 361/482  400s
+whole32k_s5            step 29000  loss 0.5438  tf-rows 373/482  414s
+whole32k_s5            step 30000  loss 0.4930  tf-rows 370/482  429s
+whole32k_s5            step 31000  loss 0.4712  tf-rows 383/482  443s

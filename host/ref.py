@@ -21,7 +21,7 @@ import sys
 # failure mode this repo has no check for, because every checker would agree
 # with itself.
 # ---------------------------------------------------------------------------
-WEIGHTS = "model/elya_qa_para_s2.npz"
+WEIGHTS = "model/elya_qa_v2_s5.npz"
 
 
 def default_weights():
