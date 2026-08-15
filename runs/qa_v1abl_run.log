@@ -19,3 +19,14 @@ done shard_model_s2: dev    exact  13/14  =  92.9%   mean prefix  92.9%   degene
 done shard_model_s3: dev    exact  12/14  =  85.7%   mean prefix  85.7%   degenerate 0 test   exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 
 done shard_model_s4: dev    exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 test   exact  12/14  =  85.7%   mean prefix  85.7%   degenerate 0 
 done shard_model_s5: dev    exact  13/14  =  92.9%   mean prefix  92.9%   degenerate 0 test   exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 
+done shard_game_s1: dev    exact  11/12  =  91.7%   mean prefix  91.7%   degenerate 0 test   exact  10/12  =  83.3%   mean prefix  83.3%   degenerate 0 
+done shard_game_s2: dev    exact   9/12  =  75.0%   mean prefix  76.2%   degenerate 0 test   exact   9/12  =  75.0%   mean prefix  77.8%   degenerate 0 
+done shard_game_s3: dev    exact  10/12  =  83.3%   mean prefix  84.5%   degenerate 0 test   exact  11/12  =  91.7%   mean prefix  91.7%   degenerate 0 
+done shard_game_s4: dev    exact  10/12  =  83.3%   mean prefix  83.9%   degenerate 0 test   exact  11/12  =  91.7%   mean prefix  91.7%   degenerate 0 
+done shard_game_s5: dev    exact  11/12  =  91.7%   mean prefix  91.7%   degenerate 0 test   exact  10/12  =  83.3%   mean prefix  83.3%   degenerate 0 
+done shard_honesty_s1: dev    exact   9/12  =  75.0%   mean prefix  78.7%   degenerate 0 test   exact   8/12  =  66.7%   mean prefix  66.7%   degenerate 0 
+done shard_honesty_s2: dev    exact   9/12  =  75.0%   mean prefix  78.7%   degenerate 0 test   exact   8/12  =  66.7%   mean prefix  66.7%   degenerate 0 
+done shard_honesty_s3: dev    exact   9/12  =  75.0%   mean prefix  78.7%   degenerate 0 test   exact  11/12  =  91.7%   mean prefix  91.7%   degenerate 0 
+done shard_honesty_s4: dev    exact  10/12  =  83.3%   mean prefix  84.4%   degenerate 0 test   exact   8/12  =  66.7%   mean prefix  66.7%   degenerate 0 
+done shard_honesty_s5: dev    exact   8/12  =  66.7%   mean prefix  72.2%   degenerate 0 test   exact   7/12  =  58.3%   mean prefix  60.2%   degenerate 0 
+V1 ABLATION DONE

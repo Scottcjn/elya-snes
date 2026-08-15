@@ -1,0 +1,22 @@
+shard_game_s4          step     1  loss 5.6482  tf-rows   0/72  0s
+shard_game_s4          step  1000  loss 0.2227  tf-rows  51/72  13s
+shard_game_s4          step  2000  loss 0.1419  tf-rows  56/72  25s
+shard_game_s4          step  3000  loss 0.1310  tf-rows  63/72  38s
+shard_game_s4          step  4000  loss 0.1540  tf-rows  61/72  50s
+shard_game_s4          step  5000  loss 0.1065  tf-rows  59/72  62s
+shard_game_s4          step  6000  loss 0.1030  tf-rows  61/72  75s
+shard_game_s4          step  7000  loss 0.1183  tf-rows  62/72  87s
+shard_game_s4          step  8000  loss 0.0989  tf-rows  62/72  99s
+shard_game_s4          step  9000  loss 0.0993  tf-rows  62/72  112s
+shard_game_s4          step 10000  loss 0.0945  tf-rows  62/72  125s
+shard_game_s4          step 11000  loss 0.0790  tf-rows  63/72  137s
+shard_game_s4          step 12000  loss 0.0798  tf-rows  60/72  149s
+shard_game_s4          step 13000  loss 0.0688  tf-rows  65/72  162s
+shard_game_s4          step 14000  loss 0.0716  tf-rows  63/72  175s
+shard_game_s4          step 15000  loss 0.0658  tf-rows  65/72  187s
+shard_game_s4          step 16000  loss 0.0557  tf-rows  65/72  200s
+train  exact  38/38  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  10/12  =  83.3%   mean prefix  83.9%   degenerate 0
+test   exact  11/12  =  91.7%   mean prefix  91.7%   degenerate 0
+legacy exact   5/6   =  83.3%   mean prefix  83.3%   degenerate 0
+FINAL shard_game_s4        loss 0.0557  density 0.5431  weights 102400  203s
