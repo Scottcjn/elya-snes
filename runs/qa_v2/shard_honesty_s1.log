@@ -1,0 +1,2 @@
+shard_honesty_s1       step     1  loss 7.3691  tf-rows   0/120  0s
+shard_honesty_s1       step  1000  loss 0.4994  tf-rows  75/120  12s

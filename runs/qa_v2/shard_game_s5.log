@@ -1,0 +1,17 @@
+shard_game_s5          step     1  loss 6.0664  tf-rows   0/114  0s
+shard_game_s5          step  1000  loss 0.4670  tf-rows  71/114  12s
+shard_game_s5          step  2000  loss 0.2714  tf-rows  93/114  23s
+shard_game_s5          step  3000  loss 0.2372  tf-rows  97/114  34s
+shard_game_s5          step  4000  loss 0.2065  tf-rows 100/114  45s
+shard_game_s5          step  5000  loss 0.1962  tf-rows 101/114  57s
+shard_game_s5          step  6000  loss 0.1813  tf-rows 103/114  68s
+shard_game_s5          step  7000  loss 0.2004  tf-rows 100/114  80s
+shard_game_s5          step  8000  loss 0.1694  tf-rows  99/114  91s
+shard_game_s5          step  9000  loss 0.1790  tf-rows 102/114  102s
+shard_game_s5          step 10000  loss 0.1710  tf-rows 102/114  113s
+shard_game_s5          step 11000  loss 0.1599  tf-rows 101/114  124s
+shard_game_s5          step 12000  loss 0.1626  tf-rows 103/114  135s
+shard_game_s5          step 13000  loss 0.1567  tf-rows 101/114  147s
+shard_game_s5          step 14000  loss 0.1466  tf-rows 104/114  158s
+shard_game_s5          step 15000  loss 0.1257  tf-rows 103/114  169s
+shard_game_s5          step 16000  loss 0.1052  tf-rows 105/114  180s
