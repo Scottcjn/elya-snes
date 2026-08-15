@@ -1,0 +1,38 @@
+whole32k_s4            step     1  loss 5.8888  tf-rows   0/482  2s
+whole32k_s4            step  1000  loss 1.1071  tf-rows  61/482  32s
+whole32k_s4            step  2000  loss 0.8918  tf-rows 156/482  63s
+whole32k_s4            step  3000  loss 0.7676  tf-rows 210/482  94s
+whole32k_s4            step  4000  loss 0.7006  tf-rows 239/482  124s
+whole32k_s4            step  5000  loss 0.6723  tf-rows 238/482  155s
+whole32k_s4            step  6000  loss 0.6569  tf-rows 270/482  186s
+whole32k_s4            step  7000  loss 0.6134  tf-rows 285/482  217s
+whole32k_s4            step  8000  loss 0.6430  tf-rows 312/482  247s
+whole32k_s4            step  9000  loss 0.6060  tf-rows 304/482  278s
+whole32k_s4            step 10000  loss 0.5764  tf-rows 290/482  309s
+whole32k_s4            step 11000  loss 0.5643  tf-rows 320/482  339s
+whole32k_s4            step 12000  loss 0.5881  tf-rows 320/482  370s
+whole32k_s4            step 13000  loss 0.5826  tf-rows 326/482  401s
+whole32k_s4            step 14000  loss 0.5533  tf-rows 326/482  432s
+whole32k_s4            step 15000  loss 0.5540  tf-rows 324/482  462s
+whole32k_s4            step 16000  loss 0.5462  tf-rows 341/482  493s
+whole32k_s4            step 17000  loss 0.5286  tf-rows 333/482  524s
+whole32k_s4            step 18000  loss 0.5507  tf-rows 318/482  555s
+whole32k_s4            step 19000  loss 0.5641  tf-rows 337/482  585s
+whole32k_s4            step 20000  loss 0.5561  tf-rows 356/482  616s
+whole32k_s4            step 21000  loss 0.5164  tf-rows 363/482  647s
+whole32k_s4            step 22000  loss 0.5200  tf-rows 375/482  677s
+whole32k_s4            step 23000  loss 0.5499  tf-rows 338/482  708s
+whole32k_s4            step 24000  loss 0.5067  tf-rows 345/482  739s
+whole32k_s4            step 25000  loss 0.5304  tf-rows 375/482  770s
+whole32k_s4            step 26000  loss 0.5128  tf-rows 381/482  800s
+whole32k_s4            step 27000  loss 0.5364  tf-rows 357/482  831s
+whole32k_s4            step 28000  loss 0.4962  tf-rows 372/482  862s
+whole32k_s4            step 29000  loss 0.5255  tf-rows 368/482  892s
+whole32k_s4            step 30000  loss 0.5180  tf-rows 391/482  923s
+whole32k_s4            step 31000  loss 0.5290  tf-rows 383/482  954s
+whole32k_s4            step 32000  loss 0.4029  tf-rows 435/482  983s
+train  exact 418/448 =  93.3%   mean prefix  96.3%   degenerate 0
+dev    exact  52/140 =  37.1%   mean prefix  43.3%   degenerate 2
+test   exact  49/141 =  34.8%   mean prefix  40.1%   degenerate 0
+legacy exact  12/35  =  34.3%   mean prefix  40.5%   degenerate 0
+FINAL whole32k_s4          loss 0.4029  density 0.5231  weights 102400  1018s

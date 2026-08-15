@@ -1,0 +1,5 @@
+step-budget control: 5 runs at 32000 steps
+done whole32k_s1: train  exact 426/448 =  95.1%   mean prefix  98.1%   degenerate 0 dev    exact  47/140 =  33.6%   mean prefix  40.1%   degenerate 1 test   exact  44/141 =  31.2%   mean prefix  36.1%   degenerate 0 
+done whole32k_s2: train  exact 421/448 =  94.0%   mean prefix  97.4%   degenerate 0 dev    exact  48/140 =  34.3%   mean prefix  43.2%   degenerate 2 test   exact  42/141 =  29.8%   mean prefix  35.7%   degenerate 0 
+done whole32k_s3: train  exact 425/448 =  94.9%   mean prefix  97.9%   degenerate 0 dev    exact  50/140 =  35.7%   mean prefix  41.5%   degenerate 3 test   exact  53/141 =  37.6%   mean prefix  41.6%   degenerate 1 
+done whole32k_s4: train  exact 418/448 =  93.3%   mean prefix  96.3%   degenerate 0 dev    exact  52/140 =  37.1%   mean prefix  43.3%   degenerate 2 test   exact  49/141 =  34.8%   mean prefix  40.1%   degenerate 0 

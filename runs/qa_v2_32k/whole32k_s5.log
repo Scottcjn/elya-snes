@@ -1,0 +1,2 @@
+whole32k_s5            step     1  loss 5.9275  tf-rows   0/482  0s
+whole32k_s5            step  1000  loss 1.1385  tf-rows  48/482  15s
