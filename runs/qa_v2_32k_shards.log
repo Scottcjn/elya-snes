@@ -7,3 +7,7 @@ done shard32k_identity_s5: dev    exact  16/30  =  53.3%   mean prefix  58.1%   
 done shard32k_hardware_s1: dev    exact  19/28  =  67.9%   mean prefix  70.2%   degenerate 0 test   exact  19/28  =  67.9%   mean prefix  68.1%   degenerate 0 
 done shard32k_hardware_s2: dev    exact  20/28  =  71.4%   mean prefix  74.0%   degenerate 0 test   exact  14/28  =  50.0%   mean prefix  50.0%   degenerate 1 
 done shard32k_hardware_s3: dev    exact  18/28  =  64.3%   mean prefix  68.0%   degenerate 0 test   exact  15/28  =  53.6%   mean prefix  55.6%   degenerate 0 
+done shard32k_hardware_s4: dev    exact  19/28  =  67.9%   mean prefix  74.9%   degenerate 0 test   exact  17/28  =  60.7%   mean prefix  60.7%   degenerate 0 
+done shard32k_hardware_s5: dev    exact  23/28  =  82.1%   mean prefix  82.1%   degenerate 0 test   exact  17/28  =  60.7%   mean prefix  60.7%   degenerate 0 
+done shard32k_model_s1: dev    exact  18/30  =  60.0%   mean prefix  62.4%   degenerate 0 test   exact  18/30  =  60.0%   mean prefix  61.3%   degenerate 0 
+done shard32k_model_s2: dev    exact  20/30  =  66.7%   mean prefix  72.6%   degenerate 0 test   exact  16/30  =  53.3%   mean prefix  57.4%   degenerate 0 

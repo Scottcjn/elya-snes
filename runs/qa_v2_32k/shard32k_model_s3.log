@@ -1,0 +1,10 @@
+shard32k_model_s3      step     1  loss 6.8842  tf-rows   0/130  0s
+shard32k_model_s3      step  1000  loss 0.5134  tf-rows  87/130  12s
+shard32k_model_s3      step  2000  loss 0.3298  tf-rows 104/130  23s
+shard32k_model_s3      step  3000  loss 0.2773  tf-rows 117/130  34s
+shard32k_model_s3      step  4000  loss 0.2262  tf-rows 112/130  46s
+shard32k_model_s3      step  5000  loss 0.2211  tf-rows 118/130  57s
+shard32k_model_s3      step  6000  loss 0.2156  tf-rows 117/130  68s
+shard32k_model_s3      step  7000  loss 0.1965  tf-rows 116/130  79s
+shard32k_model_s3      step  8000  loss 0.2180  tf-rows 118/130  91s
+shard32k_model_s3      step  9000  loss 0.1919  tf-rows 116/130  102s

@@ -9,3 +9,30 @@ shard32k_hardware_s4   step  7000  loss 0.2083  tf-rows  99/124  79s
 shard32k_hardware_s4   step  8000  loss 0.2414  tf-rows  94/124  91s
 shard32k_hardware_s4   step  9000  loss 0.2168  tf-rows 103/124  102s
 shard32k_hardware_s4   step 10000  loss 0.2007  tf-rows  99/124  113s
+shard32k_hardware_s4   step 11000  loss 0.2177  tf-rows 103/124  125s
+shard32k_hardware_s4   step 12000  loss 0.2022  tf-rows  99/124  136s
+shard32k_hardware_s4   step 13000  loss 0.1756  tf-rows  97/124  147s
+shard32k_hardware_s4   step 14000  loss 0.1847  tf-rows  99/124  159s
+shard32k_hardware_s4   step 15000  loss 0.1887  tf-rows  97/124  170s
+shard32k_hardware_s4   step 16000  loss 0.1972  tf-rows  99/124  181s
+shard32k_hardware_s4   step 17000  loss 0.1724  tf-rows 101/124  193s
+shard32k_hardware_s4   step 18000  loss 0.1834  tf-rows 101/124  204s
+shard32k_hardware_s4   step 19000  loss 0.1608  tf-rows 105/124  215s
+shard32k_hardware_s4   step 20000  loss 0.1598  tf-rows  98/124  227s
+shard32k_hardware_s4   step 21000  loss 0.1690  tf-rows 102/124  238s
+shard32k_hardware_s4   step 22000  loss 0.1492  tf-rows 101/124  250s
+shard32k_hardware_s4   step 23000  loss 0.2018  tf-rows 102/124  261s
+shard32k_hardware_s4   step 24000  loss 0.1569  tf-rows 105/124  272s
+shard32k_hardware_s4   step 25000  loss 0.1463  tf-rows 101/124  283s
+shard32k_hardware_s4   step 26000  loss 0.1633  tf-rows 105/124  295s
+shard32k_hardware_s4   step 27000  loss 0.1723  tf-rows 103/124  306s
+shard32k_hardware_s4   step 28000  loss 0.1581  tf-rows 106/124  317s
+shard32k_hardware_s4   step 29000  loss 0.1488  tf-rows 102/124  328s
+shard32k_hardware_s4   step 30000  loss 0.1691  tf-rows 101/124  340s
+shard32k_hardware_s4   step 31000  loss 0.1447  tf-rows 106/124  351s
+shard32k_hardware_s4   step 32000  loss 0.1202  tf-rows 109/124  362s
+train  exact  84/90  =  93.3%   mean prefix  97.5%   degenerate 0
+dev    exact  19/28  =  67.9%   mean prefix  74.9%   degenerate 0
+test   exact  17/28  =  60.7%   mean prefix  60.7%   degenerate 0
+legacy exact   4/7   =  57.1%   mean prefix  57.1%   degenerate 0
+FINAL shard32k_hardware_s4 loss 0.1202  density 0.5319  weights 102400  369s
