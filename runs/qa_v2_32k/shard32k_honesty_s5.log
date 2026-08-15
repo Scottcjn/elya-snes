@@ -1,0 +1,38 @@
+shard32k_honesty_s5    step     1  loss 5.7800  tf-rows   0/120  0s
+shard32k_honesty_s5    step  1000  loss 0.4657  tf-rows  74/120  12s
+shard32k_honesty_s5    step  2000  loss 0.2594  tf-rows 102/120  24s
+shard32k_honesty_s5    step  3000  loss 0.2446  tf-rows 100/120  36s
+shard32k_honesty_s5    step  4000  loss 0.1913  tf-rows 103/120  48s
+shard32k_honesty_s5    step  5000  loss 0.1889  tf-rows 102/120  59s
+shard32k_honesty_s5    step  6000  loss 0.2192  tf-rows 108/120  71s
+shard32k_honesty_s5    step  7000  loss 0.1953  tf-rows 107/120  82s
+shard32k_honesty_s5    step  8000  loss 0.1952  tf-rows 100/120  94s
+shard32k_honesty_s5    step  9000  loss 0.1789  tf-rows 108/120  106s
+shard32k_honesty_s5    step 10000  loss 0.1750  tf-rows 110/120  118s
+shard32k_honesty_s5    step 11000  loss 0.1703  tf-rows 107/120  130s
+shard32k_honesty_s5    step 12000  loss 0.1718  tf-rows 106/120  142s
+shard32k_honesty_s5    step 13000  loss 0.1654  tf-rows 111/120  154s
+shard32k_honesty_s5    step 14000  loss 0.1786  tf-rows 107/120  166s
+shard32k_honesty_s5    step 15000  loss 0.1584  tf-rows 106/120  177s
+shard32k_honesty_s5    step 16000  loss 0.1622  tf-rows 107/120  189s
+shard32k_honesty_s5    step 17000  loss 0.1666  tf-rows 104/120  201s
+shard32k_honesty_s5    step 18000  loss 0.1523  tf-rows 107/120  212s
+shard32k_honesty_s5    step 19000  loss 0.1547  tf-rows 106/120  224s
+shard32k_honesty_s5    step 20000  loss 0.1437  tf-rows 106/120  235s
+shard32k_honesty_s5    step 21000  loss 0.1450  tf-rows 109/120  247s
+shard32k_honesty_s5    step 22000  loss 0.1389  tf-rows 109/120  258s
+shard32k_honesty_s5    step 23000  loss 0.1629  tf-rows 110/120  269s
+shard32k_honesty_s5    step 24000  loss 0.1355  tf-rows 110/120  281s
+shard32k_honesty_s5    step 25000  loss 0.1742  tf-rows 110/120  292s
+shard32k_honesty_s5    step 26000  loss 0.1291  tf-rows 110/120  304s
+shard32k_honesty_s5    step 27000  loss 0.1465  tf-rows 107/120  315s
+shard32k_honesty_s5    step 28000  loss 0.1304  tf-rows 106/120  328s
+shard32k_honesty_s5    step 29000  loss 0.1271  tf-rows 111/120  340s
+shard32k_honesty_s5    step 30000  loss 0.1357  tf-rows 107/120  353s
+shard32k_honesty_s5    step 31000  loss 0.1287  tf-rows 108/120  365s
+shard32k_honesty_s5    step 32000  loss 0.0971  tf-rows 110/120  377s
+train  exact  86/86  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  17/26  =  65.4%   mean prefix  68.0%   degenerate 0
+test   exact  17/26  =  65.4%   mean prefix  65.4%   degenerate 0
+legacy exact   3/6   =  50.0%   mean prefix  50.0%   degenerate 0
+FINAL shard32k_honesty_s5  loss 0.0971  density 0.5319  weights 102400  384s

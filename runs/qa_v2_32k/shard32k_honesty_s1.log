@@ -28,3 +28,11 @@ shard32k_honesty_s1    step 26000  loss 0.1701  tf-rows 107/120  293s
 shard32k_honesty_s1    step 27000  loss 0.1379  tf-rows 110/120  304s
 shard32k_honesty_s1    step 28000  loss 0.1278  tf-rows 111/120  315s
 shard32k_honesty_s1    step 29000  loss 0.1204  tf-rows 110/120  326s
+shard32k_honesty_s1    step 30000  loss 0.1420  tf-rows 108/120  337s
+shard32k_honesty_s1    step 31000  loss 0.1034  tf-rows 111/120  349s
+shard32k_honesty_s1    step 32000  loss 0.1215  tf-rows 113/120  360s
+train  exact  86/86  = 100.0%   mean prefix 100.0%   degenerate 0
+dev    exact  19/26  =  73.1%   mean prefix  74.1%   degenerate 1
+test   exact  15/26  =  57.7%   mean prefix  63.5%   degenerate 0
+legacy exact   3/6   =  50.0%   mean prefix  53.7%   degenerate 0
+FINAL shard32k_honesty_s1  loss 0.1215  density 0.5308  weights 102400  366s
