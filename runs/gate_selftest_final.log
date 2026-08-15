@@ -1,1 +1,12 @@
 === control: the tree as it stands ===
+host text 'but i do get it wrong.    '
+rom  text 'but i do get it wrong.    '
+PASS: 20/20 tokens identical (seed + 19 generated)
+
+=== the deliberate break: the AV requantise table off by one shift ===
+host text 'but i do get it wrong.    '
+rom  text 'byouwwwwwwwwwwwwwwwwww'
+FAIL: 18 of 20 positions differ: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+control FAIL=0   broken FAIL=1
+SELFTEST: pass - the gate accepts a good build and rejects a bad one
