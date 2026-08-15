@@ -1,0 +1,6 @@
+router fitted on the 34-fact corpus (208 train questions)
+corpus: 70 facts  729 questions  (448 train)
+arm: ABLATION with the OLD router: isolates the router from the coverage
+set           n  unsharded     routed        oracle      
+frozen137   137   50.2 +- 3.8   56.8 +- 1.1   72.1 +- 1.9
+hole25       25   53.6 +- 8.6    8.0 +- 0.0   76.8 +- 4.7
