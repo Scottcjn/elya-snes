@@ -1,0 +1,12 @@
+shard32k_hardware_s2   step     1  loss 7.1578  tf-rows   0/124  0s
+shard32k_hardware_s2   step  1000  loss 0.5312  tf-rows  64/124  12s
+shard32k_hardware_s2   step  2000  loss 0.3530  tf-rows  94/124  23s
+shard32k_hardware_s2   step  3000  loss 0.3022  tf-rows  95/124  35s
+shard32k_hardware_s2   step  4000  loss 0.2781  tf-rows 103/124  46s
+shard32k_hardware_s2   step  5000  loss 0.2378  tf-rows  97/124  58s
+shard32k_hardware_s2   step  6000  loss 0.2474  tf-rows 100/124  69s
+shard32k_hardware_s2   step  7000  loss 0.1785  tf-rows  95/124  81s
+shard32k_hardware_s2   step  8000  loss 0.2478  tf-rows 102/124  92s
+shard32k_hardware_s2   step  9000  loss 0.1960  tf-rows 105/124  104s
+shard32k_hardware_s2   step 10000  loss 0.2014  tf-rows 104/124  115s
+shard32k_hardware_s2   step 11000  loss 0.2097  tf-rows 105/124  127s

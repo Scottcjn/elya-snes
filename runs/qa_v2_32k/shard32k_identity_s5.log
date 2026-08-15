@@ -9,3 +9,30 @@ shard32k_identity_s5   step  7000  loss 0.2172  tf-rows 113/130  79s
 shard32k_identity_s5   step  8000  loss 0.2021  tf-rows 114/130  90s
 shard32k_identity_s5   step  9000  loss 0.1931  tf-rows 112/130  101s
 shard32k_identity_s5   step 10000  loss 0.2249  tf-rows 114/130  112s
+shard32k_identity_s5   step 11000  loss 0.1783  tf-rows 109/130  123s
+shard32k_identity_s5   step 12000  loss 0.1580  tf-rows 108/130  135s
+shard32k_identity_s5   step 13000  loss 0.1996  tf-rows 116/130  146s
+shard32k_identity_s5   step 14000  loss 0.1771  tf-rows 113/130  157s
+shard32k_identity_s5   step 15000  loss 0.1844  tf-rows 111/130  168s
+shard32k_identity_s5   step 16000  loss 0.1742  tf-rows 115/130  179s
+shard32k_identity_s5   step 17000  loss 0.1789  tf-rows 111/130  191s
+shard32k_identity_s5   step 18000  loss 0.1500  tf-rows 113/130  202s
+shard32k_identity_s5   step 19000  loss 0.1684  tf-rows 107/130  214s
+shard32k_identity_s5   step 20000  loss 0.1507  tf-rows 117/130  225s
+shard32k_identity_s5   step 21000  loss 0.1694  tf-rows 110/130  236s
+shard32k_identity_s5   step 22000  loss 0.1656  tf-rows 114/130  247s
+shard32k_identity_s5   step 23000  loss 0.1570  tf-rows 115/130  258s
+shard32k_identity_s5   step 24000  loss 0.1438  tf-rows 114/130  270s
+shard32k_identity_s5   step 25000  loss 0.1807  tf-rows 114/130  281s
+shard32k_identity_s5   step 26000  loss 0.1499  tf-rows 115/130  292s
+shard32k_identity_s5   step 27000  loss 0.1650  tf-rows 118/130  303s
+shard32k_identity_s5   step 28000  loss 0.1462  tf-rows 117/130  314s
+shard32k_identity_s5   step 29000  loss 0.1452  tf-rows 119/130  326s
+shard32k_identity_s5   step 30000  loss 0.1201  tf-rows 118/130  337s
+shard32k_identity_s5   step 31000  loss 0.1286  tf-rows 116/130  348s
+shard32k_identity_s5   step 32000  loss 0.1050  tf-rows 121/130  360s
+train  exact  95/96  =  99.0%   mean prefix  99.8%   degenerate 0
+dev    exact  16/30  =  53.3%   mean prefix  58.1%   degenerate 0
+test   exact  19/31  =  61.3%   mean prefix  69.6%   degenerate 0
+legacy exact   5/9   =  55.6%   mean prefix  62.2%   degenerate 0
+FINAL shard32k_identity_s5 loss 0.1050  density 0.5296  weights 102400  367s
