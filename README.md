@@ -28,20 +28,24 @@ forward pass the 65816 executes. **6.88 tokens per second** on a 2.68 MHz Ricoh
 **1,280 tokens — every vocabulary symbol as a seed — on both clock arms**, plus
 the residual stream and the attention output element by element.
 
-She answers **all 208 of the phrasings she was trained on exactly**, and
-**38.0% ± 3.7 of held-out paraphrases** — that is the five-seed arm mean, which
-is the honest number; the shipped seed itself gets 31.9%, because selecting a
-seed on a 68-question dev set is measurably noise and this README is not going
-to quote the best of five.
+She knows **70 facts**, asked **729 ways**, and answers **33.6% ± 2.8 of
+held-out paraphrases** as one model — **52.9% ± 2.4** through five topic shards
+and a keyword router, which is measured on the host and is not yet in the ROM.
+Those are five-seed arm means, which are the honest numbers; this README is not
+going to quote the best of five.
 
 She was not always able to. The first cartridge was trained on TinyStories and
 answered every question with a fragment of a children's story — `who are you?`
 got `make a big p`. Entry 10 retrained her on 34 facts with two phrasings each,
 which taught her 68 strings: 97.4% on those and **13.1% on paraphrases of the
-same questions**. Entry 11 is what fixed that, and it was not an architecture
-change — the same 34 facts asked 345 ways. On the identical 35 held-out
-questions, five seeds each: **12.6% ± 1.4 → 21.7% ± 2.9 from the corpus alone**,
-and 30.3% ± 1.4 once the training recipe followed it.
+same questions**. Entry 11 fixed that without an architecture change — the same
+34 facts asked 345 ways: **12.6% ± 1.4 → 21.7% ± 2.9 from the corpus alone**,
+and 30.3% ± 1.4 once the training recipe followed it. Entry 12 doubled the
+facts, and the honest summary of that is two numbers rather than one: on the
+identical 137 held-out questions the routed score goes **56.2% → 60.0%**, while
+on the 112 of them the corpus change did not target it goes **68.0% → 58.2%**.
+She knows twice as much and is worse at part of what she already knew, because
+102,400 ternary weights are a fixed budget.
 
 Every number in [FINDINGS.md](FINDINGS.md) is measured on the console. Nothing
 is estimated.
@@ -377,9 +381,12 @@ into the same SRAM.
   it means a new linker config, `tools/emit.py` emitting five models into
   banks, `rom/game.inc` choosing one from the question, and the whole
   fifteen-arm gate re-run against it.
-* **She knows 34 facts.** The corpus grew in how it can be ASKED, not in what
-  it contains, and at 30 symbols and 20 positions it cannot be much broader.
-  Every fact she states is checkable against this repo.
+* **She knows 70 facts and they cost her.** Doubling the corpus is worth
+  +3.8 points of routed answers on the frozen held-out set and **-9.8 on the
+  part of it the change did not target**; train-exact falls from 100% to 94%.
+  At 30 symbols and 20 positions the answers cannot be much longer, and at
+  102,400 ternary weights the facts cannot be many more without something
+  giving. Every fact she states is checkable against this repo.
 * **Context stops at 20 positions**, because the positional table the model was
   trained with has twenty rows. The KV caches on this port would hold far more —
   they are 4 KiB and 5 KiB of a 128 KiB WRAM — so the ceiling here is the
