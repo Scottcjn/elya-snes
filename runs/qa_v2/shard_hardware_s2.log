@@ -12,3 +12,11 @@ shard_hardware_s2      step 10000  loss 0.1876  tf-rows 107/124  113s
 shard_hardware_s2      step 11000  loss 0.2223  tf-rows 108/124  125s
 shard_hardware_s2      step 12000  loss 0.2282  tf-rows 104/124  136s
 shard_hardware_s2      step 13000  loss 0.1766  tf-rows  98/124  147s
+shard_hardware_s2      step 14000  loss 0.1635  tf-rows 111/124  158s
+shard_hardware_s2      step 15000  loss 0.1522  tf-rows 115/124  170s
+shard_hardware_s2      step 16000  loss 0.1355  tf-rows 112/124  181s
+train  exact  86/90  =  95.6%   mean prefix  98.6%   degenerate 0
+dev    exact  19/28  =  67.9%   mean prefix  75.4%   degenerate 0
+test   exact  12/28  =  42.9%   mean prefix  50.3%   degenerate 0
+legacy exact   2/7   =  28.6%   mean prefix  37.5%   degenerate 0
+FINAL shard_hardware_s2    loss 0.1355  density 0.5389  weights 102400  188s

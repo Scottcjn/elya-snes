@@ -1,0 +1,4 @@
+shard_model_s4         step     1  loss 6.0568  tf-rows   0/130  0s
+shard_model_s4         step  1000  loss 0.5008  tf-rows  82/130  11s
+shard_model_s4         step  2000  loss 0.3410  tf-rows  98/130  23s
+shard_model_s4         step  3000  loss 0.3046  tf-rows 106/130  34s
