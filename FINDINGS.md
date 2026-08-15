@@ -2482,3 +2482,244 @@ not to do.
 Files: `train/router.py`, `train/route_arms.py`, `train/route_diag.py`,
 `train/route_cost.py`, `train/route_eval.py`, `tools/mkrouter.py`,
 `runs/reports/ROUTE_*.txt`.
+
+## 2026-08-15 — 12. Doubling what she knows. Coverage is nearly free, facts are paid for out of 102,400 weights
+
+Entry 11 grew the corpus from 68 questions to 345 and left it at **34 facts**.
+Three independent measurements then pointed at the same next step, and the
+previous entry wrote the verdict down: *"the next point of routing accuracy is
+cheaper to buy in `train/corpus.py` than in `train/router.py`."*
+
+This entry buys it, and then measures what else the purchase cost. **The
+engine is untouched** — same `rom/nn.s`, V=64, D=64, L=3, H=2, F=128, T=20,
+`AV_SHIFT = 3`, no positional table. Everything below is corpus, vocabulary
+and the weights fitted to them.
+
+### What the corpus is now
+
+```
+topic       facts        questions     train  dev  test
+identity     8 -> 15      84 -> 157      96    30   31
+hardware     7 -> 14      71 -> 146      90    28   28
+model        7 -> 15      71 -> 156      96    30   30
+game         6 -> 13      60 -> 132      80    26   26
+honesty      6 -> 13      59 -> 138      86    26   26
+TOTAL       34 -> 70     345 -> 729     448   140  141
+```
+
+Thirty-six new facts, every one checkable against this repo rather than
+against intent: three acts and no music (`docs/GAME_DESIGN.md`), a plain LoROM
+cart with no coprocessor (`tools/kaico_check.py` asserts it), battery SRAM
+(`rom/snes.inc`, carttype `$02`), text drawn from font tiles
+(`tools/mkfont.py`), the amber question and the white answer
+(`rom/game.inc:1279`), argmax with ties to the lowest index and therefore no
+randomness at all (`host/ref.py`), one model and not a mixture
+(`--nexp 1`), inference only and so no learning at run time. She is still not
+allowed to be conscious, clever or alive.
+
+And **training coverage for the twenty-five orphaned content words**
+`route_diag --residual` named — `capacity`, `laggy`, `preset`, `depth`,
+`honest`, `fib`, `limits` and eighteen more. Each got one extra training
+phrasing of the fact that already owned the word. The held-out STRINGS are
+unchanged and still held out; what changed is that the word is no longer a
+hapax.
+
+### The comparison is pinned, because the held-out set moved
+
+New facts bring new dev and test phrasings, so `test` before and `test` after
+are not the same questions. `train/corpus.py` therefore carries `FROZEN137` —
+every held-out question of the 34-fact corpus — and `check()` asserts all 137
+are still present, still held out and still carrying the same answer. Every
+before/after number below is on those 137.
+
+`HOLE25` is the subset the coverage targeted, scored separately, because a
+question whose content word is now in the training vocabulary is an easier
+question than it was and folding that into one average would hide it.
+
+### Four arms, one decomposition
+
+`train/growth_table.py` over `runs/reports/growth_*.json`, five seeds each,
+all four scored on the identical 137 questions:
+
+```
+frozen137, 137 held-out questions            unsharded     routed        oracle
+before        34f, old router                 39.9 +- 2.1   56.2 +- 1.7   63.8 +- 2.5
+ablation/old  34f + coverage, old router      50.2 +- 3.8   56.8 +- 1.1   72.1 +- 1.9
+ablation/new  34f + coverage, new router      50.2 +- 3.8   65.7 +- 1.2   72.1 +- 1.9
+after         70f + coverage, new router      32.6 +- 5.3   57.1 +- 2.4   61.2 +- 2.3
+
+   coverage, answer model only   routed  +0.6   oracle  +8.3
+   coverage, through the router  routed  +8.9
+   doubling the facts            routed  -8.6   oracle -10.9
+   net                           routed  +0.9   oracle  -2.6
+```
+
+Three things fall out of that table and none of them was obvious in advance.
+
+**The coverage gain is a ROUTING gain.** Closing the vocabulary holes is worth
+**+0.6 points** to the routed answer if the router is left alone, and
+**+8.9** once the router is refitted on the same corpus. The previous entry
+diagnosed the holes as a router problem and they were exactly that. The
+oracle column is the check that the answer models improved too — 63.8 to 72.1
+on the same 34 facts — and the routed column is the reminder that an answer
+the router cannot deliver a question to is worth nothing.
+
+On the twenty-five questions the coverage targeted, routed goes **3.2% ->
+72.8%**. That is not a rounding of a general improvement; it is the whole
+effect, concentrated where it was aimed.
+
+**Doubling the facts costs 8.6 points of routed answers and 10.9 of oracle.**
+`train exact` falls from 100% to 90.4% at the frozen 16,000-step recipe: 448
+rows do not fit 102,400 ternary weights the way 208 did. This is the negative
+result of the entry and it is the informative one — the corpus is not a free
+lunch in both directions. Coverage is nearly free. Facts are bought out of
+capacity, at roughly ten points a doubling on the questions that were already
+there.
+
+**The two effects nearly cancel on the frozen 137 and do not cancel at all in
+what she can answer.** Net +0.9 routed on those 137 — but the after arm is
+answering 141 held-out test questions over 70 facts at 50.8% where the before
+arm answered 69 over 34 facts at 51.9%. **The same rate, twice the questions:
+71.6 held-out paraphrases answered exactly against 35.8.**
+
+The bill lands on `frozen112`, the questions the coverage did not target:
+68.0% routed before, 55.4% after. She knows twice as much and is measurably
+worse at the half she already knew.
+
+### The router, on the same 137 questions
+
+`train/route_growth.py` fits one construction — the shipped `wordgram-lr` —
+twice, once on each corpus's training split:
+
+```
+set          n     before          after           delta
+frozen137   137   104/137  75.9%   119/137  86.9%   +10.9
+hole25       25     2/25    8.0%    22/25   88.0%   +80.0
+frozen112   112   102/112  91.1%    97/112  86.6%    -4.5
+legacy35     35    26/35   74.3%    29/35   82.9%    +8.6
+```
+
+**+80 points on the questions the coverage targeted, -4.5 on everything
+else.** Twice the facts is twice the vocabulary to tell apart, and the router
+pays for that too.
+
+On the grown held-out sets the router is where it was: **21.3% test error
+against 21.7%**, over 141 questions instead of 69.
+
+### The leave-one-out ceiling moved, which is the point
+
+`route_diag --residual` refits the router without each question in turn, so it
+has seen every other phrasing of every fact. On the frozen 137 the ceiling
+goes **73.7% -> 90.5%**, and the vocabulary holes among them fall from
+**25 to 1**.
+
+The treadmill is visible in the same run. Over all 281 held-out questions of
+the grown corpus, 54 are still mis-routed at the ceiling and 19 of those are
+holes — and 41 of the 54 belong to the 144 questions the NEW facts brought.
+**Every fact added adds four held-out phrasings, and some of them orphan a
+word.** Closing holes is not a job that finishes; it is a rate.
+
+Three of the original twenty-five survived their coverage: `are you remote? `,
+`how long? `, `really? `. They were not iterated on. Tuning corpus edits
+against a held-out routing score until it goes green is fitting to the
+held-out split, and one pass of it — which is what the previous entry's
+diagnosis licensed — is already as far as this should go.
+
+### The vocabulary had to learn about answers
+
+Seventy facts is twice the distinct answers competing for the same 34 merge
+slots, and the first build put **234 rows over the 20-position context**. Two
+things fixed it.
+
+Four passes of hand shortening, no held-out question and no entry-10 answer
+touched. And a change to the fitter that is worth stating on its own:
+`prep_qa.py --shadow` adds one budgeted **answer-shadow row per distinct
+training answer**, at `T - 9` tokens. What the training and held-out splits
+share is the ANSWER; the question is different by construction. So pressure on
+an answer's token cost generalises to held-out rows and pressure on a training
+question's does not. It is still fitted on training data only — the answers
+*are* training data.
+
+```
+                      train fatal   held-out over   of the frozen 137
+shadow  0                    12          12                 3
+shadow  9   <- ships          0           3                 2
+shadow 12                     8          15                 6
+```
+
+`--cap` was re-swept at 600/1000/1500/2000/3000 on the doubled corpus and
+1,000 is still the best of them, which is the one thing here that did not move.
+
+**Two held-out questions still need 21 positions and score zero, which is the
+same count entry 11 reported and not the same two.** `why not run? ` and
+`a game now? ` — both LEGACY, both `test` — now fit. `total size? ` and
+`how many heads has it? ` — both `dev`, both in the frozen 137 — now do not.
+So the vocabulary change is worth up to two questions to `test` and `legacy35`
+and costs up to two on `dev`, and the legacy column above should be read with
+that in it.
+
+### The step budget was unfair to the bigger corpus, and it is a lever
+
+At 448 training rows, 16,000 steps is not what 16,000 steps was at 208.
+Chosen on dev, five seeds:
+
+```
+                    train exact      dev            test
+16,000 steps        90.4%            31.4 +- 2.7    29.6 +- 4.3
+32,000 steps        94.3%            35.7 +- 1.6    33.6 +- 2.7
+```
+
+**+4.3 points of dev for nothing but time**, and the same shape entry 11 found
+when 8,000 became 16,000. The frozen-recipe numbers above are the honest
+like-for-like comparison; the shipping arm is chosen on dev and dev says
+32,000.
+
+### The gate passes, and the reason it did not is worth more than the fix
+
+`./gate.sh` on the shipping tree: **19 checks green, 1280/1280 identical at
+both clock arms**, the game's 21 checks and the real-controller path's 18, the
+cartridge headers, and `tools/gate_selftest.sh` still shows it can reject a
+build broken by one shift.
+
+It failed three times first, always the same arm — `nnfastprof`, eleven of
+twenty positions, the identical wrong text — while a **byte-identical ROM
+staged under a different name passed**. `tools/run_ares.sh` stages ROMs into
+`$HOME/snesroms` under the ROM's basename, and that directory is shared by
+every checkout of this repo, of which there are two on this box. A stray
+`ares` from a session two days earlier was still running
+`snesroms/nnfastprof.sfc` — 42 hours of uptime — and still autosaving ITS
+tokens over the `.ram` every thirty seconds. The gate was reading another
+process's answer and reporting it as this build's.
+
+Two changes, neither of them a `pkill`. The staging directory is now per tree
+(`SNES_STAGE`, defaulted the same way in `run_ares.sh`, `gate.sh`,
+`gate_selftest.sh` and the Makefile). And `run_ares.sh` refuses to start when
+another process is already running that exact staged path, naming the pid and
+touching nothing. The guard matches the staged PATH in `/proc/*/cmdline`, not
+a process name, so it cannot hit a sibling agent's unrelated emulator. An fd
+scan was tried first and cannot work: ares closes the ROM after loading it.
+
+### What is not done
+
+**The shards are still not in the ROM.** `rom/game.inc` has no router, the
+routed numbers are host measurements through `host/ref.py`, and the shipping
+cartridge is one whole-corpus model. Nothing in this entry changes that.
+
+**The measurement of the coverage is not clean and cannot be.** The 25 holes
+were named by a diagnostic that reads the held-out split, and the fix was
+aimed at them. That is why `hole25` is reported apart from `frozen112` and why
+both are reported at all: the reader can see exactly how much of the gain is
+the targeting.
+
+**Three vocabulary holes and eleven ambiguous questions survive**, and the
+ambiguous ones are the floor `who am i? ` established — the topic is a
+property of the answer, not of the question.
+
+**`data/vocab_34fact.json` is carried** so the 34-fact models can still be
+scored; the shipped vocabulary is no longer the one they were fitted to.
+
+Files: `train/corpus.py`, `train/prep_qa.py`, `train/vocab_fit.py`,
+`train/growth_eval.py`, `train/growth_table.py`, `train/route_growth.py`,
+`tools/run_ares.sh`, `gate.sh`, `Makefile`, `runs/reports/CORPUS_GROWTH.txt`,
+`runs/reports/ROUTE_GROWTH.txt`, `runs/reports/ROUTE_EVAL_v2.txt`,
+`runs/reports/ROUTE_RESIDUAL_v2.txt`.
