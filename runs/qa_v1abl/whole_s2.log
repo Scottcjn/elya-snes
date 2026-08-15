@@ -1,0 +1,22 @@
+whole_s2               step     1  loss 7.2676  tf-rows   0/266  0s
+whole_s2               step  1000  loss 0.7205  tf-rows 120/266  16s
+whole_s2               step  2000  loss 0.5369  tf-rows 185/266  31s
+whole_s2               step  3000  loss 0.4621  tf-rows 198/266  46s
+whole_s2               step  4000  loss 0.4444  tf-rows 216/266  62s
+whole_s2               step  5000  loss 0.3920  tf-rows 210/266  77s
+whole_s2               step  6000  loss 0.4030  tf-rows 219/266  92s
+whole_s2               step  7000  loss 0.3507  tf-rows 225/266  108s
+whole_s2               step  8000  loss 0.3438  tf-rows 230/266  123s
+whole_s2               step  9000  loss 0.3437  tf-rows 225/266  138s
+whole_s2               step 10000  loss 0.3281  tf-rows 237/266  154s
+whole_s2               step 11000  loss 0.3263  tf-rows 232/266  169s
+whole_s2               step 12000  loss 0.3271  tf-rows 235/266  184s
+whole_s2               step 13000  loss 0.2875  tf-rows 237/266  200s
+whole_s2               step 14000  loss 0.2986  tf-rows 231/266  215s
+whole_s2               step 15000  loss 0.3021  tf-rows 238/266  230s
+whole_s2               step 16000  loss 0.2185  tf-rows 251/266  245s
+train  exact 227/232 =  97.8%   mean prefix  99.2%   degenerate 0
+dev    exact  37/68  =  54.4%   mean prefix  60.2%   degenerate 0
+test   exact  36/69  =  52.2%   mean prefix  57.3%   degenerate 0
+legacy exact  17/35  =  48.6%   mean prefix  55.3%   degenerate 0
+FINAL whole_s2             loss 0.2185  density 0.5342  weights 102400  265s

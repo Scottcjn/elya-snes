@@ -1,0 +1,7 @@
+v1-ablation: 30 runs
+done whole_s1: dev    exact  33/68  =  48.5%   mean prefix  54.0%   degenerate 1 test   exact  30/69  =  43.5%   mean prefix  48.6%   degenerate 0 
+done whole_s2: dev    exact  37/68  =  54.4%   mean prefix  60.2%   degenerate 0 test   exact  36/69  =  52.2%   mean prefix  57.3%   degenerate 0 
+done whole_s3: dev    exact  38/68  =  55.9%   mean prefix  60.7%   degenerate 2 test   exact  35/69  =  50.7%   mean prefix  56.9%   degenerate 0 
+done whole_s4: dev    exact  33/68  =  48.5%   mean prefix  55.8%   degenerate 0 test   exact  40/69  =  58.0%   mean prefix  62.3%   degenerate 0 
+done shard_identity_s1: dev    exact   6/16  =  37.5%   mean prefix  48.1%   degenerate 1 test   exact  11/17  =  64.7%   mean prefix  68.2%   degenerate 0 
+done whole_s5: dev    exact  28/68  =  41.2%   mean prefix  48.4%   degenerate 1 test   exact  34/69  =  49.3%   mean prefix  56.1%   degenerate 0 

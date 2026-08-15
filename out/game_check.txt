@@ -1,7 +1,7 @@
 == the run ==
-  frames              1706   (28.4 s at 60.1 Hz)
-  tokens committed     124
-  coins spawned        124
+  frames              1701   (28.3 s at 60.1 Hz)
+  tokens committed     122
+  coins spawned        122
   coins queued           0
   act 1 threshold       64 tokens
   act 3 answers          2 of 6 questions
@@ -12,16 +12,15 @@
   frames 1707, tokens 0, coins 0
 
 == the generated text, against host/ref.py ==
-  act 1 free run  'but i do get wrong.    '
-  act 2 line      seed 'r' -> 'un if you like. i wait.  '
+  act 1 free run  'but i do get it wrong.    '
+  act 2 line      seed 'e.' -> 'lok? i am here.        '
   act 3 q1 'what are you? ' -> 'a small model.    '
-  act 3 q2 'the coins? '  -> 'one is a token.       '
+  act 3 q2 'the coins? '  -> 'one is a token.        '
 
 == what the PPU actually holds ==
   OAM read back through $2138 agrees with the shadow in 544/544 bytes
-  note: CGRAM entries [150, 214] drifted during the run; none are drawn with.  Cause: the sky HDMA (see FINDINGS entry 9).
 
-  ok    final: 124 spawned + 0 queued == 124 committed
+  ok    final: 122 spawned + 0 queued == 122 committed
   ok    every one of 106 trace samples: spawned + queued == committed
   ok    coins never once ran ahead of the token count
   ok    the state machine ran logo -> play -> stop -> line -> ask -> answer
@@ -29,7 +28,7 @@
   ok    act 1's free run: 20/20 tokens identical to host/ref.py
   ok    act 2's line: 19/19 tokens identical, generated from act 1's last token -- so it depends on how the platformer went
   ok    act 3 answer 0: 15/15 tokens identical to host/ref.py
-  ok    act 3 answer 1: 16/16 tokens identical to host/ref.py
+  ok    act 3 answer 1: 14/14 tokens identical to host/ref.py
   ok    the BG3 tilemap read back out of VRAM through $2139 equals the WRAM shadow, all 1024 entries
   ok    OAM read back through $2138 matches the shadow the DMA sent
   ok    CGRAM   1.. 11 holds bg3.pal exactly, read back through $213B
@@ -41,6 +40,6 @@
   ok    the logo's tilemap asks for palette 2 and CGRAM 32..36 held logo.pal at the end of setup -- the map and the load agree
   ok    CGRAM entry 0 holds the sky HDMA's last band ($7F76): the gradient channel really is driving the backdrop
   ok    the act 1 frame snapshot is complete (state play, 40 tokens)
-  ok    the act 3 frame snapshot is complete (state end, 124 tokens)
+  ok    the act 3 frame snapshot is complete (state end, 122 tokens)
 
 PASS: 21 checks

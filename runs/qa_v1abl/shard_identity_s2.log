@@ -1,0 +1,7 @@
+shard_identity_s2      step     1  loss 7.2600  tf-rows   0/88  0s
+shard_identity_s2      step  1000  loss 0.3364  tf-rows  57/88  12s
+shard_identity_s2      step  2000  loss 0.2099  tf-rows  70/88  24s
+shard_identity_s2      step  3000  loss 0.1627  tf-rows  73/88  36s
+shard_identity_s2      step  4000  loss 0.1873  tf-rows  76/88  49s
+shard_identity_s2      step  5000  loss 0.1425  tf-rows  75/88  61s
+shard_identity_s2      step  6000  loss 0.1617  tf-rows  76/88  72s

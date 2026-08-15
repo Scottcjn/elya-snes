@@ -30,3 +30,9 @@ whole32k_s5            step 28000  loss 0.4843  tf-rows 361/482  400s
 whole32k_s5            step 29000  loss 0.5438  tf-rows 373/482  414s
 whole32k_s5            step 30000  loss 0.4930  tf-rows 370/482  429s
 whole32k_s5            step 31000  loss 0.4712  tf-rows 383/482  443s
+whole32k_s5            step 32000  loss 0.3824  tf-rows 441/482  457s
+train  exact 423/448 =  94.4%   mean prefix  97.1%   degenerate 0
+dev    exact  53/140 =  37.9%   mean prefix  45.6%   degenerate 2
+test   exact  49/141 =  34.8%   mean prefix  40.2%   degenerate 0
+legacy exact  11/35  =  31.4%   mean prefix  35.1%   degenerate 0
+FINAL whole32k_s5          loss 0.3824  density 0.5213  weights 102400  492s
