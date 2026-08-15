@@ -2669,13 +2669,35 @@ shadow 12                     8          15                 6
 `--cap` was re-swept at 600/1000/1500/2000/3000 on the doubled corpus and
 1,000 is still the best of them, which is the one thing here that did not move.
 
-**Two held-out questions still need 21 positions and score zero, which is the
-same count entry 11 reported and not the same two.** `why not run? ` and
-`a game now? ` — both LEGACY, both `test` — now fit. `total size? ` and
-`how many heads has it? ` — both `dev`, both in the frozen 137 — now do not.
-So the vocabulary change is worth up to two questions to `test` and `legacy35`
-and costs up to two on `dev`, and the legacy column above should be read with
-that in it.
+**Three held-out rows still need 21 tokens** — `total size? `,
+`how many heads has it? ` and `act one part? ` — against entry 11's two, and
+not the same ones: `why not run? ` and `a game now? `, both LEGACY and both
+`test`, now fit, while the two new ones are `dev` and in the frozen 137.
+
+And checking that turned up something about the instrument rather than about
+the corpus. **`train/eval_answers.py` gives every answer one token more than
+the cartridge does.** `rom/game.inc` commits the last feed step's output and
+then generates `19 - PROMPTN` more, which is `20 - n` tokens; `answer()` runs
+its loop to position 19 and emits `21 - n`. `prep_qa.py`'s budget check is the
+ROM's — that is why those three rows are flagged over-budget at all — but the
+scorer is a token more generous, so a 21-token row can be answered exactly in
+the eval and could not be on the console.
+
+Measured rather than argued, on the frozen 137, routed, five seeds:
+
+```
+   host default, 21 - n tokens     60.0 +- 3.1
+   the ROM's count, 20 - n         58.5 +- 3.1
+```
+
+**1.5 points**, which is the two over-budget rows of 137. Every held-out
+number in this file and in entry 11 comes out of the same function, so the
+before/after comparisons are unaffected; the absolute numbers are upper bounds
+by that much. `eval_answers.py` is deliberately NOT changed here — changing it
+would silently move entry 11's published figures — and the correction is
+recorded instead. It does not touch the ROM: `tools/mkgame.py` caps the menu
+prompt at ten tokens, so nothing the cartridge is ever asked comes near the
+boundary.
 
 ### The step budget was unfair to the bigger corpus, and it is a lever
 
