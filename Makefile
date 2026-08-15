@@ -12,6 +12,11 @@ CA65   := ca65
 LD65   := ld65
 ASAR   := $(HOME)/bin/asar
 CFG    := rom/lorom32.cfg
+# Where tools/run_ares.sh stages ROMs.  Shared between checkouts by default,
+# which is how one tree's leftover emulator overwrote another's result; set it
+# per tree to keep them apart.
+SNES_STAGE ?= $(HOME)/snesroms/$(notdir $(CURDIR))
+export SNES_STAGE
 FXCFG  := rom/lorom32fx.cfg
 
 GSUKERNELS := $(addprefix rom/gsu/,k_empty.bin k_int8.bin k_tern.bin k_nomul.bin)
@@ -86,7 +91,7 @@ out/fx2.sfc: out/fx2.o $(FXCFG)
 
 fx: out/fx2.sfc
 	bash tools/run_ares.sh out/fx2.sfc >/dev/null
-	cp $(HOME)/snesroms/fx2.ram out/fx2.ram
+	cp $(SNES_STAGE)/fx2.ram out/fx2.ram
 	python3 tools/analyze_fx.py out/fx2.ram | tee out/fx2_report.txt
 
 # ---- run and analyse -------------------------------------------------------
@@ -122,7 +127,7 @@ gamecheck:
 	SNES_FAST=0 NAME=gamectl DEFS="-DGAME -DGAUTO -DNOGEN -DGFRAMES=1700" ./build_nn.sh
 	bash tools/run_ares.sh out/gameqa.sfc  > /dev/null
 	bash tools/run_ares.sh out/gamectl.sfc > /dev/null
-	cp $(HOME)/snesroms/gameqa.ram $(HOME)/snesroms/gamectl.ram out/
+	cp $(SNES_STAGE)/gameqa.ram $(SNES_STAGE)/gamectl.ram out/
 	python3 tools/check_game.py out/gameqa.ram out/gamectl.ram
 	python3 tools/render_frame.py out/gameqa.ram out/frames
 
@@ -145,18 +150,18 @@ answertable:
 # the gather-kernel A/B of FINDINGS entry 6
 kernels: out/kern.sfc out/kernfast.sfc
 	bash tools/run_ares.sh out/kern.sfc >/dev/null
-	cp $(HOME)/snesroms/kern.ram out/kern.ram
+	cp $(SNES_STAGE)/kern.ram out/kern.ram
 	python3 tools/analyze_kern.py out/kern.ram | tee out/kern_report.txt
 	bash tools/run_ares.sh out/kernfast.sfc >/dev/null
-	cp $(HOME)/snesroms/kernfast.ram out/kernfast.ram
+	cp $(SNES_STAGE)/kernfast.ram out/kernfast.ram
 	python3 tools/analyze_kern.py out/kernfast.ram --fast | tee out/kernfast_report.txt
 
 measure: out/bench.sfc out/benchfast.sfc
 	bash tools/run_ares.sh out/bench.sfc >/dev/null
-	cp $(HOME)/snesroms/bench.ram out/bench.ram
+	cp $(SNES_STAGE)/bench.ram out/bench.ram
 	python3 tools/analyze.py out/bench.ram | tee out/bench_report.txt
 	bash tools/run_ares.sh out/benchfast.sfc >/dev/null
-	cp $(HOME)/snesroms/benchfast.ram out/benchfast.ram
+	cp $(SNES_STAGE)/benchfast.ram out/benchfast.ram
 	python3 tools/analyze.py out/benchfast.ram --fast | tee out/benchfast_report.txt
 
 clean:

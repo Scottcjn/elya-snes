@@ -9,12 +9,50 @@
 #  * what does work: ares autosaves battery SRAM to <rom>.ram every ~30 s while
 #    running.  So the runner just waits for the file, checks the ROM's own DONE
 #    marker, and waits for the next autosave if the run was still in progress.
+#  * the staging directory is SHARED BY EVERY CHECKOUT OF THIS REPO, and the
+#    staged name is the ROM's basename.  Two trees building `nnfastprof` stage
+#    to the same file, and an emulator left running by one of them keeps
+#    autosaving ITS output over the other's .ram every ~30 s.  That is not
+#    hypothetical: a stray ares holding snesroms/nnfastprof.sfc, 42 hours old
+#    and from a previous session, failed that one gate arm on this tree three
+#    runs in a row with the identical wrong text while a byte-identical ROM
+#    staged under a different name passed.  Two defences below, and neither is
+#    a `pkill`: SNES_STAGE gives a tree its own directory, and the guard turns
+#    a shared name into a loud failure instead of another process's answer.
 set -u
 ROM="$1"
-STAGE="$HOME/snesroms"
+STAGE="${SNES_STAGE:-$HOME/snesroms/$(basename "$(cd "$(dirname "$0")/.." && pwd)")}"
 BASE="$(basename "$ROM" .sfc)"
 RAM="$STAGE/$BASE.ram"
 mkdir -p "$STAGE"
+
+# Is someone else already running this exact staged ROM?  Asked of the staged
+# PATH in /proc/*/cmdline, not of any process NAME: the path is unique to this
+# file, so a match is a real conflict and cannot be a sibling agent's unrelated
+# emulator.  This only REPORTS - nothing here kills anything it did not start.
+#
+# An fd scan was tried first and does not work: ares reads the ROM at load and
+# closes the descriptor, so /proc/PID/fd is empty of it while the emulator is
+# very much still running and still autosaving over the .ram.
+holder=""
+for c in /proc/[0-9]*/cmdline; do
+    [ -r "$c" ] || continue
+    case "$(tr '\0' ' ' < "$c" 2>/dev/null)" in
+        *"$STAGE/$BASE.sfc"*)
+            pid="${c#/proc/}"; pid="${pid%%/*}"
+            [ "$pid" = "$$" ] && continue
+            holder="$pid"; break;;
+    esac
+done
+if [ -n "$holder" ]; then
+    echo "run_ares: pid $holder is already running $STAGE/$BASE.sfc." >&2
+    echo "run_ares: its autosaves overwrite this run's .ram, so the result" >&2
+    echo "run_ares: would be that process's answer and not this build's." >&2
+    echo "run_ares: give this tree its own SNES_STAGE, or stop that process" >&2
+    echo "run_ares: by ITS OWN process group id." >&2
+    exit 2
+fi
+
 cp "$ROM" "$STAGE/$BASE.sfc"
 rm -f "$RAM"
 

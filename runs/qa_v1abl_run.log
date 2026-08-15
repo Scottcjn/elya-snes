@@ -5,3 +5,17 @@ done whole_s3: dev    exact  38/68  =  55.9%   mean prefix  60.7%   degenerate 2
 done whole_s4: dev    exact  33/68  =  48.5%   mean prefix  55.8%   degenerate 0 test   exact  40/69  =  58.0%   mean prefix  62.3%   degenerate 0 
 done shard_identity_s1: dev    exact   6/16  =  37.5%   mean prefix  48.1%   degenerate 1 test   exact  11/17  =  64.7%   mean prefix  68.2%   degenerate 0 
 done whole_s5: dev    exact  28/68  =  41.2%   mean prefix  48.4%   degenerate 1 test   exact  34/69  =  49.3%   mean prefix  56.1%   degenerate 0 
+done shard_identity_s2: dev    exact   7/16  =  43.8%   mean prefix  51.7%   degenerate 0 test   exact  12/17  =  70.6%   mean prefix  74.1%   degenerate 0 
+done shard_identity_s3: dev    exact   9/16  =  56.2%   mean prefix  65.6%   degenerate 0 test   exact  11/17  =  64.7%   mean prefix  68.2%   degenerate 0 
+done shard_identity_s4: dev    exact   6/16  =  37.5%   mean prefix  48.1%   degenerate 0 test   exact  12/17  =  70.6%   mean prefix  76.5%   degenerate 0 
+done shard_identity_s5: dev    exact   7/16  =  43.8%   mean prefix  56.9%   degenerate 0 test   exact  12/17  =  70.6%   mean prefix  74.1%   degenerate 0 
+done shard_hardware_s1: dev    exact  11/14  =  78.6%   mean prefix  79.0%   degenerate 0 test   exact   7/14  =  50.0%   mean prefix  50.5%   degenerate 0 
+done shard_hardware_s2: dev    exact  11/14  =  78.6%   mean prefix  88.1%   degenerate 0 test   exact  10/14  =  71.4%   mean prefix  71.4%   degenerate 0 
+done shard_hardware_s3: dev    exact  12/14  =  85.7%   mean prefix  85.7%   degenerate 0 test   exact   7/14  =  50.0%   mean prefix  55.3%   degenerate 0 
+done shard_hardware_s4: dev    exact  12/14  =  85.7%   mean prefix  86.2%   degenerate 0 test   exact   7/14  =  50.0%   mean prefix  50.0%   degenerate 0 
+done shard_hardware_s5: dev    exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 test   exact   8/14  =  57.1%   mean prefix  62.1%   degenerate 0 
+done shard_model_s1: dev    exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 test   exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 
+done shard_model_s2: dev    exact  13/14  =  92.9%   mean prefix  92.9%   degenerate 0 test   exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 
+done shard_model_s3: dev    exact  12/14  =  85.7%   mean prefix  85.7%   degenerate 0 test   exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 
+done shard_model_s4: dev    exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 test   exact  12/14  =  85.7%   mean prefix  85.7%   degenerate 0 
+done shard_model_s5: dev    exact  13/14  =  92.9%   mean prefix  92.9%   degenerate 0 test   exact  11/14  =  78.6%   mean prefix  78.6%   degenerate 0 

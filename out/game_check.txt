@@ -1,5 +1,5 @@
 == the run ==
-  frames              1701   (28.3 s at 60.1 Hz)
+  frames              1700   (28.3 s at 60.1 Hz)
   tokens committed     122
   coins spawned        122
   coins queued           0
@@ -19,6 +19,7 @@
 
 == what the PPU actually holds ==
   OAM read back through $2138 agrees with the shadow in 544/544 bytes
+  note: CGRAM entries [19] drifted during the run; none are drawn with.  Cause: the sky HDMA (see FINDINGS entry 9).
 
   ok    final: 122 spawned + 0 queued == 122 committed
   ok    every one of 106 trace samples: spawned + queued == committed

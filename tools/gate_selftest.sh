@@ -31,6 +31,8 @@
 # so the checker is discriminating, not merely pessimistic.
 set -u
 cd "$(dirname "$0")/.."
+: "${SNES_STAGE:=$HOME/snesroms/$(basename "$PWD")}"
+export SNES_STAGE
 EMIT=tools/emit.py
 BAK=$(mktemp)
 cp "$EMIT" "$BAK"
@@ -42,7 +44,7 @@ SNES_FAST=0 NAME=gateself DEFS="" ./build_nn.sh > out/gateself.build 2>&1 \
     || { echo "control build failed"; exit 2; }
 MARK=DONE WAIT=${WAIT:-400} bash tools/run_ares.sh out/gateself.sfc > /dev/null 2>&1 \
     || { echo "control run failed"; exit 2; }
-cp "$HOME/snesroms/gateself.ram" out/gateself.ram
+cp "$SNES_STAGE/gateself.ram" out/gateself.ram
 set -o pipefail
 CTL=0
 python3 tools/check_nn.py out/gateself.ram | tail -n 3 || CTL=1
@@ -63,7 +65,7 @@ SNES_FAST=0 NAME=gateselfbad DEFS="" ./build_nn.sh > out/gateselfbad.build 2>&1 
 restore; trap - EXIT
 MARK=DONE WAIT=${WAIT:-400} bash tools/run_ares.sh out/gateselfbad.sfc > /dev/null 2>&1 \
     || { echo "broken run failed"; exit 2; }
-cp "$HOME/snesroms/gateselfbad.ram" out/gateselfbad.ram
+cp "$SNES_STAGE/gateselfbad.ram" out/gateselfbad.ram
 BAD=0
 python3 tools/check_nn.py out/gateselfbad.ram | tail -n 3 || BAD=1
 

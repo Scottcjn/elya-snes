@@ -19,6 +19,12 @@ set -e
 # clean run.  It had been true of every arm since the gate was written.
 set -o pipefail
 cd "$(dirname "$0")"
+# Stage this tree's ROMs somewhere no other checkout stages to.  tools/run_ares.sh
+# derives the same default; it is set and exported here so the `cp` below cannot
+# drift from what the runner used.  See run_ares.sh for the 42-hour stray that
+# made this necessary.
+: "${SNES_STAGE:=$HOME/snesroms/$(basename "$PWD")}"
+export SNES_STAGE
 mkdir -p out
 FAIL=0
 
@@ -33,7 +39,7 @@ run() {                 # run <name> <defs> <fast> <checker> [cksum]
         || { echo "BUILD FAILED"; cat "out/$name.build"; FAIL=1; return; }
     MARK=DONE CKSUM=$ck WAIT=${WAIT:-400} bash tools/run_ares.sh "out/$name.sfc" > /dev/null 2>&1 \
         || { echo "RUN FAILED (no DONE marker, or a torn save)"; FAIL=1; return; }
-    cp "$HOME/snesroms/$name.ram" "out/$name.ram"
+    cp "$SNES_STAGE/$name.ram" "out/$name.ram"
     if [ "$check" != none ]; then
         python3 "tools/$check" "out/$name.ram" | tail -n 3 || FAIL=1
     fi
@@ -56,7 +62,7 @@ for P in 0 9 18; do
         > out/nndbg.build 2>&1 || { echo "BUILD FAILED"; FAIL=1; continue; }
     MARK=DONE WAIT=${WAIT:-400} bash tools/run_ares.sh out/nndbg.sfc > /dev/null 2>&1 \
         || { echo "RUN FAILED"; FAIL=1; continue; }
-    cp "$HOME/snesroms/nndbg.ram" "out/nndbg_$P.ram"
+    cp "$SNES_STAGE/nndbg.ram" "out/nndbg_$P.ram"
     python3 tools/check_nn.py "out/nndbg_$P.ram" | tail -n 1 || FAIL=1
     python3 tools/check_debug.py "out/nndbg_$P.ram" "$P" | tail -n 1 || FAIL=1
 done
