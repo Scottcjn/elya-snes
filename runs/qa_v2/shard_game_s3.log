@@ -1,0 +1,2 @@
+shard_game_s3          step     1  loss 6.7121  tf-rows   0/114  0s
+shard_game_s3          step  1000  loss 0.4737  tf-rows  74/114  12s

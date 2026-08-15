@@ -1,0 +1,5 @@
+shard_game_s2          step     1  loss 7.2034  tf-rows   0/114  0s
+shard_game_s2          step  1000  loss 0.3825  tf-rows  82/114  12s
+shard_game_s2          step  2000  loss 0.2867  tf-rows  92/114  23s
+shard_game_s2          step  3000  loss 0.2547  tf-rows  94/114  35s
+shard_game_s2          step  4000  loss 0.2010  tf-rows 103/114  46s
