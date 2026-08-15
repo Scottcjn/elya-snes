@@ -1,0 +1,7 @@
+corpus: 70 facts  729 questions  (448 train)
+arm: ABLATION: the 34 pre-growth facts, with the new word coverage
+set           n  unsharded     routed        oracle      
+frozen137   137   50.2 +- 3.8   65.7 +- 1.2   72.1 +- 1.9
+hole25       25   53.6 +- 8.6   72.8 +- 1.6   76.8 +- 4.7
+frozen112   112   49.5 +- 2.9   64.1 +- 1.3   71.1 +- 2.2
+legacy35     35   49.1 +- 2.8   55.4 +- 2.9   66.9 +- 3.4
