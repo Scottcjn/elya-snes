@@ -93,6 +93,10 @@ def main():
     ap.add_argument("--mono", type=int, default=1, help="include the act-2 monologue")
     ap.add_argument("--name", default=None)
     ap.add_argument("--out", default="runs/qa")
+    ap.add_argument("--data", default="data",
+                    help="directory holding qa_train.npz.  A corpus ablation\n"
+                         "(ELYA_FACTS=v1) is prepped into its own directory\n"
+                         "so the two arms cannot share a stale npz.")
     ap.add_argument("--eval-answers", type=int, default=1)
     ap.add_argument("--qnoise", type=float, default=0.0,
                     help="per-token probability of replacing a QUESTION token "
@@ -120,7 +124,7 @@ def main():
                          ("_qn%g" % a.qnoise if a.qnoise else ""), a.seed))
     os.makedirs(a.out, exist_ok=True)
 
-    X, Q, A = load(mono=bool(a.mono), topic=a.topic)
+    X, Q, A = load(path=a.data, mono=bool(a.mono), topic=a.topic)
     T = M.T
     assert X.shape[1] == T, (X.shape, T)
     W = weights(Q, A, T, a.qw, a.aw, a.pw)

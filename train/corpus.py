@@ -119,6 +119,7 @@ measurements:
       original held-out set split by whether a question gained coverage, so
       the lexical part of any gain can be read off rather than guessed at.
 """
+import os
 
 # ---------------------------------------------------------------------------
 # Topics.  Narrow topic labels, carried because the sibling Genesis port
@@ -782,6 +783,32 @@ HOLE25 = [
     "any mistakes? ", "a liar? ", "you fib? ", "believe you? ",
     "how to check? ", "are you honest? ", "your limits? ",
 ]
+
+# The 34 answers of the pre-growth corpus.  Carried so the growth can be
+# ABLATED rather than only compared: ELYA_FACTS=v1 keeps exactly the facts
+# that existed before, WITH the training coverage this revision added for the
+# twenty-five orphaned words.  That is the third arm the comparison needs -
+# "more facts" and "more coverage of the words already there" are two changes
+# and a single before/after cannot tell them apart.
+V1_ANSWERS = [
+    "i am elya.", "a small model.", "scott did.", "no. weights.",
+    "no. i guess.", "no. i am small.", "i am here.", "my maker.",
+    "on the cart.", "no. all here.", "seven a second.", "the snes.",
+    "twenty tokens.", "yes. old chip.", "a little.", "hundred thousand.",
+    "minus one to one.", "three.", "two.", "sixty four.", "no. i can err.",
+    "ask me a thing.", "one is a token.", "a multiply.", "the gradient.",
+    "no. it cannot.", "i want to talk.", "now we talk.", "no. often wrong.",
+    "yes. often.", "no. just wrong.", "no. i forget.", "check the coins.",
+    "not much.",
+]
+
+_ONLY = os.environ.get("ELYA_FACTS", "")
+if _ONLY == "v1":
+    _keep = set(V1_ANSWERS)
+    FACTS = [f for f in FACTS if f[1] in _keep]
+    assert len(FACTS) == 34, len(FACTS)
+elif _ONLY:
+    raise SystemExit("ELYA_FACTS=%r: only 'v1' is defined" % _ONLY)
 
 SPLITS = ("train", "dev", "test")
 

@@ -4,3 +4,5 @@ arm: BEFORE: 34 facts, 345 questions
 set           n  unsharded     routed        oracle      
 frozen137   137   39.9 +- 2.1   56.2 +- 1.7   63.8 +- 2.5
 hole25       25    4.8 +- 3.9    3.2 +- 1.6   29.6 +- 4.1
+frozen112   112   47.7 +- 2.7   68.0 +- 1.8   71.4 +- 2.8
+legacy35     35   30.3 +- 1.4   49.1 +- 2.8   54.3 +- 2.6

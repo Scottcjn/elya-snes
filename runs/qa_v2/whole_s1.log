@@ -7,3 +7,7 @@ whole_s1               step  5000  loss 0.6648  tf-rows 261/482  153s
 whole_s1               step  6000  loss 0.6635  tf-rows 266/482  184s
 whole_s1               step  7000  loss 0.6024  tf-rows 264/482  215s
 whole_s1               step  8000  loss 0.5908  tf-rows 301/482  246s
+whole_s1               step  9000  loss 0.6040  tf-rows 302/482  276s
+whole_s1               step 10000  loss 0.5878  tf-rows 306/482  307s
+whole_s1               step 11000  loss 0.5863  tf-rows 330/482  338s
+whole_s1               step 12000  loss 0.5762  tf-rows 300/482  369s
