@@ -1,0 +1,8 @@
+corpus: 70 facts  729 questions  (448 train)
+arm: AFTER: 70 facts, 729 questions
+set           n  unsharded     routed        oracle      
+frozen137   137   32.6 +- 5.3   57.1 +- 2.4   61.2 +- 2.3
+hole25       25   32.0 +- 6.7   64.8 +- 4.7   68.0 +- 6.7
+frozen112   112   32.7 +- 7.0   55.4 +- 2.3   59.6 +- 1.8
+legacy35     35   29.1 +- 7.8   44.6 +- 5.3   53.1 +- 5.9
+dev         140   31.4 +- 2.5   54.3 +- 1.2   61.4 +- 1.7
