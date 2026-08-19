@@ -45,3 +45,4 @@ out/model/headers.bin
 out/model/shifts.inc
 out/model/tbl_*.bin
 out/art_selftest_*.log
+out/intro/

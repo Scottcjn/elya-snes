@@ -2864,3 +2864,101 @@ she has room for a face, and it cannot prove the face is good.
 Files: `tools/mkart.py`, `tools/mkbg.py`, `assets/obj.chr`,
 `assets/obj_preview.png`, `assets/level_preview.png`, `docs/ART_SPEC.md`,
 `README.md`.
+
+## 2026-08-19 — 14. A history topic, and the second capacity wall
+
+Entry 12 found one wall: 102,400 ternary weights, and doubling the facts cost
+8.6 routed points because `frozen112` fell 68.0% to 58.2%. This entry adds a
+sixth topic — the SNES and the company that built it — and hits a **different**
+wall on the way, in the vocabulary rather than in the weights.
+
+### Why a history topic is the expensive kind
+
+`NVOCAB` is 64. Thirty base symbols leave **thirty-four merge slots for the
+whole corpus**, and the fitter spends them to minimise total cost, so it buys
+`'the '`, `'what '`, `'? '`. It will never buy `yokoi`. Every proper noun is
+therefore spelled a character at a time, and it is spelled **twice** — once in
+the question and again in the generated answer.
+
+History facts *are* proper nouns. Measured, with the merges refit on the grown
+corpus:
+
+    answer               questions that bust 20 positions
+    'gunpei yokoi.'                  10 of 10
+    'the mega drive.'                 9 of 10
+    'donkey kong.'                    7 of 10
+    'playing cards.'                  6 of 10
+    'jumpman.'                        2 of 10
+
+So the Game Boy fact is gone — unusable at 10 of 10, and a different console
+anyway. Donkey Kong is gone; `jumpman.` carries the same Mario history at a
+fifth of the cost. `the mega drive.` became `sega.`, `playing cards.` became
+`cards.`, `a ricoh chip.` became `ricoh.`, `kyoto japan.` became `in kyoto.`
+All still true, all roughly twice as cheap.
+
+**A 64-token vocabulary with no digits cannot afford a date.** `nineteen
+ninety.` cost 7 tokens while the fitter happened to keep `'ninet'` and 11 the
+moment it did not. It is dropped, and that is the honest reason: not that the
+fact is uninteresting but that its price is set by a global optimisation it
+does not control.
+
+### The vocabulary is zero-sum, and chaotically so
+
+    corpus                     over 20 positions   FATAL
+    70 facts, no history               6             0
+    83 facts, verbose history        133            57
+    81 facts, terse history           38            14
+    80 facts, final                   14             0
+
+The middle rows are the finding. At 14 fatal, **ten of the fourteen were
+pre-existing facts** — `'size how? '` → `'hundred thousand.'` had fitted for
+two entries and stopped, because history's proper nouns pulled merges away from
+it. History did not merely fail to fit; it **evicted** merges that other facts
+were living on.
+
+And it cannot be fixed locally. Shortening four history questions caused the
+fitter to re-derive all thirty-four merges and **drop `'ninet'`** — the merge
+that had made the date affordable in the first place. Every edit perturbs the
+global optimisation and breaks a different set of rows, so "shorten the
+offending line" is a search, not an edit. Four passes to reach zero.
+
+The last four fatal rows were all pre-existing `train` phrasings, one token
+over each, and were shortened: `'you are what? '` → `'what are you then? '`,
+`'long context? '` → `'what span? '`, `'size how? '` → `'count? '`,
+`'will you learn? '` → `'learn at all? '`. **All four are training phrasings.**
+`FROZEN137` and `LEGACY_HELD` are byte-identical — every held-out string still
+exists in the corpus, so entry 11's and entry 12's comparisons stand.
+
+### Three short forms this topic is not allowed to have
+
+    'how many bits? '  -> `model`,    "four bits."       (the WEIGHTS)
+    'made by who? '    -> `identity`, "scott did."       (who made HER)
+    'what year? '      -> `honesty`,  "no clock here."
+
+The last is the one that matters. The cartridge has no clock and cannot know
+what year it is now, so answering a bare `'what year? '` with a date would
+teach her to state something she has no way to read — which is exactly what
+`docs/GAGS.md` forbids. Terseness has a floor, and ambiguity sets it.
+
+### What this does NOT establish
+
+**Nothing here has been trained.** The corpus is written and the budget is
+verified at zero fatal rows; no model has seen it and no accuracy is claimed.
+`data/` is deliberately left at the old vocabulary so the tree stays
+self-consistent — the shipped weights were fitted to the old tokenisation, and
+committing a refit vocabulary against them is precisely the mismatch
+`tools/check_game.py` caught when the paraphrase corpus landed.
+
+**The shipped cartridge is still one whole-corpus model.** `tools/emit.py` has
+no notion of sharding and `tools/wip/emit_sharded.py` is still parked, so every
+routed number in entry 12 is a host measurement of a model the cartridge does
+not run. What the cartridge runs is the unsharded arm, which fell 38.0% to
+33.6% when the corpus doubled.
+
+That is the sequencing this entry sets up and does not resolve. Adding a topic
+to the *shipped* model spends the same 102,400 weights entry 12 already priced.
+Adding it as a sixth *shard* is new capacity. The facts are worth having either
+way, but **shards should ship before this topic is trained**, or the capacity
+is paid for twice.
+
+Files: `train/corpus.py`, `.gitignore`.

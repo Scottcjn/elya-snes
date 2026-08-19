@@ -128,7 +128,8 @@ import os
 # rom/nn.s to select a shard with at run time (FINDINGS entry 10), so these
 # label the corpus and do not yet cut it.
 # ---------------------------------------------------------------------------
-TOPICS = ["identity", "hardware", "model", "game", "honesty"]
+TOPICS = ["identity", "hardware", "model", "game", "honesty",
+          "history"]
 
 # ---------------------------------------------------------------------------
 # FACTS: (topic, answer, {"train": [...], "dev": [...], "test": [...]})
@@ -156,7 +157,7 @@ FACTS = [
                   "and you are? "],
     }),
     ("identity", "a small model.", {
-        "train": ["what are you? ", "what thing? ", "you are what? ",
+        "train": ["what are you? ", "what thing? ", "what are you then? ",
                   "what kind? ", "what is elya? ", "what type? "],
         "dev":   ["what sort? ", "so what? "],
         "test":  ["a thing? ",           # LEGACY
@@ -290,7 +291,7 @@ FACTS = [
         "train": ["how much fits? ", "how much? ", "your context? ",
                   "how many fit? ", "context size? ", "how much room? ",
                   "what capacity? ",                       # +hole: capacity
-                  "long context? "],                # +hole: long
+                  "what span? "],                # +hole: long
         "dev":   ["capacity? ", "what context? "],
         "test":  ["how long? ",          # LEGACY
                   "what fits? "],
@@ -359,7 +360,7 @@ FACTS = [
     # ---- model ------------------------------------------------------------
     ("model", "hundred thousand.", {
         "train": ["how big? ", "size? ", "how large? ", "the size? ",
-                  "size how? ", "your size? ",
+                  "count? ", "your size? ",
                   "what scale? "],                            # +hole: scale
         "dev":   ["scale? ", "total size? "],
         "test":  ["big? ",               # LEGACY
@@ -460,7 +461,7 @@ FACTS = [
     }),
     ("model", "no. i just run.", {
         "train": ["do you learn? ", "can you learn? ", "you learn? ",
-                  "ever learn? ", "do you improve? ", "will you learn? "],
+                  "ever learn? ", "do you improve? ", "learn at all? "],
         "dev":   ["get better? ", "do you adapt? "],
         "test":  ["any learning? ", "train now? "],
     }),
@@ -657,6 +658,124 @@ FACTS = [
                   "grasp it? ", "you follow me? "],
         "dev":   ["you understand? ", "do you get this? "],
         "test":  ["you follow? ", "understood? "],
+    }),
+    # ---- history ----------------------------------------------------------
+    # The machine she runs on, and the company that built it.
+    #
+    # Separable from `hardware` on purpose.  Hardware is what constrains her
+    # now -- 128 KiB of RAM, no coprocessor, twenty positions.  History is
+    # where that machine came from.  Keeping them apart is not tidiness: the
+    # router shards on topic, so a fact filed under the wrong topic is a fact
+    # behind the wrong door, and train/route_diag.py scores exactly that.
+    #
+    # WHY EVERY LINE HERE IS SO SHORT, AND WHY SOME FACTS ARE MISSING
+    #
+    # NVOCAB is 64.  Thirty base symbols leave THIRTY-FOUR merge slots for the
+    # whole corpus, and the fitter spends them to minimise total cost -- so it
+    # buys `'the '`, `'what '`, `'? '` and, for this topic, `'ninet'` and
+    # `'eight'`.  It will never buy `yokoi`.  Every proper noun is therefore
+    # spelled a character at a time, on BOTH sides: once in the question and
+    # again in the generated answer.
+    #
+    # That makes a history topic the most vocabulary-expensive kind of topic
+    # this model can be given, because history facts ARE proper nouns.  It was
+    # measured rather than guessed, with the merges refit on the grown corpus:
+    #
+    #     answer              questions that bust 20 positions
+    #     'gunpei yokoi.'                 10 of 10
+    #     'the mega drive.'                9 of 10
+    #     'donkey kong.'                   7 of 10
+    #     'playing cards.'                 6 of 10
+    #     'jumpman.'                       2 of 10
+    #
+    # So the Game Boy fact is GONE -- unusable at 10 of 10, and a different
+    # console anyway.  Donkey Kong is gone; `jumpman.` carries the same Mario
+    # history at a fifth of the cost.  `the mega drive.` became `sega.`,
+    # `playing cards.` became `cards.`, `a ricoh chip.` became `ricoh.`, and
+    # `kyoto japan.` became `in kyoto.`  All still true; all four times cheaper.
+    #
+    # The first draft of this topic averaged 14.8 tokens a question against the
+    # corpus's 8.5, and train/vocab_fit.py priced it: ten of the frozen 137
+    # held-out questions stopped fitting in twenty positions, up from four.  A
+    # question that does not fit is unanswerable at ANY model quality, so that
+    # is the expensive kind of regression, and it is the one this rewrite undid.
+    #
+    # Dates are spelled out because the charset is a-z, space and `.,?` --
+    # there are no digits to spell them with.  The Super Famicom is dated
+    # rather than "the SNES": Japan got it in 1990 and America in 1991, so a
+    # bare "when did it come out" has two right answers and one of them would
+    # have to be wrong.  Every phrasing names japan.
+    #
+    # Three short forms are NOT here because other topics own them and are
+    # right to:
+    #   'how many bits? '  -> `model`, "four bits."      (the WEIGHTS)
+    #   'made by who? '    -> `identity`, "scott did."   (who made HER)
+    #   'what year? '      -> `honesty`, "no clock here."
+    # The last is the important one.  The cartridge has no clock and cannot
+    # know what year it is now, so answering a bare "what year? " with a date
+    # would teach her to state something she has no way to read -- exactly what
+    # docs/GAGS.md forbids.  Terseness has a floor and ambiguity sets it.
+    ("history", 'nintendo.', {
+        "train": ['who made the snes? ', 'whose console? ', 'what company? ',
+                  'made the snes? ', 'snes maker? ',
+                  'the snes is whose? '],
+        "dev":   ['what firm? ', 'which company? '],
+        "test":  ['who owns the snes? ', 'what maker? '],
+    }),
+    ("history", 'in kyoto.', {
+        "train": ['where from? ', 'what city? ', 'based where? ',
+                  'founded where? ', 'where is nintendo? ', 'made where? '],
+        "dev":   ['from where? ', 'which city? '],
+        "test":  ['located where? ', 'what town? '],
+    }),
+    ("history", 'cards.', {
+        "train": ['first product? ', 'sold what? ', 'before games? ',
+                  'made what first? ', 'sold what first? ',
+                  'their first thing? '],
+        "dev":   ['sold first? ', 'made first? '],
+        "test":  ['earliest product? ', 'first goods? '],
+    }),
+    ("history", 'sixteen bit.', {
+        "train": ['snes bits? ', 'what bit snes? ', 'the snes bits? ',
+                  'snes width? ', 'snes how wide? ', 'its bits? '],
+        "dev":   ['what bit console? ', 'snes bit? '],
+        "test":  ['snes is how wide? ', 'the snes is what bit? '],
+    }),
+    ("history", 'the famicom.', {
+        "train": ['what came before? ', 'the older one? ', 'before this? ',
+                  'what was before? ', 'the old one? ', 'before it? '],
+        "dev":   ['the earlier one? ', 'and before? '],
+        "test":  ['the one before? ', 'the last console? '],
+    }),
+    ("history", 'eight bit.', {
+        "train": ['nes bits? ', 'old bits? ', 'bits before? ',
+                  'nes width? ', 'what bit nes? ', 'the nes bits? '],
+        "dev":   ['nes was what bit? ', 'nes is how wide? '],
+        "test":  ['and the famicom? ', 'bits on the nes? '],
+    }),
+    ("history", 'ricoh.', {
+        "train": ['what cpu? ', 'which cpu? ', 'whose cpu? ',
+                  'the cpu is what? ', 'what is the cpu? ', 'the cpu? '],
+        "dev":   ['what processor? ', 'cpu is what? '],
+        "test":  ['cpu by who? ', 'which cpu is it? '],
+    }),
+    ("history", 'jumpman.', {
+        "train": ['mario name? ', 'his old name? ', 'marios name? ',
+                  'his first name? ', 'mario first? ', 'old name? '],
+        "dev":   ['what was mario? ', 'mario was? '],
+        "test":  ['his other name? ', 'what name first? '],
+    }),
+    ("history", 'sega.', {
+        "train": ['the rival? ', 'the other console? ', 'the other firm? ',
+                  'who else? ', 'the foe? ', 'rival? '],
+        "dev":   ['the other one? ', 'who competed? '],
+        "test":  ['the rival maker? ', 'who fought? '],
+    }),
+    ("history", 'it scales.', {
+        "train": ['mode seven? ', 'what is mode seven? ', 'why mode seven? ',
+                  'the mode seven? ', 'what mode seven? ', 'why that mode? '],
+        "dev":   ['mode seven is? ', 'mode seven use? '],
+        "test":  ['mode seven what? ', 'that mode? '],
     }),
 ]
 
