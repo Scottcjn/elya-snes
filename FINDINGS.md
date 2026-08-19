@@ -2770,3 +2770,97 @@ Files: `train/corpus.py`, `train/prep_qa.py`, `train/vocab_fit.py`,
 `tools/run_ares.sh`, `gate.sh`, `Makefile`, `runs/reports/CORPUS_GROWTH.txt`,
 `runs/reports/ROUTE_GROWTH.txt`, `runs/reports/ROUTE_EVAL_v2.txt`,
 `runs/reports/ROUTE_RESIDUAL_v2.txt`.
+
+## 2026-08-19 — 13. She had no face. Twelve pixels of skin, and a preview that hid the sky
+
+Two art problems, and neither was the one it looked like.
+
+### The character
+
+`tools/mkart.py` had been emitting a deliberate placeholder for Elya since the
+first batch of generated art failed `docs/ART_SPEC.md` on four counts — it faced
+left, wore a maid's apron, the hair came out dark instead of auburn-red, and it
+read as 8-bit. The placeholder that replaced it was drawn from ellipses and
+trapezoids and was **canon-correct on every one of those four counts**, which is
+why it survived: the check it was written against, it passed.
+
+It still had no face, and the reason is a number nothing was checking:
+
+```
+                 width    skin px   run0 vs run1
+  placeholder    19/32       16         48 px
+  hand-authored  29/32       34        343 px
+```
+
+Sixteen pixels of skin is the hand, the neck and the face together. The face got
+about twelve. `ART_SPEC` had already written down why that fails — *"a figure
+that occupies 13 of 32 pixels of width has three pixels of face and no room for
+the dress to be a dress"* — as prose, in a document the build did not read.
+
+**"She runs backwards" was not a flip bug.** `rom/game.inc:2408` H-flips her for
+leftward movement and always did. The placeholder's two run frames differed only
+in how far the hem and hair swayed — 48 px of a 1024 px cell — so there was no
+body motion to read a direction from, and with twelve pixels of face there was
+no facing to read either. What the eye had left was the hair, which trails
+*behind*; long hair trailing left reads as movement to the left. The ambiguity
+resolved against the truth. Adding a readable face and real body motion fixes
+the cause; flipping her would have made it worse.
+
+She is now placed span by span at native size in `mkart.py`, in the same idiom
+as the `@` block and the nabla — which are the three sprites on the sheet that
+already read, and the three that were never downscaled from a render.
+`ART_SPEC` said this too: *"hand-placed pixels at native size beat any
+downscale."* Same 160 tiles, same 5,120 bytes, `assets/obj.inc` and
+`assets/obj.pal` byte-identical, so the engine did not change and it cost no
+VRAM.
+
+### The gate, and what a palette cannot catch
+
+The object palette was deliberately scrubbed of apron white so that a maid
+outfit would have nowhere to live. The drift came back anyway — as a **shape**.
+The first pass of the new sprite drew a broad flat white collar across the
+shoulders, in the one white entry the collar legitimately needs. That is a
+maid's collar by another name, and no palette check can see it.
+
+So `art_spec_check()` is a pixel budget instead: width, fill, skin, **white**,
+hair mass, and which way the skin centroid sits relative to the hair centroid.
+It runs on whatever is about to be baked, and it **rejects all six placeholder
+frames and passes all six of the new ones**. A gate that has never rejected
+anything is not known to be a gate.
+
+The override path was inverted at the same time. It used to be *"if the canon
+PNG exists, use it"* — a check on the presence of a file rather than on any
+property of the picture. That is how the apron got in the first time. Generated
+art may still override the drawing, but only by passing the same gate.
+
+### The preview that hid the sky
+
+`assets/level_preview.png` composited the HDMA gradient and BG1, and never
+touched BG2. BG2 is the clouds. So the preview showed a bare sky for a
+cartridge that has four of them, wired through `BG2SC`/`BG2HOFS` with
+half-speed parallax and enabled in `TM = $17`.
+
+Nothing warned. The picture was just quietly missing a layer, and the sky got
+called empty on the strength of it — a judgement about the art, made against an
+instrument that was wrong about the art.
+
+This is the same shape as the Genesis `-0.008%` in entry 7 and the N64 counter
+that reduced to a literal 60: **a false null, in a place nobody audits, that
+looks exactly like an honest answer.** The fix is one layer in the compositing
+loop, in the order mode 1 actually uses — backdrop, BG2, BG1 — which is the
+order `tools/render_frame.py` had right all along, because that tool reads the
+state back off the console instead of re-deriving it on the host.
+
+No ROM data changed: `assets/level.map`, `assets/clouds.map`, `assets/bg1.chr`,
+`assets/bg2.chr` and `assets/bg.inc` are byte-identical across the fix. Only the
+picture of them changed.
+
+**What this does not establish.** The frames here are host composites of PPU
+state, not photographs of a television, and they are single frames — nothing
+here says the six-pose animation reads at 60 Hz. The character has not been
+seen on silicon. `art_spec_check()` is a floor, not a judgement: it can prove
+she has room for a face, and it cannot prove the face is good.
+
+Files: `tools/mkart.py`, `tools/mkbg.py`, `assets/obj.chr`,
+`assets/obj_preview.png`, `assets/level_preview.png`, `docs/ART_SPEC.md`,
+`README.md`.

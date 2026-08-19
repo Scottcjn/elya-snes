@@ -32,7 +32,7 @@ cart type    $02  ROM + RAM + battery
 rom size     $08  256 KiB declared, 256 KiB actual
 sram size    $05  32 KiB
 country      $01  USA (NTSC)
-checksum     $39E4  complement $C61B
+checksum     $6A6B  complement $9594
 reset vector $8000
 
 PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
@@ -45,7 +45,7 @@ cart type    $02  ROM + RAM + battery
 rom size     $08  256 KiB declared, 256 KiB actual
 sram size    $05  32 KiB
 country      $01  USA (NTSC)
-checksum     $379C  complement $C863
+checksum     $6823  complement $97DC
 reset vector $8000
 
 PASS: LoROM, NTSC, 2 Mbit of a 56 Mbit cartridge, battery SRAM declared, no enhancement chip.
