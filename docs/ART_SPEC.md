@@ -25,9 +25,30 @@ of 32 pixels of width has three pixels of face and no room for the dress to be
 a dress. Fill the cell.
 
 `tools/mkart.py` will **not** build a sprite sheet from art that has not been
-checked against this list. Until corrected sources land it emits an explicit
-placeholder and says so, loudly, on every build — a ROM with a placeholder in
-it is honest; a ROM with the wrong character in it is not.
+checked against this list. `art_spec_check()` is that check, expressed as
+numbers, and it runs on every build against whatever is about to be baked:
+
+| check | threshold | which drift it catches |
+|---|---|---|
+| width | **>= 24 of 32** | "fill the cell" — a narrow figure has no room for a face |
+| fill | **>= 45%** | same, by area |
+| skin | **>= 28 px** | a face needs pixels; the placeholder had 16 and had none |
+| white | **<= 12 px** | **apron / maid's collar.** A wide flat white collar is maid gear by another name |
+| hair | **>= dress/3** | "long uncut, past the waist" |
+| facing | skin centroid right of hair centroid | **faces RIGHT** |
+
+The white budget is there because the palette trick was not enough. The object
+palette was deliberately scrubbed of apron white so a maid outfit would have
+nowhere to live — and the drift came back anyway, through the *shape*, as a
+broad flat collar drawn in the one white entry the collar legitimately needs.
+A palette check cannot catch that. A pixel budget can.
+
+Elya herself is hand-placed at native size in `mkart.py`, in the same idiom as
+the `@` block and the nabla, because two rounds of generated art failed this
+list and downscaling a 512 px render into a 32 px cell spends most of the cell
+on mush. Generated art may still override her — but only if it passes the gate.
+Keying on "the file exists" is how the apron got in the first time; the
+filename never knew what was in the picture.
 
 ## Canvas
 

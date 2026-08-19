@@ -1,0 +1,17 @@
+art_selftest.sh -- does the ART_SPEC gate actually gate?
+run 2026-08-19T14:59:42Z on 19ab575 + working tree
+
+=== control: the tree as it stands ===
+elya    : hand-authored (tools/mkart.py), ART_SPEC pass (6 poses)
+
+=== the deliberate drift: the high collar widened into a maid's collar ===
+elya    : ART_SPEC FAIL run0   white 18 px -- that is an apron/maid collar
+elya    : ART_SPEC FAIL run1   white 18 px -- that is an apron/maid collar
+elya    : ART_SPEC FAIL jump   white 18 px -- that is an apron/maid collar
+elya    : ART_SPEC FAIL idle0  white 18 px -- that is an apron/maid collar
+elya    : ART_SPEC FAIL idle1  white 16 px -- that is an apron/maid collar
+elya    : ART_SPEC FAIL idle2  white 18 px -- that is an apron/maid collar
+mkart: Elya fails docs/ART_SPEC.md -- refusing to bake it
+
+control FAIL=0   broken FAIL=1
+ART SELFTEST: pass - the gate bakes canon art and refuses a maid's collar
