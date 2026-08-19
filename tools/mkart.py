@@ -78,71 +78,161 @@ CANON_RUN = 'elya_canon_run.png'
 CANON_IDLE = 'elya_canon_idle.png'
 
 
-def placeholder(pose=0):
-    """A deliberately plain Elya, drawn from geometry: long auburn-red hair
-    past the waist, a brown floor-length Victorian dress with a high white
-    collar, facing RIGHT.  It is canon-correct and it is obviously a
-    placeholder, which is exactly what it is for.
+# The figure below is hand-placed at native size, span by span, in the same
+# idiom as the @ block and the nabla further down.  That is not a stylistic
+# choice: ART_SPEC says "hand-placed pixels at native size beat any downscale",
+# and two rounds of generated art proved it the expensive way.  The first batch
+# faced left in a maid's apron with dark hair; the geometry placeholder that
+# replaced it was canon-correct but spent 16 of its pixels on skin, so it had
+# no face and no legs and the run frames differed only in how the hem swayed.
+#
+# Numbers, because this is the kind of thing that drifts back:
+#
+#     placeholder   19/32 wide, 16 px of skin, run frames differ by 48 px
+#     this          29/32 wide, 34 px of skin, run frames differ by 343 px
+#
+# art_spec_check() below is the gate, and it rejects all six placeholder frames.
+SKIN_IX = {2, 3}
+HAIR_IX = {4, 5, 6}
+DRESS_IX = {7, 8, 9}
+WHITE_IX = {15}
 
-    pose 0/1 are the two-frame run, 2 is the jump, 3-5 the idle."""
-    W = H = 32
-    g = [[0] * W for _ in range(H)]
 
-    def ell(cx, cy, rx, ry, v, y0=0, y1=H):
-        for y in range(max(0, y0), min(H, y1)):
-            for x in range(W):
-                if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0:
-                    g[y][x] = v
+def _span(g, y, x0, s):
+    """Place a run of palette digits at (x0, y).  '.' is transparent."""
+    for i, c in enumerate(s):
+        if 0 <= x0 + i < 32 and 0 <= y < 32 and c != '.':
+            g[y][x0 + i] = HEXMAP[c]
 
-    def trap(y0, y1, x0a, x1a, x0b, x1b, v):
-        for y in range(y0, y1):
-            t = (y - y0) / max(1, y1 - 1 - y0)
-            l = round(x0a + (x0b - x0a) * t)
-            r = round(x1a + (x1b - x1a) * t)
-            for x in range(l, r + 1):
-                if 0 <= x < W:
-                    g[y][x] = v
 
-    sway = (0, 1, 2, 0, 0, 1)[pose]          # the hem and hair trail behind
-    lift = (0, 0, 0, 0, 0, 0)[pose]
-
-    # hair mass down the back, drawn first so everything overlaps it
-    trap(4, 25 - lift, 9 - sway, 15, 7 - sway * 2, 14, 5)
-    ell(13, 6, 5, 6, 5)                      # the back of the head
-    # skirt, floor length
-    trap(17, 30, 12, 19, 9 - sway, 23 + sway, 8)
-    for y in range(17, 30):                  # a light seam down the front
-        g[y][min(W - 1, 18 + (y - 17) // 4)] = 7
-    trap(28, 31, 9 - sway, 23 + sway, 9 - sway, 23 + sway, 9)
-    # bodice, high collar, sleeve
-    trap(11, 18, 13, 19, 12, 20, 8)
-    trap(10, 12, 13, 19, 13, 19, 15)         # the white collar
-    trap(12, 19, 18, 21, 19, 22, 8)          # the arm, in front
-    g[18][21] = g[18][22] = 2                # the hand
-    # head and face, looking RIGHT
-    ell(15, 6, 4, 5, 2)
-    ell(14, 5, 4, 5, 4)                      # the hair over the crown
-    g[6][18] = g[7][18] = 2                  # nose
-    g[5][17] = 1                             # eye
-    g[7][17] = 3
-    # hair highlight, so the auburn reads as auburn and not as brown
-    for y in range(5, 22):
-        x = 10 - sway + (y - 5) // 8
-        if 0 <= x < W and g[y][x] == 5:
-            g[y][x] = 4
-
-    # a one-pixel outline round the whole silhouette
-    out = [row[:] for row in g]
-    for y in range(H):
-        for x in range(W):
+def _outline(g):
+    """One dark pixel around the silhouette, so she reads against any sky."""
+    out = [r[:] for r in g]
+    for y in range(32):
+        for x in range(32):
             if g[y][x]:
                 continue
             for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 yy, xx = y + dy, x + dx
-                if 0 <= yy < H and 0 <= xx < W and g[yy][xx]:
+                if 0 <= yy < 32 and 0 <= xx < 32 and g[yy][xx]:
                     out[y][x] = 1
                     break
     return out
+
+
+def elya(lean=0, arm=0, swing=0, trail=0, hem=0, bob=0):
+    """Elya, 32x32, facing RIGHT, canon per docs/ART_SPEC.md.
+
+    lean   upper body forward, px      arm    front-arm phase
+    swing  skirt swing, px             trail  hair trailing behind
+    hem    hem lift (jump)             bob    whole-figure bob (idle)
+    """
+    g = [[0] * 32 for _ in range(32)]
+    L, B = lean, bob
+    # -- head.  Auburn-red hair over the crown and forehead; the face sits to
+    #    the RIGHT of the hair mass, which is what makes the facing read.
+    _span(g,  1 + B, 14 + L, '5555')
+    _span(g,  2 + B, 12 + L, '66555445')
+    _span(g,  3 + B, 11 + L, '6655554455')
+    _span(g,  4 + B, 11 + L, '665555444555')
+    _span(g,  5 + B, 10 + L, '66555544455')
+    _span(g,  6 + B, 10 + L, '6655554');  _span(g,  6 + B, 17 + L, '222222')
+    _span(g,  7 + B, 10 + L, '665555');   _span(g,  7 + B, 16 + L, '2122122')
+    _span(g,  8 + B, 10 + L, '665555');   _span(g,  8 + B, 16 + L, '2222222')
+    _span(g,  9 + B, 10 + L, '665555');   _span(g,  9 + B, 16 + L, '222332')
+    _span(g, 10 + B, 10 + L, '6655554');  _span(g, 10 + B, 17 + L, '22222')
+    _span(g, 11 + B, 10 + L, '66555544'); _span(g, 11 + B, 18 + L, '222')
+    # -- the HIGH collar.  A narrow standing band at the throat.  A wide flat
+    #    white collar across the shoulders is a maid's collar by another name,
+    #    and the first attempt at this drew exactly that: the palette has no
+    #    apron white to drift into, so the drift came back through the shape.
+    _span(g, 12 + B, 17 + L, 'FFF')
+    _span(g, 13 + B, 16 + L, '8FF8')
+    # -- hair down the back, past the waist, tapering to a tail.  Attached at
+    #    the nape and trailing only at the bottom; trailing the whole mass
+    #    detaches it from the head and it reads as a floating braid.
+    for y in range(12 + B, 27):
+        t = (y - 12 - B) / max(1.0, 14 - B)
+        wob = (0, 0, 1, 1, 0, -1)[y % 6]
+        x0 = 10 + L - int(round(trail * t)) + wob
+        wide = 5 if t < .25 else (4 if t < .55 else (3 if t < .85 else 2))
+        _span(g, y, x0, ('6654' if y % 3 == 0 else '66554')[:wide])
+    _span(g, 27, 10 + L - trail, '66')
+    # -- bodice, long sleeves, waist
+    _span(g, 14 + B, 13 + L, '887778888')
+    _span(g, 15 + B, 13 + L, '8877888888')
+    _span(g, 16 + B, 13 + L, '88778888888')
+    _span(g, 17 + B, 14 + L, '887788888')
+    _span(g, 18 + B, 14 + L, '88778888')
+    _span(g, 19 + B, 15 + L, '887788')
+    # -- front arm: sleeve to a white cuff, then the hand
+    ax, ay = 22 + L, 15 + arm + B
+    for i, (dx, s) in enumerate([(0, '88'), (0, '88'), (1, '88'),
+                                 (1, '88'), (1, 'FF'), (1, '22')]):
+        _span(g, ay + i, ax + dx, s)
+    # -- skirt, floor length, swinging.  The light panel is the front seam;
+    #    it is what stops the skirt reading as one flat brown trapezoid.
+    for i, y in enumerate(range(20 + B, 32 - hem)):
+        t = i / 10.0
+        half = 3.5 + t * 8.5
+        cx = 17 + L + int(round(swing * t * 2))
+        l, r = int(round(cx - half)), int(round(cx + half))
+        row = []
+        for x in range(l, r + 1):
+            d = (x - l) / max(1, (r - l))
+            row.append('7' if .20 < d < .40 else ('9' if d > .78 else '8'))
+        _span(g, y, l, ''.join(row))
+    return _outline(g)
+
+
+# The six poses the sheet needs.  Run is two frames, jump one, idle three --
+# ART_SPEC's frame budget, and idle1/idle2 are the foot tap that loops while
+# she waits on you.
+ELYA_POSES = [
+    dict(lean=0, arm=0,  swing=0,  trail=0),            # run0   contact
+    dict(lean=1, arm=2,  swing=2,  trail=3),            # run1   passing
+    dict(lean=1, arm=-1, swing=1,  trail=4, hem=2),     # jump   skirt lifts
+    dict(lean=0, arm=0,  swing=0,  trail=0),            # idle0  neutral
+    dict(lean=0, arm=0,  swing=1,  trail=0, bob=1),     # idle1  tap down
+    dict(lean=0, arm=1,  swing=-1, trail=1),            # idle2  tap up
+]
+
+
+def art_spec_check(g):
+    """docs/ART_SPEC.md, as numbers.  Returns the list of failures.
+
+    This exists because canon drift is not something a palette check or a tile
+    count catches -- the palette was already scrubbed of apron white and the
+    maid's collar came back anyway, as a shape.  Every threshold here is one
+    of the four counts the first sprite batch drifted on, plus 'fill the cell'.
+    """
+    from collections import Counter
+    xs = [x for y in range(32) for x in range(32) if g[y][x]]
+    if not xs:
+        return ['empty']
+    c = Counter(v for row in g for v in row if v)
+    w = max(xs) - min(xs) + 1
+    fill = len(xs) * 100 // 1024
+    skin = sum(c.get(v, 0) for v in SKIN_IX)
+    white = sum(c.get(v, 0) for v in WHITE_IX)
+    hair = sum(c.get(v, 0) for v in HAIR_IX)
+    dress = sum(c.get(v, 0) for v in DRESS_IX)
+    sx = [x for y in range(32) for x in range(32) if g[y][x] in SKIN_IX]
+    hx = [x for y in range(32) for x in range(32) if g[y][x] in HAIR_IX]
+    bad = []
+    if w < 24:
+        bad.append('fills only %d/32 wide' % w)
+    if fill < 45:
+        bad.append('fill %d%%' % fill)
+    if skin < 28:
+        bad.append('skin %d px -- no room for a face' % skin)
+    if white > 12:
+        bad.append('white %d px -- that is an apron/maid collar' % white)
+    if hair < dress // 3:
+        bad.append('hair %d px vs dress %d -- not long hair' % (hair, dress))
+    if not (sx and hx and sum(sx) / len(sx) > sum(hx) / len(hx)):
+        bad.append('faces LEFT')
+    return bad
 
 # ---------------------------------------------------------------------------
 # Hand-authored objects.  Digits are palette indices, '.' is transparent.
@@ -423,6 +513,9 @@ def encode4bpp(t):
 SHEET_W = 128
 
 
+NAMES32_ = ['run0', 'run1', 'jump', 'idle0', 'idle1', 'idle2']
+
+
 def main(out_prefix='assets/obj'):
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sp = os.path.join(root, 'assets', 'sprites')
@@ -432,9 +525,16 @@ def main(out_prefix='assets/obj'):
     #    the run sheet has a black border the crop must stay inside of.
     canon_run = os.path.join(sp, CANON_RUN)
     canon_idle = os.path.join(sp, CANON_IDLE)
+
+    # The hand-authored figure is the default, not the fallback.  It is drawn
+    # at native size in this file; see the note above elya().
+    drawn = [elya(**p) for p in ELYA_POSES]
+
+    # Generated art may still override it -- but only if it PASSES the gate.
+    # Keying on "the file exists" is what let a maid's apron into the tree the
+    # first time; the filename never knew what was in the picture.
+    elya_frames, source = drawn, 'hand-authored (tools/mkart.py)'
     if os.path.exists(canon_run):
-        # Corrected art.  Same pixelising as before: coverage mask downscaled
-        # separately from premultiplied colour, scale fixed by HEIGHT.
         BG = Image.open(canon_run).convert('RGB').getpixel((0, 0))
         r0 = pixelise(canon_run, (0, 0) + Image.open(canon_run).size, (32, 32), BG)
         r1 = [[0] * 32] + [row[:] for row in r0[:-1]]
@@ -447,23 +547,25 @@ def main(out_prefix='assets/obj'):
                 for i in range(n)]
         while len(idle) < 3:
             idle.append([row[:] for row in idle[-1]])
-        elya = [r0, r1, jp] + idle
-        print("elya    : %s (corrected art)" % CANON_RUN)
-    else:
-        # THE SPRITES IN assets/sprites ARE NOT CANON and are not built.  They
-        # face left, they are wearing a maid's apron, the hair came out dark
-        # rather than auburn-red, and they read as 8-bit.  docs/ART_SPEC.md
-        # says what they have to be.  Until corrected art lands this emits a
-        # placeholder that IS canon -- auburn-red hair past the waist, brown
-        # Victorian dress, high collar, no apron, facing right -- and says so
-        # on every single build.
-        elya = [placeholder(i) for i in range(6)]
-        print("elya    : *** PLACEHOLDER *** -- assets/sprites/%s is not there,"
-              % CANON_RUN)
-        print("          and the generations that ARE there are not canon:")
-        print("          they face left, wear an apron, and the hair is dark.")
-        print("          See docs/ART_SPEC.md.  Drop corrected art in as")
-        print("          assets/sprites/%s and rebuild." % CANON_RUN)
+        cand = [r0, r1, jp] + idle
+        fails = [(NAMES32_[i], b) for i, g in enumerate(cand)
+                 for b in [art_spec_check(g)] if b]
+        if fails:
+            print("elya    : %s is present but FAILS docs/ART_SPEC.md --" % CANON_RUN)
+            for nm, b in fails:
+                print("          %-6s %s" % (nm, '; '.join(b)))
+            print("          keeping the hand-authored figure.")
+        else:
+            elya_frames, source = cand, CANON_RUN
+
+    # The gate runs on whatever is about to be baked, every build.
+    bad = [(NAMES32_[i], b) for i, g in enumerate(elya_frames)
+           for b in [art_spec_check(g)] if b]
+    if bad:
+        for nm, b in bad:
+            print("elya    : ART_SPEC FAIL %-6s %s" % (nm, '; '.join(b)))
+        raise SystemExit("mkart: Elya fails docs/ART_SPEC.md -- refusing to bake it")
+    print("elya    : %s, ART_SPEC pass (6 poses)" % source)
 
     objs16 = [at_block(16), at_block(12)]
     objs16 += [grid(c, 16, 16) for c in COIN]
@@ -476,7 +578,7 @@ def main(out_prefix='assets/obj'):
 
     # -- the sheet.  128 px wide; 32x32 objects sit on the 4-tile grid, 16x16
     #    objects on the 2-tile grid, because that is how OAM addresses them.
-    rows32 = (len(elya) + 3) // 4
+    rows32 = (len(elya_frames) + 3) // 4
     h = rows32 * 32 + ((len(objs16) * 16 + SHEET_W - 1) // SHEET_W) * 16
     sheet = [[0] * SHEET_W for _ in range(h)]
 
@@ -484,7 +586,7 @@ def main(out_prefix='assets/obj'):
     NAMES16 = ['blk_rest', 'blk_hit', 'coin0', 'coin1', 'coin2', 'coin3',
                'nabla0', 'nabla1']
     index = {}
-    for i, g in enumerate(elya):
+    for i, g in enumerate(elya_frames):
         ox, oy = (i % 4) * 32, (i // 4) * 32
         for y in range(32):
             for x in range(32):
