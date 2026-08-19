@@ -1,5 +1,7 @@
 # elya-snes
 
+> **Part of [Transformers on Retro Game Consoles](https://hackaday.io/project/206401-transformers-on-retro-game-consoles)** on Hackaday.io — build logs, corrections, and the sibling NES / SNES / Genesis / N64 / Game Boy Color ports.
+
 A transformer language model that runs on a stock Super Nintendo — no
 enhancement chip, no SuperFX, no DSP — inside a platformer that stops halfway
 through and starts talking to you.
