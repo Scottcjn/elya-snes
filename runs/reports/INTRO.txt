@@ -1,0 +1,103 @@
+mkintro /home/scott/legend-of-elya-genesis/train/intro_source.mp4 -> assets/intro.bin
+  window        128x96 px, 16x12 = 192 tiles
+  clip          121 frames at 12 fps = 10.1 s
+  palettes      8 x 15, global and stable
+  slots in use  192 of 192 cells (cap 1024 by tilemap index)
+  palette bias  0.00 toward the left/upper neighbour
+  allocation    stable -- a tile keeps its slot
+  mean/frame    160.0 tiles + 43.3 map cells = 5614 bytes
+  mean quant err 131.8 per pixel
+  peak frame    #45  192 tiles (6528 B) + 156 map cells (628 B)
+  vblanks/frame 5 at 12 fps; 1 reserved for the map flip
+  tile budget   23840 B  (4 vblanks x 5960 B usable)
+  tiles use     27% of it, 17312 B spare
+  map flip      628 B of 5960 B in one vblank (11%)
+  slots needed  384 double-buffered, cap 1024
+  size          680024 B = 664.1 KiB = 20.8 banks of 32 KiB
+
+================================================================
+THE STUDY BEHIND THAT CONFIGURATION
+All errors measured by decoding the emitted stream and comparing
+against the ffmpeg source frames -- not against the encoder's own
+intermediate state, which would only prove it agrees with itself.
+================================================================
+
+COLOUR -- 8 palettes against 1, which is what the Genesis can do
+
+  arm                      mean    p50     p95     p99     max   bad tiles
+  1 palette (Genesis)     799.9  155.4  4664.0  5815.3  9002.2  14.35%
+  8pal one-shot           188.6   56.0   756.3  1698.3  3254.1   0.73%
+  8pal Lloyd, luma seed   258.3   51.9  1203.0  1919.1  3697.9   0.69%
+  8pal Lloyd, kmeans seed 161.8   49.4   652.9  1212.0  2590.4   0.16%   <- ships
+
+  A 4bpp tilemap entry already carries three palette bits, so per-tile
+  palette choice costs NOTHING in tile data -- only 256 B of CGRAM for the
+  whole clip.  4.9x lower colour error and 90x fewer bad tiles.  What it
+  does cost is ROM: 664 KiB against 482, because finer colour makes more
+  tiles distinct and fewer of them collapse.
+
+  The colour win is paid for in cartridge, not in bandwidth.
+
+SEEDING -- the same algorithm, twice, once worse than not running it
+
+  Lloyd's algorithm on palette assignment (assign tiles to their best
+  palette, rebuild each palette from the tiles that chose it, repeat)
+  IMPROVED on one seed and REGRESSED on another:
+
+    seeded by equal-count luma buckets   258.3 mean -- WORSE than one-shot
+    seeded by k-means on tile means      161.8 mean -- better than one-shot
+
+  Equal-count buckets are wrong for a clip that is mostly one dark colour:
+  they split the dark into groups that did not need splitting and starve
+  everything else.  Convergence was fast and confident either way -- three
+  rounds, monotone -- which is exactly what a bad local optimum looks like.
+
+THREE THINGS THAT DID NOT WORK, MEASURED
+
+  1. Stable slot allocation.  Predicted to "cut the delta substantially"
+     against the Genesis encoder's per-frame rebuild.  Measured: 5,601 vs
+     5,691 B/frame, a 1.6% win.  On this clip 83% of tiles change every
+     frame anyway, and when almost everything changes, keeping a tile in
+     its slot buys almost nothing.
+
+  2. Lloyd with the obvious seed.  Above.  Worse than not refining.
+
+  3. Neighbour palette bias, to close the visible seams.  Measured on the
+     metric that can actually see them -- excess boundary jump, where the
+     SOURCE is smooth across a tile edge and the RENDER is not:
+
+       arm                excess jump mean   p99    >16
+       1 palette                 1.40      28.33   3.20%
+       8 pal, bias 0             1.76      26.67   2.72%
+       8 pal, bias 0.25          1.75      26.67   2.68%
+
+     0.04 percentage points.  Defaulted off.
+
+  Note the shape of (3): per-tile error said the artifact was fixed --
+  "bad tiles" fell 0.73% -> 0.16% -- while the picture still showed flat
+  rectangles.  A per-tile budget scores every tile in isolation and the
+  defect lives BETWEEN tiles, so it cannot see it at any threshold.
+
+  And note what the right metric then said: 8 palettes are slightly WORSE
+  than 1 on mean boundary jump (1.76 vs 1.40), because one palette has no
+  palette seams at all, only banding.  8 palettes buy far fewer LARGE
+  jumps and 4.9x the colour accuracy.  "Better colour, marginally more
+  seaming" is the honest summary, not "better".
+
+WHAT IS UNTESTED
+
+  Dithering.  Ordered dither would break up the flat regions that still
+  band, and it is the standard answer to exactly this.  It is also likely
+  to cost real ROM, because a dither pattern makes neighbouring tiles
+  distinct that would otherwise have deduplicated.  Not measured, so not
+  claimed either way.
+
+  A bigger window.  256x128 encodes and fits the bandwidth (49% of the
+  tile budget) but needs 1024 double-buffered slots against a cap of
+  exactly 1024, and 1,193 KiB of ROM.  Zero margin on the slot table is
+  not a place to ship from.
+
+  Everything above is a HOST measurement.  No 65816 has played this
+  stream: the player is not written yet.  The vblank budget it is all
+  sized against is computed from the master clock, not observed on the
+  console.
