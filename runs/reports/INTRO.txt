@@ -101,3 +101,26 @@ WHAT IS UNTESTED
   stream: the player is not written yet.  The vblank budget it is all
   sized against is computed from the master clock, not observed on the
   console.
+
+BANK ALIGNMENT -- and why 7.31% waste is free
+
+  LoROM shows 32 KiB of a bank at $NN:8000, so a 716 KiB stream is 23 banks
+  and the player walks them.  A 34-byte tile record straddling a bank
+  boundary would have to be reassembled from two halves with the data bank
+  register changing mid-record.
+
+  So a frame is emitted whole or not at all: if it will not fit in what is
+  left of the bank, the encoder writes $FFFF and pads to the next one.  The
+  player checks for that marker only at a frame boundary, where it already
+  is.  $FFFF cannot be a real tile count -- the tilemap cannot name that
+  many tiles -- so it is unambiguous.
+
+  The cost is 53,612 B, 7.31%.  It is free, and this is why:
+
+    unpadded     680,024 B = 21 banks; + 8 existing = 29 -> 1 MiB cartridge
+    bank-padded  733,636 B = 23 banks; + 8 existing = 31 -> 1 MiB cartridge
+
+  Both land in the same cartridge.  The padding consumes space that would
+  otherwise be zero-fill, so record-level packing would buy 53 KB of ROM
+  that does not exist to be spent, in exchange for a bank check after every
+  record in the hot loop.

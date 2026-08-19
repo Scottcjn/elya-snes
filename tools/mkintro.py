@@ -275,6 +275,9 @@ def main():
                          'visible-seam rate from 2.72%% to 2.68%% of tile '
                          'boundaries.  Defaulted off so it is not mistaken for '
                          'a fix; kept so the next person does not re-derive it.')
+    ap.add_argument('--bank', type=int, default=32768,
+                    help='pad frames so none straddles a bank of this size; '
+                         '0 disables (LoROM shows 32 KiB per bank)')
     ap.add_argument('--churn', action='store_true',
                     help='rebuild the slot table every frame, as the Genesis '
                          'encoder does, instead of keeping tiles in place')
@@ -306,6 +309,10 @@ def main():
         # slot whose CONTENT changed has to be re-sent, even though not one
         # pixel of that tile moved.  --churn reproduces that behaviour so the
         # cost of it is a measurement rather than a claim.
+        # header (16 B) + palettes, so bank offsets are counted from the
+        # start of the ROM image and not from the start of the body
+        hdr_pad = b'\x00' * (16 + a.pals * 32)
+        padded = [0]
         n_cells = tw * th
         prev_slot_content = {}      # slot -> raw bytes currently in VRAM
         prev_map = {}               # cell -> tilemap entry
@@ -395,12 +402,32 @@ def main():
             sum_map += len(new_map)
             if len(new_tiles) * 34 + len(new_map) * 4 > peak_tiles * 34 + peak_map * 4:
                 peak_tiles, peak_map, peak_frame = len(new_tiles), len(new_map), fi
-            body += struct.pack('<H', len(new_tiles))
+            # BANK ALIGNMENT.  LoROM shows 32 KiB of a bank at $NN:8000, so a
+            # 664 KiB stream is 21 banks and the player walks them.  A record
+            # that STRADDLES a bank boundary would have to be reassembled from
+            # two halves in 65816 with the data bank register changing
+            # mid-record, which is a lot of code to save a few hundred bytes.
+            #
+            # So a frame is emitted whole or not at all: if it will not fit in
+            # what is left of the current bank, pad to the next one.  The
+            # player then only has to check for the pad marker at a frame
+            # boundary, where it already is.  $FFFF is the marker because a
+            # real frame's first word is a tile count, and 65535 tiles is
+            # impossible for a window the tilemap can even name.
+            fr = bytearray()
+            fr += struct.pack('<H', len(new_tiles))
             for slot, raw in new_tiles:
-                body += struct.pack('<H', slot) + raw
-            body += struct.pack('<H', len(new_map))
+                fr += struct.pack('<H', slot) + raw
+            fr += struct.pack('<H', len(new_map))
             for cell, entry in new_map:
-                body += struct.pack('<HH', cell, entry)
+                fr += struct.pack('<HH', cell, entry)
+            if a.bank:
+                off = (len(hdr_pad) + len(body)) % a.bank
+                if off + len(fr) + 2 > a.bank:
+                    body += struct.pack('<H', 0xFFFF)
+                    body += b'\x00' * (a.bank - (off + 2))
+                    padded[0] += a.bank - off
+            body += fr
 
         slots = prev_slot_content
         pal_blob = bytearray()
@@ -455,6 +482,10 @@ def main():
                       peak_map_bytes / VBLANK_USABLE * 100))
         rep.append("  slots needed  %d double-buffered, cap 1024"
                    % (tw * th * 2))
+        rep.append("  bank padding  %d B across %d banks of %d (%.2f%% waste)"
+                   % (padded[0], (len(blob) + a.bank - 1) // a.bank if a.bank else 0,
+                      a.bank, padded[0] / max(1, len(blob)) * 100)
+                   if a.bank else "  bank padding  disabled")
         rep.append("  size          %d B = %.1f KiB = %.1f banks of 32 KiB"
                    % (len(blob), len(blob) / 1024, len(blob) / 32768))
         text = '\n'.join(rep)

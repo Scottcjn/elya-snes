@@ -78,7 +78,17 @@ def main():
     W, H = tw * 8, th * 8
     S = a.scale
     written = 0
+    BANK = 32768
+    pads = 0
     for f in range(nfr):
+        # A frame is emitted whole or not at all: if it did not fit in what was
+        # left of a bank, the encoder wrote $FFFF and padded to the next one.
+        # $FFFF cannot be a real tile count -- the tilemap cannot name that many
+        # tiles -- so the marker is unambiguous at a frame boundary, which is
+        # the only place the player ever looks for it.
+        if struct.unpack_from('<H', d, p)[0] == 0xFFFF:
+            p = ((p // BANK) + 1) * BANK
+            pads += 1
         n_t = struct.unpack_from('<H', d, p)[0]; p += 2
         for _ in range(n_t):
             slot = struct.unpack_from('<H', d, p)[0]; p += 2
@@ -105,6 +115,7 @@ def main():
             im.resize((W * S, H * S), Image.NEAREST).save(
                 os.path.join(a.out, 'f%05d.png' % f))
             written += 1
+    print('bank pads skipped: %d' % pads)
     if p != len(d):
         print('WARNING: %d bytes left unread of %d -- the stream and the '
               'decoder disagree' % (len(d) - p, len(d)))
