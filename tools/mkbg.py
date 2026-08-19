@@ -313,7 +313,17 @@ def main(outdir='assets'):
           % (len(tiles2), len(chr2), 32 * 32 * 2))
     print("sky  %d bands, %d B HDMA table" % (28, len(hd)))
 
-    # preview of the level as the PPU would draw it, for eyeballing
+    # Preview of the level as the PPU would draw it, for eyeballing.
+    #
+    # LAYER ORDER MATTERS AND THIS GOT IT WRONG.  Until now this drew BG1 over
+    # the HDMA gradient and never touched BG2, so the preview showed an empty
+    # sky for a cartridge that has four clouds in it.  Nothing warned; the
+    # picture just quietly under-reported what shipped, and the sky got called
+    # bare on the strength of it.  Mode 1 is: backdrop, BG2, BG1, objects, BG3
+    # -- the same order tools/render_frame.py composites in, and the reason
+    # that tool exists is that it reads state back off the console rather than
+    # re-deriving it here.  This preview cannot do that, so the least it can do
+    # is draw the same layers.
     from PIL import Image
     im = Image.new('RGB', (MW * TILE, MH * TILE))
     p = im.load()
@@ -323,11 +333,24 @@ def main(outdir='assets'):
             t = tl[lvl[y][x]]
             for yy in range(TILE):
                 for xx in range(TILE):
-                    v = t[yy][xx]
-                    band = min(27, (y * TILE + yy) // 8)
+                    py, px_ = y * TILE + yy, x * TILE + xx
+                    band = min(27, py // 8)
                     sk = tuple(round(TOP[i] + (BOT[i] - TOP[i]) * band / 27.0)
                                for i in range(3))
-                    p[x * TILE + xx, y * TILE + yy] = BG1PAL[v] if v else sk
+                    # BG2: the cloud tilemap is 32x32 and wraps by itself at
+                    # 256 px, which is why the in-game parallax needs no seam
+                    # handling.  Here it simply tiles.
+                    c = 0
+                    ct = sky[(py // TILE) % 32][(px_ // TILE) % 32]
+                    if ct:
+                        c = tiles2[ct][py % TILE][px_ % TILE]
+                    v = t[yy][xx]
+                    if v:
+                        p[px_, py] = BG1PAL[v]
+                    elif c:
+                        p[px_, py] = BG2PAL[c]
+                    else:
+                        p[px_, py] = sk
     im.save(os.path.join(outdir, 'level_preview.png'))
     return 0
 
