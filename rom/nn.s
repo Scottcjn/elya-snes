@@ -94,6 +94,12 @@ YARG    = $2A           ; the chain's 8-bit index, staged here
 TB2     = $2C           ; (p+1)*2, the live byte count of the word arrays
 SRAMB   = $36           ; SRAM offset this run's tokens are written to
 SEEDN   = $38           ; SURVEY: which seed token is being run
+.ifndef SHARD0
+SHARD0  = 0             ; which shard a build starts on
+.endif
+SHTMP   = $3A           ; SHARDS: set_shard's multiply scratch
+SHPTR   = $3C           ; SHARDS: 3 bytes -- long pointer at the shard's
+                        ; MDATA bank, for `lda [SHPTR],y`.  $3C-$3E.
 
 FRAMES  = $076C         ; PROFILE: vblank counter, maintained by the NMI
 ; The profile instrument's scratch is ABSOLUTE, not direct page.  It is called
@@ -296,6 +302,14 @@ fast_entry:
         .i16
 
         jsr init_ram
+.ifdef SHARDS
+        ; AFTER init_ram, never before: SEGJ sits inside the region init_ram
+        ; copies wholesale from tbl_img, so the other order overwrites the
+        ; stubs with table image and the first jsl lands in nothing.
+        ; Shard 0 until something routes; SHARD0 lets an arm pick another.
+        lda #SHARD0
+        jsr set_shard
+.endif
 .ifdef GAME
         stz a:$1340             ; GNMION: the NMI is a frame counter until
 .endif                          ; gsetup says otherwise (see game.inc)
@@ -417,6 +431,7 @@ halt:   bra halt
         inx
         cpx #(TBLTOP - QKCODE)
         bne :-
+.ifndef SHARDS
         ldx #$0000
 :       lda f:emb_img, x
         sta a:EMBW, x
@@ -431,8 +446,90 @@ halt:   bra halt
         inx
         cpx #(NCTX * NDMODEL * 2)
         bne :-
+.endif
         rts
 .endproc
+
+.ifdef SHARDS
+; ---------------------------------------------------------------------------
+; set_shard -- point the cartridge at one topic's model.  A = shard index.
+;
+; A shard on this port is not a repointed data stream.  FINDINGS entry 6
+; measured the cheapest gather as NO gather, so the weights ARE straight-line
+; 65816 -- which makes a shard a different CODE BLOB in different banks.  The
+; switch is therefore a jump table: NSEG four-byte `jml long` copied into WRAM
+; at SEGJ, and every matrix call in the layer loop goes through it.  That is
+; 76 bytes of WRAM and one extra jml per matrix per token.
+;
+; It also copies that shard's embedding and positional table, which live one
+; 32 KiB bank per shard at MDBANK + s.  init_ram no longer does: it cannot,
+; because it does not know which shard yet.
+;
+; MUST RUN AFTER init_ram.  SEGJ ($0584) sits in the gap between the QK gather
+; chain and the AV chain, which is inside the region init_ram copies wholesale
+; from tbl_img -- so running it the other way round silently overwrites the
+; stubs with table image and the first symptom is a jump into nothing.
+; ---------------------------------------------------------------------------
+.proc set_shard
+        .a16
+        .i16
+        pha
+        ; X = s * (NSEG*4) = s*76 = 64s + 8s + 4s
+        asl a
+        asl a                           ; 4s
+        sta z:SHTMP
+        asl a                           ; 8s
+        clc
+        adc z:SHTMP                     ; 12s
+        sta z:SHTMP
+        pla
+        pha
+        .repeat 6
+        asl a
+        .endrepeat                      ; 64s
+        clc
+        adc z:SHTMP                     ; 76s
+        tax
+        ldy #$0000
+:       lda f:stub_img, x
+        sta a:SEGJ, y
+        inx
+        inx
+        iny
+        iny
+        cpy #(NSEG * 4)
+        bne :-
+
+        ; the embedding and positional table, from bank MDBANK + s at $8000
+        pla
+        clc
+        adc #MDBANK
+        sep #$20
+        .a8
+        sta z:SHPTR+2                   ; bank byte
+        rep #$20
+        .a16
+        lda #$8000
+        sta z:SHPTR
+        ldy #$0000
+:       lda [SHPTR], y
+        sta a:EMBW, y
+        iny
+        iny
+        cpy #(NVOCAB * NDMODEL * 2)
+        bne :-
+        ldx #$0000
+:       lda [SHPTR], y
+        sta a:POSW, x
+        iny
+        iny
+        inx
+        inx
+        cpx #(NCTX * NDMODEL * 2)
+        bne :-
+        rts
+.endproc
+.endif
 
 ; ===========================================================================
 ; the generation loop: free-run greedy from one seed token, exactly as
@@ -573,6 +670,27 @@ noterm:
         sbc #AVOFF
         sta SUBAV
 
+.ifdef SHARDS
+        ; Every matrix is reached through the WRAM stub table, so this
+        ; code is identical for every shard and set_shard is the only
+        ; thing that knows which one is loaded.  One extra jml per
+        ; matrix per token: nineteen of them against 1.4M cycles.
+        DOLAYER 0, SEGJ+0*4, SEGJ+1*4, SEGJ+2*4, SEGJ+3*4, SEGJ+4*4, SEGJ+5*4
+        DBGV $0640, ACTA
+        DOLAYER 1, SEGJ+6*4, SEGJ+7*4, SEGJ+8*4, SEGJ+9*4, SEGJ+10*4, SEGJ+11*4
+        DBGV $0680, ACTA
+        DOLAYER 2, SEGJ+12*4, SEGJ+13*4, SEGJ+14*4, SEGJ+15*4, SEGJ+16*4, SEGJ+17*4
+        DBGV $06C0, ACTA
+
+        ; ---- output head: greedy argmax, ties to the lowest index ----------
+        stz BEST
+        stz BESTI
+        ldy #$0000
+        lda #ACTA
+        tcd
+        clc
+        jsl SEGJ+18*4
+.else
         DOLAYER 0, SEG_L0_Wq, SEG_L0_Wk, SEG_L0_Wv, SEG_L0_Wo, SEG_L0_W1, SEG_L0_W2
         DBGV $0640, ACTA
         DOLAYER 1, SEG_L1_Wq, SEG_L1_Wk, SEG_L1_Wv, SEG_L1_Wo, SEG_L1_W1, SEG_L1_W2
@@ -588,6 +706,7 @@ noterm:
         tcd
         clc
         jsl SEG_head
+.endif
         lda #$0000
         tcd
         STAGE
@@ -1142,13 +1261,27 @@ cl:     sta TMPB
         .segment "RODATA"
 tbl_img:
         .incbin "out/model/tables.bin"
+.ifdef SHARDS
+; The stub table: NSHARD * NSEG four-byte `jml long`, one block per shard.
+; set_shard copies one block into WRAM at SEGJ and that IS the shard switch --
+; 76 bytes of WRAM and one extra jml per matrix per token.  It lives in bank
+; $00 with the code because it is 456 bytes and set_shard reads it long.
+stub_img:
+        .incbin "out/model/stubs.bin"
+.else
 emb_img:
         .incbin "out/model/embed.bin"
 pos_img:
         .incbin "out/model/pos.bin"
+.endif
 
         .segment "WEIGHTS"
         .incbin "out/model/weights.bin"
+
+.ifdef SHARDS
+        .segment "MDATA"
+        .incbin "out/model/mdata.bin"
+.endif
 
         .segment "PTABSEG"
         .incbin "out/model/ptab.bin"

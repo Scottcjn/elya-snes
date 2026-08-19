@@ -29,7 +29,7 @@ mkdir -p "$OUT"
 
 JOBFILE=$(mktemp)
 trap 'rm -f "$JOBFILE"' EXIT
-for topic in identity hardware model game honesty; do
+for topic in identity hardware model game honesty history; do
     for s in $SEEDS; do
         name="shard_${topic}_s${s}"
         [ -f "$OUT/$name.json" ] && { echo "skip $name"; continue; }

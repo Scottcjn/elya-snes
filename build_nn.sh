@@ -25,12 +25,36 @@ DEFS=${DEFS:-}
 # function of the tree instead of of what was last run by hand.
 python3 tools/mkgame.py out/game > /dev/null
 
-emit() { python3 tools/emit.py "$@"; }
+# SNES_SHARDED=1 builds the six-shard 2 MiB cartridge: a different emitter, a
+# different linker map, and -DSHARDS in the engine so every matrix goes through
+# the WRAM stub table instead of an absolute address.  tools/check_shards.py
+# asserts the map and the emitter agree about which bank holds what, because
+# ld65 will happily link a WEIGHTS area four banks short of what was written
+# into it and the overflow lands in whatever follows.
+#
+# NOT called SNES_SHARDS: tools/emit_sharded.py already uses that name for a
+# comma-separated list of model paths, and `SNES_SHARDS=1` reached it as a
+# one-model list against a six-shard cartridge.
+if [ "${SNES_SHARDED:-0}" = "1" ]; then
+    python3 tools/check_shards.py > /dev/null || {
+        python3 tools/check_shards.py >&2
+        echo "*** rom/lorom2m.cfg and tools/emit_sharded.py disagree" >&2
+        exit 1
+    }
+    EMITTER=tools/emit_sharded.py
+    LDCFG=rom/lorom2m.cfg
+    DEFS="$DEFS -DSHARDS"
+else
+    EMITTER=tools/emit.py
+    LDCFG=rom/lorom256.cfg
+fi
+
+emit() { python3 "$EMITTER" "$@"; }
 # SNES_FAST=1 moves every JSL/JML target and the PTAB base into banks $80+,
 # which is the only difference between the two clock arms.
 asm()  { ca65 --cpu 65816 -I rom -I out/model -I out/game -I assets $DEFS -o "out/$NAME.o" \
               -l "out/$NAME.lst" rom/nn.s; }
-link() { ld65 -C rom/lorom256.cfg -o "out/$NAME.sfc" -m "out/$NAME.map" \
+link() { ld65 -C "$LDCFG" -o "out/$NAME.sfc" -m "out/$NAME.map" \
               -Ln "out/$NAME.lbl" "out/$NAME.o"; }
 
 emit

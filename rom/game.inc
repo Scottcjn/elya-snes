@@ -81,10 +81,14 @@ JOY1     = $4218
 ; ld65 has no idea a LoROM bank is 32 KiB, so the GAMEDATA segment's labels are
 ; plain 16-bit addresses and the bank is added here as a constant.  Every read
 ; of it is long-addressed off GDBASE.
-.ifdef FASTROM
-GDBASE   = $860000
-.else
-GDBASE   = $060000
+; GDBASE is defined in out/model/model.inc, which nn.s includes BEFORE this
+; file.  It used to be defined here as well, once per clock arm, which made the
+; bank the game data is READ from and the bank the linker PUT it in two
+; constants kept equal by hand.  The sharded cartridge moves GAMEDATA to a
+; different bank, so they would not have stayed equal.  One definition site, and
+; it is the emitter that chose the layout.
+.ifndef GDBASE
+        .error "GDBASE is missing -- out/model/model.inc must be included first"
 .endif
 
 ; ---- VRAM map, in WORD addresses where the PPU wants them -----------------

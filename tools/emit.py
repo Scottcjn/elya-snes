@@ -36,6 +36,8 @@ import ref                                                        # noqa: E402
 # fixed cartridge geometry
 # ---------------------------------------------------------------------------
 BANKSZ = 0x8000                 # LoROM: one bank shows 32 KiB at $8000
+GDBANK = 0x06                   # GAMEDATA: rom/lorom256.cfg puts it
+                                # in bank $06 and this must agree
 WBANK0 = 0x01                   # first weight bank
 NWBANK = 4                      # weight banks reserved by rom/lorom256.cfg
 PTBANK = 0x05                   # bank holding the softmax division table
@@ -343,6 +345,13 @@ def main():
         w_("WBANKS    = %d\n" % NWBANK)
         w_("PTABADDR  = $%06X\n" % ptab_addr)
         w_("HBANK     = $%02X\n" % base)
+        # GDBASE lives here and NOWHERE ELSE.  rom/game.inc used to
+        # carry its own copy for the 256 KiB map, which meant the bank
+        # the game data is READ from and the bank the linker PUT it in
+        # were two constants that had to be kept equal by hand -- and
+        # the sharded emitter moves it, so they would not have stayed
+        # equal.  It is derived from the layout the emitter used.
+        w_("GDBASE    = $%02X0000\n" % (base + GDBANK))
         for name, addr in em.segs:
             w_("SEG_%-9s = $%06X\n" % (name.replace(".", "_"), addr))
     if resolved:
