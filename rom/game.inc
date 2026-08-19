@@ -670,6 +670,21 @@ rask:
         .a16
         and #$00FF
         sta a:PROMPTN
+.ifdef SHARDS
+        ; Point the engine at the shard that owns this question BEFORE the
+        ; first token is fed.  set_shard rewrites the WRAM jump table and
+        ; reloads the embedding, so doing it mid-answer would splice two models
+        ; together halfway through a sentence.
+        lda a:GQSEL
+        tax
+        sep #$20
+        .a8
+        lda f:GDBASE + g_qshard, x
+        rep #$20
+        .a16
+        and #$00FF
+        jsr set_shard
+.endif
         ; record which question, and how long, for the host-side check
         lda a:ANSN
         tax
@@ -2954,6 +2969,12 @@ g_vocab:    .incbin "out/game/vocab.tbl"
 g_qtok:     .incbin "out/game/qtok.bin"
 g_qoff:     .incbin "out/game/qoff.bin"
 g_qlen:     .incbin "out/game/qlen.bin"
+.ifdef SHARDS
+; One byte per menu question: which topic shard answers it.  The menu is fixed,
+; so this is a build-time lookup and the cartridge routes it exactly.  See the
+; note in tools/mkgame.py for why there is no runtime router.
+g_qshard:   .incbin "out/game/qshard.bin"
+.endif
 g_solid:    .incbin "assets/level.solid"
 g_sky:      .incbin "assets/sky.hdma"
 g_bg3pal:   .incbin "assets/bg3.pal"

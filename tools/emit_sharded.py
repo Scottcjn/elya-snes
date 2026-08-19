@@ -38,10 +38,10 @@ os.environ.setdefault("NES_T", "20")
 import ref                                                        # noqa: E402
 
 # ---------------------------------------------------------------------------
-# fixed cartridge geometry -- rom/lorom1m.cfg and this file must agree, and
+# fixed cartridge geometry -- rom/lorom2m.cfg and this file must agree, and
 # every constant below is derived from NSHARD so they cannot drift.
 #
-# The cartridge holds FIVE whole models, one per train/corpus.py topic.  An
+# The cartridge holds ONE WHOLE MODEL PER TOPIC in train/corpus.py.  An
 # expert on this port is not a repointed data stream -- FINDINGS entry 6
 # measured the cheapest gather as no gather, so the weights ARE straight-line
 # 65816 -- which means a shard is a different CODE BLOB in different banks,
@@ -49,12 +49,19 @@ import ref                                                        # noqa: E402
 # mechanism; there is no router inside the model and no per-token routing.
 # ---------------------------------------------------------------------------
 BANKSZ = 0x8000                 # LoROM: one bank shows 32 KiB at $8000
-NSHARD = 5                      # one per train/corpus.py TOPIC
+# NSHARD is DERIVED, not written down.  It was the literal 5 while the corpus
+# had five topics, and train/corpus.py now has six -- a constant that has to be
+# edited in step with a list somewhere else is a constant that will be wrong
+# once.  rom/lorom2m.cfg's geometry is derived from this same number in its
+# header comment, and tools/check_shards.py asserts the two agree.
+sys.path.insert(0, os.path.join(ROOT, "train"))
+import corpus as _C                                               # noqa: E402
+NSHARD = len(_C.TOPICS)         # one per train/corpus.py TOPIC
 WBANK0 = 0x01                   # first weight bank
 NWBANK = 4                      # weight banks PER SHARD
-MDBANK0 = WBANK0 + NSHARD * NWBANK      # $15: embedding + positional table
-PTBANK = MDBANK0 + NSHARD               # $1A: softmax division table
-GDBANK = PTBANK + 1                     # $1B: the game layer's data
+MDBANK0 = WBANK0 + NSHARD * NWBANK      # $19 at six shards: embed + pos table
+PTBANK = MDBANK0 + NSHARD               # $1F at six: softmax division table
+GDBANK = PTBANK + 1                     # $20 at six: the game layer's data
 NSEG = 19                       # L{0,1,2}.{Wq,Wk,Wv,Wo,W1,W2} + head
 SEGJ = 0x0584                   # WRAM: NSEG four-byte `jml` stubs.  This sits
                                 # in the gap between the QK gather chain (385

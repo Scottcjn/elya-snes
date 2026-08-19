@@ -86,6 +86,33 @@ def main(outdir):
         tbl += bytes([len(b)]) + b + bytes(5 - len(b))
     open(os.path.join(outdir, "vocab.tbl"), "wb").write(tbl)
 
+    # THE SHARD PER QUESTION.  Act 3's menu is six fixed questions -- the
+    # player picks, they do not type -- so which topic each one belongs to is
+    # known at BUILD time and the cartridge needs no runtime router at all.
+    #
+    # That matters more than it sounds.  train/router.py measures the shipping
+    # word-counts router at 68.6% on dev+test, and that number is the price of
+    # FREE-TEXT input.  This cartridge has no free-text input, so a table
+    # lookup routes the menu at 100% and costs six bytes.  Building the
+    # classifier in 65816 would have shipped worse routing than doing nothing.
+    #
+    # It is derived from train/corpus.py rather than written down here, so a
+    # question that moves topic cannot leave the table pointing at the old one.
+    sys.path.insert(0, os.path.join(root, "train"))
+    import corpus as C                                            # noqa: E402
+    owner = {}
+    for topic, _ans, d in C.FACTS:
+        for sp in ("train", "dev", "test"):
+            for qq in d[sp]:
+                owner[qq] = topic
+    shards = bytearray()
+    for q in QUESTIONS:
+        if q not in owner:
+            raise SystemExit("%r is not in train/corpus.py, so its shard is "
+                             "unknown" % q)
+        shards += bytes([C.TOPICS.index(owner[q])])
+    open(os.path.join(outdir, "qshard.bin"), "wb").write(shards)
+
     toks, offs, lens = bytearray(), bytearray(), bytearray()
     for q in QUESTIONS:
         p = encode(vocab, q)
@@ -95,8 +122,9 @@ def main(outdir):
         offs += struct.pack("<H", len(toks))
         lens += bytes([len(p)])
         toks += bytes(p)
-        print("%-16r %2d tokens, %2d left for the answer" % (q, len(p),
-                                                             NCTX - len(p)))
+        print("%-16r %2d tokens, %2d left for the answer, shard %d (%s)"
+              % (q, len(p), NCTX - len(p),
+                 C.TOPICS.index(owner[q]), owner[q]))
     open(os.path.join(outdir, "qtok.bin"), "wb").write(toks)
     open(os.path.join(outdir, "qoff.bin"), "wb").write(offs)
     open(os.path.join(outdir, "qlen.bin"), "wb").write(lens)
@@ -106,6 +134,7 @@ def main(outdir):
         f.write("NQUEST      = %d\n" % len(QUESTIONS))
         f.write("QTOK_BYTES  = %d\n" % len(toks))
         f.write("MAXPROMPT   = %d\n" % MAXPROMPT)
+        f.write("NSHARDTOPIC = %d\n" % len(C.TOPICS))
     print("vocab table %d bytes, %d questions, %d prompt tokens"
           % (len(tbl), len(QUESTIONS), len(toks)))
     return 0

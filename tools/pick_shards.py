@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Choose which trained seed ships as each topic's shard.
+
+SELECTION IS ON DEV, NEVER ON TEST, and that is not a style rule.  FINDINGS
+entry 10 had to flag its own headline as optimistic because the seed was picked
+with the held-out column visible, which makes the reported number a selection
+artefact rather than a measurement.  train/corpus.py carries a dev split for
+exactly this, so the test number is what the recipe generalises to and it is
+reported whether or not it is flattering.
+
+Prints both columns so the gap between them is visible: a topic where dev picks
+a seed that is much worse on test is a topic where five seeds is not enough to
+choose from, and that is worth knowing before it ships.
+"""
+import glob
+import json
+import os
+import shutil
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(ROOT, "train"))
+import corpus as C                                                # noqa: E402
+
+
+def main():
+    rundir = sys.argv[1] if len(sys.argv) > 1 else "runs/qa_v3_shards"
+    install = "--install" in sys.argv
+    print("%-9s %-6s %7s %7s   %s" % ("topic", "seed", "dev", "test", "picked from"))
+    picked = {}
+    missing = []
+    for t in C.TOPICS:
+        rows = []
+        for j in sorted(glob.glob(os.path.join(ROOT, rundir,
+                                               "shard_%s_s*.json" % t))):
+            d = json.load(open(j))
+            dev = d.get("exact_dev")
+            tst = d.get("exact_test")
+            deg = d.get("degen_dev", 0.0)
+            if dev is None:
+                continue
+            # A DEGENERATE SEED IS DISQUALIFIED, not merely ranked low.  It is a
+            # shard that emits a constant, which scores like a bad model and
+            # behaves like a broken one -- and several seeds of the previous run
+            # logged `degenerate 1`.  Ranking on exact alone would have shipped
+            # one the moment it happened to score well on a small dev split.
+            rows.append((dev, tst, deg, j))
+        if not rows:
+            missing.append(t)
+            print("%-9s %-6s %7s %7s   NONE FOUND" % (t, "-", "-", "-"))
+            continue
+        # highest dev; ties break to the lower seed so the choice is stable
+        live = [r for r in rows if not r[2]]
+        if not live:
+            print("%-9s %-6s %7s %7s   ALL %d SEEDS DEGENERATE"
+                  % (t, "-", "-", "-", len(rows)))
+            missing.append(t)
+            continue
+        live.sort(key=lambda r: (-r[0], r[3]))
+        dev, tst, _deg, j = live[0]
+        seed = os.path.basename(j).rsplit("_s", 1)[1].split(".")[0]
+        npz = j[:-5] + ".npz"
+        picked[t] = npz
+        print("%-9s s%-5s %6.1f%% %6.1f%%   %d of %d seeds usable"
+              % (t, seed, dev * 100, tst * 100 if tst is not None else -1,
+                 len(live), len(rows)))
+    if missing:
+        print("\n%d topic(s) have no trained shard: %s"
+              % (len(missing), ", ".join(missing)))
+        return 1
+    if install:
+        os.makedirs(os.path.join(ROOT, "model"), exist_ok=True)
+        for t, npz in picked.items():
+            dst = os.path.join(ROOT, "model", "elya_shard_%s.npz" % t)
+            shutil.copyfile(npz, dst)
+            print("installed %s" % os.path.relpath(dst, ROOT))
+    else:
+        print("\n(--install copies these into model/elya_shard_<topic>.npz)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

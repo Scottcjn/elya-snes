@@ -46,3 +46,5 @@ out/model/shifts.inc
 out/model/tbl_*.bin
 out/art_selftest_*.log
 out/intro/
+runs/qa_v3_shards/
+runs/qa_v3_shards_run.log
