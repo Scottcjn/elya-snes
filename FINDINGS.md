@@ -3104,3 +3104,90 @@ Files: `train/eval_answers.py`, `tools/check_game.py`, `.gitignore`,
 `model/elya_shard_*.npz`, `out/nnsh.sfc`, `out/nnsh.ram`, `out/gamesh.sfc`,
 `out/gameshqa.ram`, `out/nnsh0.ram`..`out/nnsh5.ram`, `out/model/mdata.bin`,
 `out/model/stubs.bin`, and the gate's refresh of the tracked game outputs.
+
+## 2026-08-19 — 16. Three facts under a frozen vocabulary, and the sixth shard earns a button
+
+Entry 14 measured the vocabulary as chaotically zero-sum: refitting the merges
+for new text evicted merges that facts in other topics were living on, and no
+edit was local. This entry adds information to the model anyway — three history
+facts, 10 → 13 — and the discipline that makes it cheap is **not refitting**.
+
+### The freeze
+
+`prep_qa --vocab-in data/vocab.json`: the merge list is byte-identical (the one
+changed line is `chars_per_token`, a descriptive stat), so every other shard's
+tokenisation is untouched **by construction** and only the history shard
+retrains. Five seeds, one topic, ~14 minutes. The price is that new phrasings
+are budgeted against merges chosen without them, which is why all thirty were
+priced at ≤ 20 positions under the frozen vocabulary *before being written
+down*. 0 fatal rows; `FROZEN137` and `LEGACY_HELD` untouched.
+
+The three facts, all checkable: `sony.` (the sound subsystem — the SPC700
+collaboration that later became the PlayStation), `it varies.` (the clock:
+3.58, 2.68 or 1.79 MHz by memory region — this cartridge's own FastROM arm
+exists because of it, so the answer is accurate rather than evasive), and
+`eight.` (the DSP's voices). `mario world.` was drafted and dropped at the
+pricing stage: an 11-token answer left room for one phrasing in ten. Entry
+14's proper-noun tax, paid before writing instead of after a failed refit.
+
+A bare `how fast? ` was measured as already owned by `hardware`
+(`seven a second.`, her token rate) and is not taken — the same ambiguity
+floor as entry 14's `what year? `.
+
+### What three facts cost the shard
+
+    history shard    dev      test
+    10 facts, s3    70.0%    70.0%
+    13 facts, s3    65.4%    69.2%
+
+0.8 points of test for a 30% bigger topic. Entry 12 paid 8.6 routed points to
+double the whole corpus into one 102,400-weight model; per-shard growth inside
+the headroom (13 against the ~14-fact wall) is nearly free. That is the
+sharding thesis doing its job, measured rather than assumed.
+
+### The sixth shard earns a button
+
+Entry 15 shipped hardware and history as weights no button could reach — the
+six menu questions routed onto four shards. The menu is now eight:
+
+    'what console? '   7 tokens  -> shard 1  hardware
+    'snes maker? '     9 tokens  -> shard 5  history
+
+The menu draws one question at a time and selection wraps at NQUEST, so two
+more entries cost their bytes and nothing else. Checked before shipping: 8 ×
+22-byte answer records = 176 of the 448 bytes SR_ANS holds, and the GAUTO
+scripted player advances one question per ask-cycle mod NQUEST, so a GRUN=8
+run asks all eight.
+
+The pick_menu discipline ran first on the host: **all eight questions decode
+exactly** on their routed, installed shards. Then the cartridge, under ares:
+
+    engine  nnsh.sfc      20/20 tokens identical to the identity shard
+    boot    nnsh5.sfc     20/20 at seed 54 on the RETRAINED history shard
+                          ('tell' -> 'mode seven? it scales.' — its own topic,
+                          free-run), receipt refreshed since entry 15's was of
+                          a model no longer on the cartridge
+    game    gameshqa.sfc  GRUN=8 autoplay: 26 checks PASS, all eight answers
+                          token-identical to their routed shard's host
+                          reference — including
+                          'what console? ' -> 'the snes.'   (hardware's first
+                                                             reachable answer)
+                          'snes maker? '   -> 'nintendo.'   (history's, from
+                                                             the 13-fact model)
+
+The empty-legacy-split eval fix from entry 15 held: five history retrains,
+zero FAILED lines.
+
+### What this does not establish
+
+No silicon — ares only, still. The plain `gamesh.sfc` image was rebuilt and
+never executed; what ran is its autoplay twin, same engine, scripted input.
+Shards 0–4's boot receipts were not re-run: their npz files are byte-identical
+to entry 15's, so those receipts stand on that identity rather than on a fresh
+run. And the menu decode check shares its decoding path with the scorer
+(`eval_answers.answer`), so it is one independent implementation, not two —
+the cartridge run is what makes it evidence.
+
+Files: `train/corpus.py`, `tools/mkgame.py`, `data/`, `model/elya_shard_history.npz`,
+`out/nnsh.sfc`, `out/gamesh.sfc`, `out/gameshqa.ram`, `out/nnsh5.ram`,
+`runs/reports/` (none — receipts live in out/), `FINDINGS.md`.

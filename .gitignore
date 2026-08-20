@@ -52,3 +52,4 @@ out/art_selftest_*.log
 out/intro/
 runs/qa_v3_shards/
 runs/qa_v3_shards_run.log
+runs/qa_v3_hist_retrain.log
