@@ -395,6 +395,12 @@ SR_SNAP2 = $4000        ; the last frame of the run, act 3 on screen
 .proc game_main
         .a16
         .i16
+.ifdef INTRO
+        ; The intro owns the machine before ANY game setup: it forces blank,
+        ; turns NMI off, and leaves both that way, so gsetup starts from the
+        ; same state it always did and the handoff is invisible.
+        jsr intro_play
+.endif
         jsr gsetup                      ; graphics, HDMA, NMI on.  Sets DBR
         lda #$7E                        ; back to the engine's data bank
         pha
@@ -3005,3 +3011,7 @@ g_logomap:  .incbin "assets/logo.map"
 g_logomap_end:
 
         .segment "CODE"
+
+.ifdef INTRO
+        .include "intro.inc"
+.endif

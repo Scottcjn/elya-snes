@@ -424,6 +424,10 @@ def main():
         w_("SEGJ      = $%04X\n" % SEGJ)
         w_("MDBANK    = $%02X\n" % (base + MDBANK0))
         w_("GDBASE    = $%02X0000\n" % (base + GDBANK))
+        # The intro stream sits in the bank after GAMEDATA -- derived, like
+        # everything else here, so the player cannot read from a bank the
+        # linker did not put the data in.
+        w_("INTROBANK = $%02X\n" % (base + GDBANK + 1))
         # Shard 0's segment addresses, for the listing and for anything that
         # wants to name a segment; the ROM reaches every shard through SEGJ.
         for name, addr in segs0:

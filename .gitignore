@@ -53,3 +53,5 @@ out/intro/
 runs/qa_v3_shards/
 runs/qa_v3_shards_run.log
 runs/qa_v3_hist_retrain.log
+out/introqa.sfc
+out/gameshiqa.sfc

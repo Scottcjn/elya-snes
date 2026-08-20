@@ -3191,3 +3191,77 @@ the cartridge run is what makes it evidence.
 Files: `train/corpus.py`, `tools/mkgame.py`, `data/`, `model/elya_shard_history.npz`,
 `out/nnsh.sfc`, `out/gamesh.sfc`, `out/gameshqa.ram`, `out/nnsh5.ram`,
 `runs/reports/` (none — receipts live in out/), `FINDINGS.md`.
+
+## 2026-08-20 — 17. The 65816 plays the film. Three bugs, every one caught by a byte-level receipt
+
+Entry 15's encoder study ended with "nothing here has been played by a 65816:
+the player is not written." It is now: `rom/intro.inc`, ~450 lines, streaming
+the ESV1 intro out of cartridge banks $21–$37 — 10 seconds of AI-generated
+video at 12 fps, 128×96, eight palettes, on the same cartridge as six
+transformers.
+
+### The receipt is end state, byte for byte
+
+The player cannot be watched from this host, so `INTROQA` reads the BG1 map,
+all 193 tile slots and CGRAM back **through the PPU** into SRAM after the last
+frame, and `tools/check_intro.py` compares every byte against an independent
+replay of the stream:
+
+    BG1 map    1024/1024 entries   (192 window + 832 border)
+    CHR        6,176/6,176 bytes   (192 content slots + the zeroed blank)
+    CGRAM      128/128 entries     (bit 15 masked, the established idiom)
+    pacing     605 vblanks for 121 frames = exactly 60/fps per frame
+    stream     consumed to bank $37, nothing left over
+
+And the integration receipt: a single run that plays the whole intro, hands
+off, and then executes the full eight-question game QA — 26 checks, all eight
+answers token-identical to their routed shards. `gsetup` rebuilds everything
+the intro borrowed, so the handoff is invisible by construction and now also
+by measurement.
+
+### Three bugs, in decreasing order of subtlety
+
+**1. A flag clobber made every frame one vblank long.** The 60/fps division
+loop had `inx` between the `sbc` and the branch meant to test it. `inx`
+rewrites Z from X — which is never zero — so the loop only ever exited on
+borrow and counted one high: 6 vblanks a frame, measured as 726 for 121 frames
+by the pacing receipt. The subtract is now the last flag-setting op before its
+branch.
+
+**2. The map flip overran vblank, and the overrun did not just drop.** 192
+CPU-written cells is ~11,500 cycles against a ~8,600-cycle vblank, and a VRAM
+write that lands outside blank **glitches to whatever address the PPU is
+fetching** — the receipt showed 44 stale map cells *and* 222 corrupted bytes
+across 12 tile slots, both from the same cause. The deltas now go to a WRAM
+shadow (BG3's 2 KiB, borrowed before BG3 exists) with the beam wherever it
+likes, and the flip is one 2 KiB DMA: 16,384 of the vblank's 51,832 master
+clocks, constant, whatever the frame changed.
+
+**3. The tile loop was priced optimistically, and fixing bug 2 made it
+worse.** At 56 tiles a vblank with the count in memory, an honest count at
+SlowROM fetch costs is ~1,080 master clocks a tile — 60k a vblank, overrun
+again, and removing the idle vblank that bug 1 had been donating exposed it:
+590 bad bytes across 32 slots, *more* than before the map fix. The loop now
+keeps its count in X, triggers DMA with a 16-bit store (whose spare zero byte
+lands harmlessly in HDMAEN), and runs 48 to a vblank: ~784 master clocks a
+tile, 73% of budget, and the 192-tile peak frame is exactly four vblanks —
+which, with the map flip's fifth, is the whole 12 fps frame. There is no
+slack, and there does not need to be: the budget is arithmetic, not hope.
+
+The instructive part is the *sequence*: each fix uncovered the next bug by
+removing the slack that had been hiding it. A receipt that only checked "does
+it run to DONE" would have shipped all three.
+
+### What this does not establish
+
+Motion. End state proves every byte arrived and the vblank count proves the
+cadence, but nothing here says frame 60 *looked* right at second five — the
+progressive tile update (the Genesis player's compromise, inherited knowingly)
+is invisible to an end-state check by definition. A camera on real hardware is
+the only instrument for that. The intro also runs BEFORE the title card, not
+after — the clip is itself the Elyan logo animating, so the sequence reads
+film → title → game, but the ordering is a taste call that belongs to Scott.
+
+Files: `rom/intro.inc`, `rom/lorom2m.cfg`, `rom/game.inc`, `rom/nn.s`,
+`tools/emit_sharded.py`, `tools/check_shards.py`, `tools/check_intro.py`,
+`out/gamesh.sfc`, `out/introqa.ram`, `out/gameshiqa.ram`.

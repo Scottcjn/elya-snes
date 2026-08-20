@@ -59,6 +59,15 @@ def main():
                        % (k, a.get(k, 0), os.path.basename(cfg), v, n))
     total = sum(a.values())
     used = (1 + n * NWBANK + n + 1 + 1) * BANKSZ
+    # The intro stream, when it exists, is content too -- 23 banks of it.  It
+    # gets its own linker area, so check the area holds the file.
+    intro = os.path.join(ROOT, "assets", "intro.bin")
+    if os.path.exists(intro):
+        isz = os.path.getsize(intro)
+        used += ((isz + BANKSZ - 1) // BANKSZ) * BANKSZ
+        if "INTROBK" in a and a["INTROBK"] < isz:
+            bad.append("INTROBK is $%X and assets/intro.bin is $%X"
+                       % (a["INTROBK"], isz))
     if total & (total - 1):
         bad.append("the config totals %d bytes, which is not a power of two" % total)
     if used > total:

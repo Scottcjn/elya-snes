@@ -1283,6 +1283,12 @@ pos_img:
         .incbin "out/model/mdata.bin"
 .endif
 
+.ifdef INTRO
+        ; The ESV1 stream, bank-aligned by tools/mkintro.py.  23 banks.
+        .segment "INTRODATA"
+        .incbin "assets/intro.bin"
+.endif
+
         .segment "PTABSEG"
         .incbin "out/model/ptab.bin"
 
