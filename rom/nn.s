@@ -1286,11 +1286,22 @@ pos_img:
         .segment "PTABSEG"
         .incbin "out/model/ptab.bin"
 
+; The declared ROM size follows the build.  It was the literal $08 (256 KiB)
+; for every arm, which was correct until the sharded cartridge grew to 2 MiB
+; ($0B) -- and ares ran the mis-declared image without complaint, which is
+; precisely the emulator-smoothing-over-silicon gap this repo keeps finding:
+; flash cart menus and mapping hardware DO read this byte.  tools/kaico_check.py
+; is what caught it, and it now gates the staged image.
+.ifdef SHARDS
+ROMSZB = $0B            ; 2^11 KiB = 2 MiB, rom/lorom2m.cfg
+.else
+ROMSZB = $08            ; 2^8 KiB = 256 KiB, rom/lorom256.cfg
+.endif
 .ifdef GAME
         ; 32 KiB of battery SRAM: the game reads OAM, VRAM and CGRAM back out
         ; through the PPU into it, because this host cannot capture a screen.
-        SNES_HEADER "ELYA - THE CARTRIDGE ", MAPMODE, $02, $08, $05
+        SNES_HEADER "ELYA - THE CARTRIDGE ", MAPMODE, $02, ROMSZB, $05
 .else
-        SNES_HEADER "ELYA SNES TERNARY LM ", MAPMODE, $02, $08, $03
+        SNES_HEADER "ELYA SNES TERNARY LM ", MAPMODE, $02, ROMSZB, $03
 .endif
         SNES_VECTORS reset, nmi, irq
