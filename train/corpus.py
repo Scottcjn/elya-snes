@@ -771,6 +771,44 @@ FACTS = [
         "dev":   ['the other one? ', 'who competed? '],
         "test":  ['the rival maker? ', 'who fought? '],
     }),
+    # Three facts added AFTER the shards shipped, under a FROZEN vocabulary --
+    # data/vocab.json is not refit, so every existing shard's tokenisation is
+    # untouched and only the history shard retrains.  Entry 14 measured why
+    # that discipline exists: refitting the merges for new text evicted merges
+    # that facts in OTHER topics were living on.  The price is that these
+    # questions are budgeted against merges chosen without them; all thirty
+    # phrasings were priced at <= 20 positions under the frozen vocabulary
+    # before being written down.
+    #
+    # 'mario world.' was drafted here and DROPPED: 11 tokens of answer left
+    # room for one phrasing in ten.  The proper-noun tax from entry 14, again.
+    #
+    # All three answers are true and checkable.  Sony built the SNES sound
+    # subsystem (the SPC700 -- the collaboration that later became the
+    # PlayStation).  The DSP mixes eight voices.  And the clock genuinely
+    # VARIES: 3.58, 2.68 or 1.79 MHz depending on which memory region the CPU
+    # is touching -- this cartridge's own FastROM arm exists because of it, so
+    # 'it varies.' is not a dodge, it is the accurate answer.  A bare
+    # 'how fast? ' belongs to `hardware` ('seven a second.', her token rate)
+    # and is not taken.
+    ("history", "sony.", {
+        "train": ["the sound? ", "the audio chip? ", "the sound chip? ",
+                  "whose audio? ", "sound by who? ", "sound chip by? "],
+        "dev":   ["who did the audio? ", "audio by who? "],
+        "test":  ["who made the audio? ", "whose sound chip? "],
+    }),
+    ("history", "it varies.", {
+        "train": ["what speed? ", "how fast is it? ", "clock rate? ",
+                  "its speed? ", "snes clock? ", "the clock? "],
+        "dev":   ["snes speed? ", "what clock? "],
+        "test":  ["how fast is the snes? ", "speed of it? "],
+    }),
+    ("history", "eight.", {
+        "train": ["voices? ", "how many channels? ", "how many voices? ",
+                  "audio channels? ", "audio voices? ", "channel count? "],
+        "dev":   ["sound channels? ", "sound voices? "],
+        "test":  ["how many sounds? ", "music channels? "],
+    }),
     ("history", 'it scales.', {
         "train": ['mode seven? ', 'what is mode seven? ', 'why mode seven? ',
                   'the mode seven? ', 'what mode seven? ', 'why that mode? '],

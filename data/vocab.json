@@ -69,6 +69,6 @@
   "ask "
  ],
  "method": "greedy",
- "chars_per_token": 1.5002771311384546,
+ "chars_per_token": 1.4945196647324306,
  "source": "train/corpus.py"
 }

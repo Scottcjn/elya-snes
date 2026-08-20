@@ -52,6 +52,13 @@ QUESTIONS = [
     "why stop? ",           #  7        -> 'i want to talk.'
     "are you a table? ",    # 10        -> 'no. i can err.'
     "why trust you? ",      # 10        -> 'check the coins.'
+    # These two exist so every shard is REACHABLE.  The first six questions
+    # route onto four of the six shards, and the hardware and history models
+    # were only ever exercised through the SHARD0 boot override -- weights on
+    # the cartridge that no button could reach.  The menu draws one question
+    # at a time, so two more entries cost nothing but these bytes.
+    "what console? ",       #  7        -> 'the snes.'        (hardware)
+    "snes maker? ",         #  9        -> 'nintendo.'        (history)
 ]
 
 
