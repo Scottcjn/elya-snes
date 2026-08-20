@@ -157,7 +157,32 @@ def main(path, ctrl=None):
     print()
     print("== the generated text, against host/ref.py ==")
     npz = ref.default_weights()
-    m = ref.Model.from_npz(npz)
+    # A sharded cartridge (SNES_SHARDED=1 at build time) boots into shard 0
+    # and routes each menu question to its topic's model through
+    # out/game/qshard.bin.  Checking those answers against ONE model measures
+    # the reference's routing error, not the ROM's: the first sharded run
+    # here failed 4 of 6 answers, all four being exactly the questions routed
+    # off shard 0, all four correct against their own shard.  So the same
+    # env var routes the reference the same way.  SNES_WEIGHTS still wins if
+    # set, because an explicit override is an explicit override.
+    if os.environ.get("SNES_SHARDED") and "SNES_WEIGHTS" not in os.environ:
+        sys.path.insert(0, os.path.join(ROOT, "train"))
+        import corpus as C
+        qshard = list(open(os.path.join(ROOT, "out", "game",
+                                        "qshard.bin"), "rb").read())
+        cache = {}
+
+        def model_for(idx):
+            if idx not in cache:
+                cache[idx] = ref.Model.from_npz(os.path.join(
+                    ROOT, "model", "elya_shard_%s.npz" % C.TOPICS[idx]))
+            return cache[idx]
+        m = model_for(0)          # acts 1 and 2 run on the boot shard
+        npz = "model/elya_shard_<topic>.npz (routed by out/game/qshard.bin)"
+        model_for_q = lambda q: model_for(qshard[q])
+    else:
+        m = ref.Model.from_npz(npz)
+        model_for_q = lambda q: m
     vocab = json.load(open(os.path.join(ROOT, "data", "vocab.json")))["vocab"]
     show = lambda t: "".join(vocab[i] for i in t)
 
@@ -196,7 +221,7 @@ def main(path, ctrl=None):
             fails.append("answer %d: the ROM fed %d prompt tokens, the host "
                          "tokeniser makes %d" % (a, plen, len(prompt)))
             continue
-        r = ref.Runner(m)
+        r = ref.Runner(model_for_q(q))
         cur = None
         for p, t in enumerate(prompt):
             cur = r.step(t, p)

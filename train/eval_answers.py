@@ -107,6 +107,15 @@ def degenerate(gen):
 
 def evaluate(model, vocab, rows, label, verbose=0):
     n = len(rows)
+    # An empty split is a fact, not a zero.  The history topic has no legacy
+    # rows (legacy predates it), and the first run of the history shards died
+    # here on 0/0.  Reporting 0.0% for a split with nothing in it would be a
+    # false-red twin of the false-green problem, so the scores are None and
+    # the emptiness is printed.
+    if n == 0:
+        print("%-6s (empty split - no rows, not scored)" % label)
+        return dict(label=label, n=0, exact=None, prefix=None, degen=None,
+                    n_exact=0, rows=[])
     ex = pfx = deg = 0
     detail = []
     for topic, q, want, _held in rows:
