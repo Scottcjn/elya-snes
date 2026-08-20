@@ -23,11 +23,16 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "train"))
 import corpus as C                                                # noqa: E402
 
+# Where a real collapse would live.  See the note in the loop below: the
+# observed maximum over 25 seeds is 0.038.
+DEGEN_MAX = 0.20
+
 
 def main():
     rundir = sys.argv[1] if len(sys.argv) > 1 else "runs/qa_v3_shards"
     install = "--install" in sys.argv
-    print("%-9s %-6s %7s %7s   %s" % ("topic", "seed", "dev", "test", "picked from"))
+    print("%-9s %-6s %7s %7s %7s   %s"
+          % ("topic", "seed", "dev", "test", "degen", "picked from"))
     picked = {}
     missing = []
     for t in C.TOPICS:
@@ -40,21 +45,29 @@ def main():
             deg = d.get("degen_dev", 0.0)
             if dev is None:
                 continue
-            # A DEGENERATE SEED IS DISQUALIFIED, not merely ranked low.  It is a
-            # shard that emits a constant, which scores like a bad model and
-            # behaves like a broken one -- and several seeds of the previous run
-            # logged `degenerate 1`.  Ranking on exact alone would have shipped
-            # one the moment it happened to score well on a small dev split.
+            # degen is a FRACTION of the split, not a flag, and the first
+            # version of this file treated it as one -- `if not degen` threw
+            # out every seed with a single bad answer.  It reported "ALL 5
+            # SEEDS DEGENERATE" for honesty shards scoring 73.1% on test, and
+            # the same mistake read the training log's "degenerate 1" (a COUNT
+            # OF QUESTIONS) as a verdict on the model.
+            #
+            # Measured over 25 seeds: max degen_dev is 0.038, which is one
+            # question of 26, and the median is 0.  Nothing here is remotely a
+            # constant-emitter.  So the threshold is set where an actual
+            # collapse would live and the number is REPORTED either way, since
+            # a fraction that has never exceeded 4% is a fact about the run and
+            # not a filter worth applying blind.
             rows.append((dev, tst, deg, j))
         if not rows:
             missing.append(t)
             print("%-9s %-6s %7s %7s   NONE FOUND" % (t, "-", "-", "-"))
             continue
         # highest dev; ties break to the lower seed so the choice is stable
-        live = [r for r in rows if not r[2]]
+        live = [r for r in rows if r[2] <= DEGEN_MAX]
         if not live:
-            print("%-9s %-6s %7s %7s   ALL %d SEEDS DEGENERATE"
-                  % (t, "-", "-", "-", len(rows)))
+            print("%-9s %-6s %7s %7s   ALL %d SEEDS OVER %.0f%% DEGENERATE"
+                  % (t, "-", "-", "-", len(rows), DEGEN_MAX * 100))
             missing.append(t)
             continue
         live.sort(key=lambda r: (-r[0], r[3]))
@@ -62,9 +75,9 @@ def main():
         seed = os.path.basename(j).rsplit("_s", 1)[1].split(".")[0]
         npz = j[:-5] + ".npz"
         picked[t] = npz
-        print("%-9s s%-5s %6.1f%% %6.1f%%   %d of %d seeds usable"
+        print("%-9s s%-5s %6.1f%% %6.1f%%  %5.1f%%   %d of %d seeds usable"
               % (t, seed, dev * 100, tst * 100 if tst is not None else -1,
-                 len(live), len(rows)))
+                 _deg * 100, len(live), len(rows)))
     if missing:
         print("\n%d topic(s) have no trained shard: %s"
               % (len(missing), ", ".join(missing)))
