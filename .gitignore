@@ -20,6 +20,10 @@ out/nnav1.sfc
 out/*.build
 # the game's variant cartridges; out/game.sfc and out/gamefast.sfc are the
 # shipping images and are committed
+# (same rule for the sharded pair: out/nnsh.sfc and out/gamesh.sfc ship, the
+# autoplay-QA and boot-shard-override arms rebuild on demand)
+out/gameshqa.sfc
+out/nnsh[0-5].sfc
 out/gameqa.sfc
 out/gamectl.sfc
 out/gameprof.sfc
