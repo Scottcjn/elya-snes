@@ -2962,3 +2962,145 @@ way, but **shards should ship before this topic is trained**, or the capacity
 is paid for twice.
 
 Files: `train/corpus.py`, `.gitignore`.
+
+## 2026-08-19 — 15. Six shards ship. Every answer on the cartridge now comes from the model that was checked giving it
+
+Entry 14 ended with a sequencing rule: shards should ship before the history
+topic is trained, or the capacity is paid for twice.  This entry ships them.
+Thirty training runs — five seeds by six topics, 32k steps each — a dev-only
+selection, two 2 MiB cartridges verified under ares, and two places where the
+receipts themselves had to be caught lying before they could be trusted.
+
+### The history seeds all said FAILED, and none of them had
+
+The launcher's log said `FAILED shard_history_s1` through `s5`, all five.  The
+weights were fine — the trainer saves the npz *before* it scores itself — and
+the crash was the scorer's: history is the one topic with no legacy rows
+(legacy predates it), and `evaluate()` divided by the split's size without
+asking whether it had one.  Five completed 700-second training runs reported
+as failures by a `0/0` in a place that had never before been empty.
+
+The fix refuses the symmetric lie.  An empty split now scores `None` with a
+printed note, not `0.0%` — a zero would read as "this model got every legacy
+question wrong", a false-red exactly as misleading as the false-green the
+crash at least refused to produce.  The five history jsons were then rebuilt
+by re-running only the evaluation against the saved weights, marked
+`eval_only_rebuild` so nobody mistakes them for full trainer output.
+
+### Selection, on dev, reported on test
+
+`tools/pick_shards.py runs/qa_v3_shards --install`:
+
+    topic     seed       dev    test   degen   picked from
+    identity  s1       56.7%   51.6%    3.3%   5 of 5 seeds usable
+    hardware  s4       78.6%   60.7%    0.0%   5 of 5 seeds usable
+    model     s1       73.3%   70.0%    0.0%   5 of 5 seeds usable
+    game      s4       80.8%   69.2%    3.8%   5 of 5 seeds usable
+    honesty   s1       61.5%   73.1%    3.8%   5 of 5 seeds usable
+    history   s3       70.0%   70.0%    0.0%   5 of 5 seeds usable
+
+Test is reported whether it flatters or not: hardware gives back 17.9 points
+from dev to test, honesty gains 11.6, and both gaps are the kind of noise a
+26-question dev split buys.  History — the topic entry 14 priced the
+vocabulary for — lands at 70.0/70.0 with zero degenerate answers.  All thirty
+seeds cleared the 20% degeneracy bar; the worst observed is still under 4%.
+
+### The engine cartridge: 2 MiB, six models, output identical to the host
+
+`SNES_SHARDED=1 NAME=nnsh ./build_nn.sh` emits six shards of straight-line
+65816 weight code — 54,406 / 54,516 / 54,444 / 54,408 / 54,235 / 54,733
+nonzero weights, four banks each — into a 2,097,152-byte LoROM image, 33 of
+64 banks used, and `tools/check_shards.py` says the config and the emitter
+agree.  Under ares, booted into shard 0, the SRAM token stream is **20/20
+identical** to `host/ref.py` running `model/elya_shard_identity.npz` — the
+seed token plus all 19 generated.  And the line is now a line: `'but i do get
+it wrong.'`, where the whole-corpus model gives salad from the same seed.
+
+### The checker that measured its own routing error
+
+The game cartridge (`gamesh`) routes each menu question to a shard through
+`out/game/qshard.bin` — questions 0 and 1 to identity, 2 and 3 to game, 4 to
+model, 5 to honesty.  The autoplay QA build (`-DGAUTO -DGRUN=6`) ran 2,695
+frames under ares, answered all six questions, and `tools/check_game.py`
+failed four of them.
+
+All four "failures" were exactly the four questions routed off shard 0, and
+all four answers were correct — against their own shard.  The checker
+predates sharding: it re-ran every answer through one reference model, so the
+number it produced measured its own routing, not the ROM's.  It now routes
+the reference the way the ROM routes the question (`SNES_SHARDED=1`, same
+qshard.bin), and the run is **24 of 24 checks**, all six answers
+token-for-token against the shard that gave them:
+
+    q0 'who are you? '     -> 'i am elya.'        (identity)
+    q1 'what are you? '    -> 'a small model.'    (identity)
+    q2 'the coins? '       -> 'one is a token.'   (game)
+    q3 'why stop? '        -> 'i want to talk.'   (game)
+    q4 'are you a table? ' -> 'no. i can err.'    (model)
+    q5 'why trust you? '   -> 'check the coins.'  (honesty)
+
+The coin binding held at every one of 168 trace samples — 168 coins spawned,
+168 tokens committed — and every PPU readback agrees with its shadow.
+
+### The receipt that could not tell the shards apart
+
+`-DSHARD0=n` boots the engine into any shard, so all six were run under ares
+and each matched its own npz 20/20.  At the default seed token that sweep
+proves less than it appears to: every shard memorised the shared monologue,
+so **all six models emit the identical 19 tokens from seed 1**, and a
+mislabelled bank would have passed six times.  Measured on the host first
+this time: seed 54 (`'tell'`) separates them — six pairwise-distinct streams.
+The sweep was rebuilt at that seed (`NES_SEED_TOK=54`) and rerun: six boot
+shards, **20/20 tokens each against its own npz**, six different answers off
+the same silicon-shaped question —
+
+    shard 0  'tell me your name. i am elya.'
+    shard 1  'tellhere at? on the cart.'
+    shard 2  'tellidom? one by one.'
+    shard 3  'tellan it catch you? no. it cannot.'
+    shard 4  'tello you ever fail? yes. often.'
+    shard 5  'tellold one? the famicom.'
+
+A wrong bank cannot pass that sweep, and the run at seed 1 could not have
+caught it.  The difference between those two sentences is entry 2's lesson —
+check the instrument before believing the reading — paying rent again.
+
+### The unsharded cartridge still passes, and its text is now honestly salad
+
+`NAME=nn ./build_nn.sh`, ares, `tools/check_nn.py`: 20/20 tokens identical.
+The decoded text is `'buana dingeanianwris g.'` — the shipped whole-corpus
+weights were fitted to the pre-history vocabulary and `data/vocab.json` has
+been refit since, so decoding those tokens through the new table is nonsense
+by construction.  The check compares token ids against the same weights on
+both sides and is untouched by that; the salad is the display artefact of a
+mismatch entry 14 declared on purpose, not a regression.
+
+The full gate on this tree: **GATE: pass**, every arm, exit 0.
+
+### What this does NOT establish
+
+**No silicon.**  Every run here is ares.  Nothing in this entry has been seen
+by a real S-CPU, and the 2 MiB image has never been flashed.
+
+**The shipping game image itself was never executed.**  `out/gamesh.sfc` is
+built `-DGAME` with no autoplay, and this host cannot press a button; what
+ran to DONE is its `-DGAUTO -DGRUN=6` twin — same shards, same engine,
+different input path.  The scripted player is also not a player: 44.8 seconds
+of autoplay says nothing about how the game feels.
+
+**Two shards ride the cartridge unasked.**  qshard.bin routes the six menu
+questions onto four shards; hardware and history are reachable only through
+the `SHARD0` build override, not by anything a player can do at the menu.
+
+**The routing is static.**  Six fixed questions to six fixed indices, decided
+at build time from the corpus.  No on-cartridge router reads a question and
+picks a shard; entry 10's finding that no such router exists still stands.
+
+**One seed of five, on this corpus.**  The selection table is what five seeds
+bought on a 26-question dev split; per-topic dev-test gaps of ±18 points say
+the split is small, not that the recipe is stable.
+
+Files: `train/eval_answers.py`, `tools/check_game.py`, `.gitignore`,
+`model/elya_shard_*.npz`, `out/nnsh.sfc`, `out/nnsh.ram`, `out/gamesh.sfc`,
+`out/gameshqa.ram`, `out/nnsh0.ram`..`out/nnsh5.ram`, `out/model/mdata.bin`,
+`out/model/stubs.bin`, and the gate's refresh of the tracked game outputs.
